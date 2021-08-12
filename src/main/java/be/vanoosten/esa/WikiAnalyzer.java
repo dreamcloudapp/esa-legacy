@@ -5,6 +5,7 @@ import org.apache.lucene.analysis.core.LowerCaseFilter;
 import org.apache.lucene.analysis.core.StopFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.en.PorterStemFilter;
 import org.apache.lucene.analysis.snowball.SnowballFilter;
 import org.apache.lucene.analysis.standard.StandardFilter;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
@@ -49,6 +50,7 @@ public final class WikiAnalyzer extends Analyzer {
         TokenStream result = new StandardFilter(matchVersion, source);
         result = new LowerCaseFilter(matchVersion, result);
         result = new StopFilter(matchVersion, result, stoptable);
+        result = new PorterStemFilter(result);
         return new Analyzer.TokenStreamComponents(source, result);
     }
 }

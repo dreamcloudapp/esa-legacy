@@ -3,9 +3,14 @@ package be.vanoosten.esa;
 import static be.vanoosten.esa.WikiIndexer.TITLE_FIELD;
 import java.io.File;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.Arrays;
+import java.util.List;
+
+import be.vanoosten.esa.tools.ConceptVector;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.Token;
 import org.apache.lucene.analysis.core.StopAnalyzer;
@@ -37,13 +42,26 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.AttributeSource;
 import org.apache.lucene.util.BytesRef;
+
+import be.vanoosten.esa.tools.SemanticSimilarityTool;
+import be.vanoosten.esa.tools.Vectorizer;
+
 import static org.apache.lucene.util.Version.LUCENE_48;
+
+//Reading input files
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 /**
  *
  * @author Philip van Oosten
  */
 public class Main {
+
+    public static String readInputFile(String path, String encoding) throws IOException {
+        byte[] encoded = Files.readAllBytes(Paths.get(path));
+        return new String(encoded, encoding);
+    }
 
     public static void main(String[] args) throws IOException, ParseException {
         /*
@@ -61,8 +79,38 @@ public class Main {
         File conceptTermIndexDirectory = factory.getConceptTermIndexDirectory();
 
         // The following lines are commented, because they can take a looong time.
-        // indexing(termDocIndexDirectory, wikipediaDumpFile, stopWords);
-        // createConceptTermIndex(termDocIndexDirectory, conceptTermIndexDirectory);
+        List<String> argList = Arrays.asList(args);
+        if (argList.contains("index")) {
+            System.out.println("Indexing...");
+            indexing(termDocIndexDirectory, wikipediaDumpFile, stopWords);
+        }
+        if (argList.contains("concept")) {
+            System.out.println("Index mapping...");
+            createConceptTermIndex(termDocIndexDirectory, conceptTermIndexDirectory);
+        }
+        if(argList.contains("analyze")) {
+            System.out.println("Analyzing similarity...");
+            WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
+            Vectorizer vectorizer = new Vectorizer(indexPath, analyzer);
+            SemanticSimilarityTool similarity = new SemanticSimilarityTool(vectorizer);
+            String dream1 = readInputFile("dream1.txt", "utf-8");
+            String dream2 = readInputFile("dream2.txt", "utf-8");
+            System.out.println("Document relatedness: " + similarity.findSemanticSimilarity(dream1, dream2));
+        }
+        if (argList.contains("top-10")) {
+            System.out.println("Getting top 10 concepts...");
+            WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
+            Vectorizer vectorizer = new Vectorizer(indexPath, analyzer);
+            vectorizer.setConceptCount(10);
+            String dream1 = readInputFile("dream1.txt", "utf-8");
+            ConceptVector vector = vectorizer.vectorize(dream1);
+            Iterator<String> topTenConcepts = vector.topConcepts(10);
+            for (Iterator<String> it = topTenConcepts; it.hasNext(); ) {
+                String concept = it.next();
+                System.out.println(concept);
+            }
+        }
+        System.out.println("Finished.");
     }
 
     /**
@@ -72,7 +120,7 @@ public class Main {
      * @throws IOException
      */
     static void createConceptTermIndex(File termDocIndexDirectory, File conceptTermIndexDirectory) throws IOException {
-        ExecutorService es = Executors.newFixedThreadPool(2);
+        ExecutorService es = Executors.newFixedThreadPool(8); //2 to 8.
 
         final Directory termDocDirectory = FSDirectory.open(termDocIndexDirectory);
         final IndexReader termDocReader = IndexReader.open(termDocDirectory);

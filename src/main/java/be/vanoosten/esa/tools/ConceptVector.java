@@ -25,27 +25,49 @@ public class ConceptVector {
     Map<String, Float> conceptWeights;
 
     ConceptVector(TopDocs td, IndexReader indexReader) throws IOException {
-        double norm = 0.0;
+        System.out.println("Total concept hits: " + td.totalHits);
+        //double norm = 0.0;
         conceptWeights = new HashMap<>();
         for (ScoreDoc scoreDoc : td.scoreDocs) {
-            norm += scoreDoc.score * scoreDoc.score;
+            //norm += scoreDoc.score * scoreDoc.score;
             String concept = indexReader.document(scoreDoc.doc).get(WikiIndexer.TITLE_FIELD);
             conceptWeights.put(concept, scoreDoc.score);
         }
-        norm = Math.sqrt(norm);
+        /*norm = Math.sqrt(norm);
         for (String concept : conceptWeights.keySet()) {
             conceptWeights.put(concept, (float) (conceptWeights.get(concept) / norm));
-        }
+        }*/
     }
 
     public float dotProduct(ConceptVector other) {
+        //Print top 10 concepts
+
+
         Set<String> commonConcepts = new HashSet<>(other.conceptWeights.keySet());
+        System.out.println("1-size: " + conceptWeights.keySet().size());
+        System.out.println("2-size: " + other.conceptWeights.keySet().size());
         commonConcepts.retainAll(conceptWeights.keySet());
+        System.out.println("c-size: " + commonConcepts.size());
         double dotProd = 0.0;
         for (String concept : commonConcepts) {
-            dotProd += conceptWeights.get(concept) * other.conceptWeights.get(concept);
+            Float w1 =  conceptWeights.get(concept);
+            Float w2 =  other.conceptWeights.get(concept);
+            dotProd += w1 * w2;
         }
-        return (float) dotProd;
+
+        float norm1 = 0;
+        for (Float weight: conceptWeights.values()) {
+            norm1 += weight * weight;
+        }
+        norm1 = (float) Math.sqrt(norm1);
+
+        float norm2 = 0;
+        for (Float weight: other.conceptWeights.values()) {
+            norm2 += weight * weight;
+        }
+        norm2 = (float) Math.sqrt(norm2);
+
+        return (float) dotProd / (norm1 * norm2);
     }
 
     public Iterator<String> topConcepts(int n) {

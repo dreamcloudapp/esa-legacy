@@ -1,2 +1,8 @@
 target
-CL-ESA.pdf
+.idea
+.settings
+.vscode
+enwiki
+.classpath
+.project
+esa.iml

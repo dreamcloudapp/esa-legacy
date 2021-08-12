@@ -28,7 +28,7 @@ public class Vectorizer implements AutoCloseable {
     IndexReader indexReader;
     IndexSearcher searcher;
     QueryParser queryParser;
-    int conceptCount;
+    int conceptCount = 1000;
 
     /**
      * Creates a new Vectorizer
@@ -43,7 +43,6 @@ public class Vectorizer implements AutoCloseable {
         indexReader = DirectoryReader.open(termToConceptDirectory);
         searcher = new IndexSearcher(indexReader);
         queryParser = new QueryParser(LUCENE_48, TEXT_FIELD, analyzer);
-        conceptCount = 100;
     }
 
     public ConceptVector vectorize(String text) throws ParseException, IOException {
