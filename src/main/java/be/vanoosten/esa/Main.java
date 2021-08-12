@@ -81,34 +81,34 @@ public class Main {
         DecimalFormat decimalFormat = new DecimalFormat("#.00");
 
         Options options = new Options();
-        Option compareTextOption = new Option("ct", "compare-texts", true, "comparison text");
+        Option compareTextOption = new Option("ct", "compare-texts", true, "\"string one\" \"string two\" / Compare two texts.");
         compareTextOption.setRequired(false);
         compareTextOption.setArgs(2);
         options.addOption(compareTextOption);
 
-        Option compareFileOption = new Option("cf", "compare-files", true, "comparison files");
+        Option compareFileOption = new Option("cf", "compare-files", true, "source1.txt source2.txt / Compare texts from files.");
         compareFileOption.setRequired(false);
         compareFileOption.setArgs(2);
         options.addOption(compareFileOption);
 
-        Option topTextOption = new Option("tt", "top-text", true, "top concepts for text");
+        Option topTextOption = new Option("tt", "top-text", true, "\"string\" / Get the top concepts for text.");
         topTextOption.setRequired(false);
         options.addOption(topTextOption);
 
-        Option topFileOption = new Option("tf", "top-text", true, "top concepts for file");
+        Option topFileOption = new Option("tf", "top-text", true, "input.txt / Get the top concepts for text in a file.\"");
         topFileOption.setRequired(false);
         options.addOption(topFileOption);
 
-        Option limitOption = new Option("l", "limit", true, "concept query limit");
+        Option limitOption = new Option("l", "limit", true, "int / The maximum number of concepts to query when comparing texts and finding top concepts.");
         limitOption.setRequired(false);
         options.addOption(limitOption);
 
         //Indexing
-        Option indexOption = new Option("i", "index", true, "index a wikipedia dump bz2 file");
+        Option indexOption = new Option("i", "index", true, "dump.bz2 / Indexes a Wikipedia XML dump file in bz2 format.");
         indexOption.setRequired(false);
         options.addOption(indexOption);
 
-        Option mapOption = new Option("m", "map", false, "map terms to concepts");
+        Option mapOption = new Option("m", "map", false, "Maps terms to concept. Must run the index first.");
         mapOption.setRequired(false);
         options.addOption(mapOption);
 
@@ -201,6 +201,7 @@ public class Main {
 
             //Map the terms to concepts
             else if (cmd.hasOption("m")) {
+                System.out.println("Mapping terms to concepts...");
                 createConceptTermIndex(new File("./index/termdoc"), new File("./index/conceptterm"));
                 System.out.println("Created index at 'index/conceptterm'.");
             } else {
