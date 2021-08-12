@@ -77,6 +77,10 @@ public class ConceptVector {
                 iterator();
     }
 
+    public Map<String, Float> getConceptWeights() {
+        return conceptWeights;
+    }
+
     public Query asQuery() {
         BooleanQuery relatedTermsQuery = new BooleanQuery();
         for (Map.Entry<String, Float> entry : conceptWeights.entrySet()) {

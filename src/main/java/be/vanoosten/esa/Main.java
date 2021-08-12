@@ -3,6 +3,7 @@ package be.vanoosten.esa;
 import static be.vanoosten.esa.WikiIndexer.TITLE_FIELD;
 import java.io.File;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
@@ -11,6 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import be.vanoosten.esa.tools.ConceptVector;
+import jdk.internal.org.jline.reader.impl.DefaultParser;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.Token;
 import org.apache.lucene.analysis.core.StopAnalyzer;
@@ -43,6 +45,8 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.AttributeSource;
 import org.apache.lucene.util.BytesRef;
 
+import org.apache.commons.cli.*;
+
 import be.vanoosten.esa.tools.SemanticSimilarityTool;
 import be.vanoosten.esa.tools.Vectorizer;
 
@@ -63,54 +67,148 @@ public class Main {
         return new String(encoded, encoding);
     }
 
+    public static Boolean nonEmpty(String s) {
+        return s != null && !s.equals("");
+    }
+
     public static void main(String[] args) throws IOException, ParseException {
-        /*
-        String indexPath = String.join(File.separator, "D:", "Development", "esa", "nlwiki");
-        File wikipediaDumpFile = new File(String.join(File.separator, "D:", "Downloads", "nlwiki", "nlwiki-20140611-pages-articles-multistream.xml.bz2"));
-        String startTokens = "geheim anoniem auteur verhalen lezen schrijven wetenschappelijk artikel peer review";
-        */
         WikiFactory factory = new EnwikiFactory();
-        File indexPath = factory.getIndexRootPath();
-        File wikipediaDumpFile = factory.getWikipediaDumpFile();
-        String startTokens = "secret anonymous author stories read write scientific article peer review";
         CharArraySet stopWords = factory.getStopWords();
+        DecimalFormat decimalFormat = new DecimalFormat("###.###");
 
-        File termDocIndexDirectory = factory.getTermDocIndexDirectory();
-        File conceptTermIndexDirectory = factory.getConceptTermIndexDirectory();
+        Options options = new Options();
+        //Analysis options
+        Option sourceOption = new Option("s", "source", true, "source text or file");
+        sourceOption.setRequired(false);
+        options.addOption(sourceOption);
 
-        // The following lines are commented, because they can take a looong time.
-        List<String> argList = Arrays.asList(args);
-        if (argList.contains("index")) {
-            System.out.println("Indexing...");
-            indexing(termDocIndexDirectory, wikipediaDumpFile, stopWords);
-        }
-        if (argList.contains("concept")) {
-            System.out.println("Index mapping...");
-            createConceptTermIndex(termDocIndexDirectory, conceptTermIndexDirectory);
-        }
-        if(argList.contains("analyze")) {
-            System.out.println("Analyzing similarity...");
-            WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
-            Vectorizer vectorizer = new Vectorizer(indexPath, analyzer);
-            SemanticSimilarityTool similarity = new SemanticSimilarityTool(vectorizer);
-            String dream1 = readInputFile("dream1.txt", "utf-8");
-            String dream2 = readInputFile("dream2.txt", "utf-8");
-            System.out.println("Document relatedness: " + similarity.findSemanticSimilarity(dream1, dream2));
-        }
-        if (argList.contains("top-10")) {
-            System.out.println("Getting top 10 concepts...");
-            WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
-            Vectorizer vectorizer = new Vectorizer(indexPath, analyzer);
-            vectorizer.setConceptCount(10);
-            String dream1 = readInputFile("dream1.txt", "utf-8");
-            ConceptVector vector = vectorizer.vectorize(dream1);
-            Iterator<String> topTenConcepts = vector.topConcepts(10);
-            for (Iterator<String> it = topTenConcepts; it.hasNext(); ) {
-                String concept = it.next();
-                System.out.println(concept);
+        Option compareOption = new Option("c", "compare", true, "comparison text or file");
+        compareOption.setRequired(false);
+        options.addOption(compareOption);
+
+        Option topOption = new Option("t", "top", true, "top N concepts");
+        topOption.setRequired(false);
+        options.addOption(topOption);
+
+        Option limitOption = new Option("l", "limit", true, "concept query limit");
+        limitOption.setRequired(false);
+        options.addOption(limitOption);
+
+        //Indexing
+        Option indexOption = new Option("i", "index", true, "index a wikipedia dump bz2 file");
+        indexOption.setRequired(false);
+        options.addOption(indexOption);
+
+        Option mapOption = new Option("m", "map", false, "map terms to concepts");
+        mapOption.setRequired(false);
+        options.addOption(mapOption);
+
+        CommandLineParser parser = new BasicParser();
+        HelpFormatter formatter = new HelpFormatter();
+
+        try {
+            CommandLine cmd = parser.parse(options, args);
+            String source = cmd.getOptionValue("s");
+            String compare = cmd.getOptionValue("c");
+            String limit = cmd.getOptionValue("l");
+            String top = cmd.getOptionValue("t");
+            String index = cmd.getOptionValue("i");
+
+            //Comparison of texts
+            if (nonEmpty(source) && nonEmpty(compare)) {
+                String sourceText;
+                String compareText;
+                if (source.charAt(0) == '\'') {
+                    //Text
+                    sourceText = source.substring(1, source.length() - 1);
+                } else {
+                    //File
+                    sourceText = readInputFile(source, "utf-8");
+                }
+                if (compare.charAt(0) == '\'') {
+                    //Text
+                    compareText = source.substring(1, source.length() - 1);
+                } else {
+                    //File
+                    compareText = readInputFile(compare, "utf-8");
+                }
+               String sourceDesc = sourceText.substring(0, Math.min(16, sourceText.length()));
+                if (sourceText.length() > 16) {
+                    sourceDesc += "...";
+                }
+               String compareDesc = compareText.substring(0, Math.min(16, compareText.length()));
+                if (compareText.length() > 16) {
+                    compareDesc += "...";
+                }
+               System.out.println("Comparing '" + sourceDesc + "' to '" + compareDesc + "':");
+                WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
+                Vectorizer vectorizer = new Vectorizer(new File("./index/conceptterm"), analyzer);
+                if (nonEmpty(limit)) {
+                    try {
+                        Integer conceptCount = Integer.parseInt(limit);
+                        vectorizer.setConceptCount(conceptCount);
+                    } catch (NumberFormatException e) {
+
+                    }
+                }
+                System.out.println("Limiting to top " + vectorizer.getConceptCount() + " per document.");
+                SemanticSimilarityTool similarity = new SemanticSimilarityTool(vectorizer);
+                System.out.println("Vector relatedness: " + decimalFormat.format(similarity.findSemanticSimilarity(sourceText, compareText))
+                );
             }
+
+            //Top concepts
+            else if (nonEmpty(source) && nonEmpty(top)) {
+                Integer topConcepts = 10;
+                try {
+                    topConcepts = Integer.parseInt(top);
+                } catch (NumberFormatException e) {
+
+                }
+
+                String sourceText;
+                if (source.charAt(0) == '\'') {
+                    //Text
+                    sourceText = source.substring(1, source.length() - 1);
+                } else {
+                    //File
+                    sourceText = readInputFile(source, "utf-8");
+                }
+                String sourceDesc = sourceText.substring(0, Math.min(16, sourceText.length()));
+                if (sourceText.length() > 16) {
+                    sourceDesc += "...";
+                }
+                System.out.println("Getting top " + topConcepts + " for '" + sourceDesc + "':");
+                WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
+                Vectorizer vectorizer = new Vectorizer(new File("./index/conceptterm"), analyzer);
+                vectorizer.setConceptCount(topConcepts);
+                ConceptVector vector = vectorizer.vectorize(sourceText);
+                Iterator<String> topTenConcepts = vector.topConcepts(topConcepts);
+                for (Iterator<String> it = topTenConcepts; it.hasNext(); ) {
+                    String concept = it.next();
+                    System.out.println(concept + ": " + decimalFormat.format(vector.getConceptWeights().get(concept)));
+                }
+            }
+
+            //Index a dump file
+            else if (nonEmpty(index)) {
+                System.out.println("Indexing " + index + "...");
+                File wikipediaDumpFile = new File(index);
+                indexing(new File("./index/termdoc"), wikipediaDumpFile, stopWords);
+                System.out.println("Created index at 'index/termdoc'.");
+            }
+
+            //Map the terms to concepts
+            else if (cmd.hasOption("m")) {
+                createConceptTermIndex(new File("./index/termdoc"), new File("./index/conceptterm"));
+                System.out.println("Created index at 'index/conceptterm'.");
+            }
+
+        } catch (org.apache.commons.cli.ParseException e) {
+            System.out.println(e.getMessage());
+            formatter.printHelp("wiki-esa", options);
+            System.exit(1);
         }
-        System.out.println("Finished.");
     }
 
     /**

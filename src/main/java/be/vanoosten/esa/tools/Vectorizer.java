@@ -33,12 +33,11 @@ public class Vectorizer implements AutoCloseable {
     /**
      * Creates a new Vectorizer
      *
-     * @param indexDirectory The directory where to find the indices
+     * @param termConceptDirectory The directory where to find the indices
      * @param analyzer The analyzer to use to create search queries
      * @throws java.io.IOException
      */
-    public Vectorizer(File indexDirectory, Analyzer analyzer) throws IOException {
-        File termConceptDirectory = new File(indexDirectory, "termdoc");
+    public Vectorizer(File termConceptDirectory, Analyzer analyzer) throws IOException {
         termToConceptDirectory = FSDirectory.open(termConceptDirectory);
         indexReader = DirectoryReader.open(termToConceptDirectory);
         searcher = new IndexSearcher(indexReader);
