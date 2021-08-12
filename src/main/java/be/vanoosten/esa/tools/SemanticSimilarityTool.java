@@ -3,6 +3,8 @@ package be.vanoosten.esa.tools;
 import java.io.IOException;
 import org.apache.lucene.queryparser.classic.ParseException;
 
+import javax.swing.*;
+
 /**
  * Calculates a numeric value for the semantic similarity between two texts.
  * @author Philip van Oosten

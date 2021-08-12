@@ -78,7 +78,7 @@ public class Main {
     public static void main(String[] args) throws IOException, ParseException {
         WikiFactory factory = new EnwikiFactory();
         CharArraySet stopWords = factory.getStopWords();
-        DecimalFormat decimalFormat = new DecimalFormat("#.00");
+        DecimalFormat decimalFormat = new DecimalFormat("#.000");
 
         Options options = new Options();
         Option compareTextOption = new Option("ct", "compare-texts", true, "\"string one\" \"string two\" / Compare two texts.");
@@ -133,8 +133,8 @@ public class Main {
                     sourceText = compareTexts[0];
                     compareText = compareTexts[1];
                 } else {
-                    sourceText = readInputFile(compareTexts[0], "utf-8");
-                    compareText = readInputFile(compareTexts[1], "utf-8");
+                    sourceText = readInputFile(compareFiles[0], "utf-8");
+                    compareText = readInputFile(compareFiles[1], "utf-8");
                 }
                String sourceDesc = sourceText.substring(0, Math.min(16, sourceText.length()));
                 if (sourceText.length() > 16) {
@@ -146,7 +146,7 @@ public class Main {
                 }
                System.out.println("Comparing '" + sourceDesc + "' to '" + compareDesc + "':");
                 WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
-                Vectorizer vectorizer = new Vectorizer(new File("./index/conceptterm"), analyzer);
+                Vectorizer vectorizer = new Vectorizer(new File("./index/termdoc"), analyzer);
                 if (nonEmpty(limit)) {
                     try {
                         Integer conceptCount = Integer.parseInt(limit);
@@ -181,7 +181,7 @@ public class Main {
                 }
                 System.out.println("Getting top " + topConcepts + " concepts for '" + sourceDesc + "':");
                 WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
-                Vectorizer vectorizer = new Vectorizer(new File("./index/conceptterm"), analyzer);
+                Vectorizer vectorizer = new Vectorizer(new File("./index/termdoc"), analyzer);
                 vectorizer.setConceptCount(topConcepts);
                 ConceptVector vector = vectorizer.vectorize(sourceText);
                 Iterator<String> topTenConcepts = vector.topConcepts(topConcepts);
@@ -222,8 +222,6 @@ public class Main {
      * @throws IOException
      */
     static void createConceptTermIndex(File termDocIndexDirectory, File conceptTermIndexDirectory) throws IOException {
-        ExecutorService es = Executors.newFixedThreadPool(8); //2 to 8.
-
         final Directory termDocDirectory = FSDirectory.open(termDocIndexDirectory);
         final IndexReader termDocReader = IndexReader.open(termDocDirectory);
         final IndexSearcher docSearcher = new IndexSearcher(termDocReader);

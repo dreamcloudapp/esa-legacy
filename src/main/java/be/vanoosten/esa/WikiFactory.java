@@ -105,8 +105,4 @@ public abstract class WikiFactory implements AutoCloseable {
     public final File getConceptTermIndexDirectory() {
         return new File(getIndexRootPath(), "conceptterm");
     }
-
-    public final File getTermDocIndexDirectory() {
-        return new File(getIndexRootPath(), "termdoc");
-    }
 }

@@ -25,23 +25,14 @@ public class ConceptVector {
     Map<String, Float> conceptWeights;
 
     ConceptVector(TopDocs td, IndexReader indexReader) throws IOException {
-        //double norm = 0.0;
         conceptWeights = new HashMap<>();
         for (ScoreDoc scoreDoc : td.scoreDocs) {
-            //norm += scoreDoc.score * scoreDoc.score;
             String concept = indexReader.document(scoreDoc.doc).get(WikiIndexer.TITLE_FIELD);
             conceptWeights.put(concept, scoreDoc.score);
         }
-        /*norm = Math.sqrt(norm);
-        for (String concept : conceptWeights.keySet()) {
-            conceptWeights.put(concept, (float) (conceptWeights.get(concept) / norm));
-        }*/
     }
 
     public float dotProduct(ConceptVector other) {
-        //Print top 10 concepts
-
-
         Set<String> commonConcepts = new HashSet<>(other.conceptWeights.keySet());
         commonConcepts.retainAll(conceptWeights.keySet());
         double dotProd = 0.0;
@@ -55,20 +46,18 @@ public class ConceptVector {
         for (Float weight: conceptWeights.values()) {
             norm1 += weight * weight;
         }
-        norm1 = (float) Math.sqrt(norm1);
 
         float norm2 = 0;
         for (Float weight: other.conceptWeights.values()) {
             norm2 += weight * weight;
         }
-        norm2 = (float) Math.sqrt(norm2);
 
-        return (float) dotProd / (norm1 * norm2);
+        return (float) (dotProd / (Math.sqrt(norm1) * Math.sqrt(norm2)));
     }
 
     public Iterator<String> topConcepts(int n) {
         return conceptWeights.entrySet().stream().
-                sorted((Map.Entry<String, Float> e1, Map.Entry<String, Float> e2) -> (int) Math.signum(e1.getValue() - e2.getValue())).
+                sorted((Map.Entry<String, Float> e1, Map.Entry<String, Float> e2) -> (int) Math.signum(e2.getValue() - e1.getValue())).
                 map(e -> e.getKey()).
                 iterator();
     }
