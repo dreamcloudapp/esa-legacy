@@ -95,7 +95,7 @@ public class Main {
         topTextOption.setRequired(false);
         options.addOption(topTextOption);
 
-        Option topFileOption = new Option("tf", "top-file", true, "input.txt / Get the top concepts for text in a file.\"");
+        Option topFileOption = new Option("tf", "top-file", true, "input.txt / Get the top concepts for text in a file.");
         topFileOption.setRequired(false);
         options.addOption(topFileOption);
 
