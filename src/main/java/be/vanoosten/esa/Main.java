@@ -108,7 +108,7 @@ public class Main {
         indexOption.setRequired(false);
         options.addOption(indexOption);
 
-        Option mapOption = new Option("m", "map", false, "Maps terms to concept. Must run the index first.");
+        Option mapOption = new Option("m", "map", false, "Maps terms to concepts. Must run the index first.");
         mapOption.setRequired(false);
         options.addOption(mapOption);
 
