@@ -25,7 +25,6 @@ public class ConceptVector {
     Map<String, Float> conceptWeights;
 
     ConceptVector(TopDocs td, IndexReader indexReader) throws IOException {
-        System.out.println("Total concept hits: " + td.totalHits);
         //double norm = 0.0;
         conceptWeights = new HashMap<>();
         for (ScoreDoc scoreDoc : td.scoreDocs) {
@@ -44,10 +43,7 @@ public class ConceptVector {
 
 
         Set<String> commonConcepts = new HashSet<>(other.conceptWeights.keySet());
-        System.out.println("1-size: " + conceptWeights.keySet().size());
-        System.out.println("2-size: " + other.conceptWeights.keySet().size());
         commonConcepts.retainAll(conceptWeights.keySet());
-        System.out.println("c-size: " + commonConcepts.size());
         double dotProd = 0.0;
         for (String concept : commonConcepts) {
             Float w1 =  conceptWeights.get(concept);

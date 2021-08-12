@@ -71,24 +71,33 @@ public class Main {
         return s != null && !s.equals("");
     }
 
+    public static Boolean hasLength(String[] a, int length) {
+        return a != null && a.length == length;
+    }
+
     public static void main(String[] args) throws IOException, ParseException {
         WikiFactory factory = new EnwikiFactory();
         CharArraySet stopWords = factory.getStopWords();
-        DecimalFormat decimalFormat = new DecimalFormat("###.###");
+        DecimalFormat decimalFormat = new DecimalFormat("#.00");
 
         Options options = new Options();
-        //Analysis options
-        Option sourceOption = new Option("s", "source", true, "source text or file");
-        sourceOption.setRequired(false);
-        options.addOption(sourceOption);
+        Option compareTextOption = new Option("ct", "compare-texts", true, "comparison text");
+        compareTextOption.setRequired(false);
+        compareTextOption.setArgs(2);
+        options.addOption(compareTextOption);
 
-        Option compareOption = new Option("c", "compare", true, "comparison text or file");
-        compareOption.setRequired(false);
-        options.addOption(compareOption);
+        Option compareFileOption = new Option("cf", "compare-files", true, "comparison files");
+        compareFileOption.setRequired(false);
+        compareFileOption.setArgs(2);
+        options.addOption(compareFileOption);
 
-        Option topOption = new Option("t", "top", true, "top N concepts");
-        topOption.setRequired(false);
-        options.addOption(topOption);
+        Option topTextOption = new Option("tt", "top-text", true, "top concepts for text");
+        topTextOption.setRequired(false);
+        options.addOption(topTextOption);
+
+        Option topFileOption = new Option("tf", "top-text", true, "top concepts for file");
+        topFileOption.setRequired(false);
+        options.addOption(topFileOption);
 
         Option limitOption = new Option("l", "limit", true, "concept query limit");
         limitOption.setRequired(false);
@@ -108,29 +117,24 @@ public class Main {
 
         try {
             CommandLine cmd = parser.parse(options, args);
-            String source = cmd.getOptionValue("s");
-            String compare = cmd.getOptionValue("c");
+            String[] compareTexts = cmd.getOptionValues("ct");
+            String[] compareFiles = cmd.getOptionValues("cf");
+            String[] topText = cmd.getOptionValues("tt");
+            String[] topFile = cmd.getOptionValues("tf");
             String limit = cmd.getOptionValue("l");
-            String top = cmd.getOptionValue("t");
             String index = cmd.getOptionValue("i");
 
             //Comparison of texts
-            if (nonEmpty(source) && nonEmpty(compare)) {
+            if (hasLength(compareTexts, 2) || hasLength(compareFiles, 2)) {
                 String sourceText;
                 String compareText;
-                if (source.charAt(0) == '\'') {
-                    //Text
-                    sourceText = source.substring(1, source.length() - 1);
+
+                if (hasLength(compareTexts, 2)) {
+                    sourceText = compareTexts[0];
+                    compareText = compareTexts[1];
                 } else {
-                    //File
-                    sourceText = readInputFile(source, "utf-8");
-                }
-                if (compare.charAt(0) == '\'') {
-                    //Text
-                    compareText = source.substring(1, source.length() - 1);
-                } else {
-                    //File
-                    compareText = readInputFile(compare, "utf-8");
+                    sourceText = readInputFile(compareTexts[0], "utf-8");
+                    compareText = readInputFile(compareTexts[1], "utf-8");
                 }
                String sourceDesc = sourceText.substring(0, Math.min(16, sourceText.length()));
                 if (sourceText.length() > 16) {
@@ -151,34 +155,31 @@ public class Main {
 
                     }
                 }
-                System.out.println("Limiting to top " + vectorizer.getConceptCount() + " per document.");
+                System.out.println("Limiting to top " + vectorizer.getConceptCount() + " concepts per document.");
                 SemanticSimilarityTool similarity = new SemanticSimilarityTool(vectorizer);
                 System.out.println("Vector relatedness: " + decimalFormat.format(similarity.findSemanticSimilarity(sourceText, compareText))
                 );
             }
 
             //Top concepts
-            else if (nonEmpty(source) && nonEmpty(top)) {
+            else if (hasLength(topText, 1) || hasLength(topFile, 1)) {
                 Integer topConcepts = 10;
                 try {
-                    topConcepts = Integer.parseInt(top);
+                    topConcepts = Integer.parseInt(limit);
                 } catch (NumberFormatException e) {
 
                 }
-
                 String sourceText;
-                if (source.charAt(0) == '\'') {
-                    //Text
-                    sourceText = source.substring(1, source.length() - 1);
+                if (hasLength(topText, 1)) {
+                    sourceText = topText[0];
                 } else {
-                    //File
-                    sourceText = readInputFile(source, "utf-8");
+                    sourceText = readInputFile(topFile[0], "utf-8");
                 }
                 String sourceDesc = sourceText.substring(0, Math.min(16, sourceText.length()));
                 if (sourceText.length() > 16) {
                     sourceDesc += "...";
                 }
-                System.out.println("Getting top " + topConcepts + " for '" + sourceDesc + "':");
+                System.out.println("Getting top " + topConcepts + " concepts for '" + sourceDesc + "':");
                 WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
                 Vectorizer vectorizer = new Vectorizer(new File("./index/conceptterm"), analyzer);
                 vectorizer.setConceptCount(topConcepts);
@@ -202,6 +203,8 @@ public class Main {
             else if (cmd.hasOption("m")) {
                 createConceptTermIndex(new File("./index/termdoc"), new File("./index/conceptterm"));
                 System.out.println("Created index at 'index/conceptterm'.");
+            } else {
+                formatter.printHelp("wiki-esa", options);
             }
 
         } catch (org.apache.commons.cli.ParseException e) {
