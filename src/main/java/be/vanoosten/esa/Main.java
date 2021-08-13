@@ -55,6 +55,8 @@ import static org.apache.lucene.util.Version.LUCENE_48;
 //Reading input files
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  *
@@ -233,17 +235,16 @@ public class Main {
 
             final IndexWriterConfig conceptIndexWriterConfig = new IndexWriterConfig(LUCENE_48, null);
             try (IndexWriter conceptIndexWriter = new IndexWriter(FSDirectory.open(conceptTermIndexDirectory), conceptIndexWriterConfig)) {
+                Pattern p = Pattern.compile("(^([a-zA-Z]+:/.*)|(\\d+)$)|([\\.\\?_\\s/:!-])");
                 int t = 0;
                 BytesRef bytesRef;
                 while ((bytesRef = termsEnum.next()) != null) {
                     String termString = bytesRef.utf8ToString();
-                    if (termString.matches("^[a-zA-Z]+:/.*$") || termString.matches("^\\d+$")) {
+                    Matcher m = p.matcher(termString);
+                    if (m.find()) {
                         continue;
                     }
                     if (termString.charAt(0) >= '0' && termString.charAt(0) <= '9') {
-                        continue;
-                    }
-                    if (termString.contains(".") || termString.contains("_")) {
                         continue;
                     }
                     if (t++ == 1000) {

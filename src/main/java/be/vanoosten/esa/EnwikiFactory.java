@@ -23,7 +23,7 @@ public class EnwikiFactory extends WikiFactory {
         }
     }
 
-    private static CharArraySet getExtendedStopWords() {
+    public static CharArraySet getExtendedStopWords() {
         CharArraySet basic = StopAnalyzer.ENGLISH_STOP_WORDS_SET;
         CharArraySet stopwords = new CharArraySet(LUCENE_48, 256, true);
         for (Iterator<Object> it = basic.iterator(); it.hasNext(); ) {
