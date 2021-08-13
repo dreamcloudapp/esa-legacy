@@ -137,6 +137,8 @@ public class Main {
 
             //Comparison of texts
             if (hasLength(compareTexts, 2) || hasLength(compareFiles, 2)) {
+                stopWords.add("dream");
+
                 String sourceText;
                 String compareText;
 
