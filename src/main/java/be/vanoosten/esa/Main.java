@@ -1,5 +1,6 @@
 package be.vanoosten.esa;
 
+import static be.vanoosten.esa.WikiIndexer.TEXT_FIELD;
 import static be.vanoosten.esa.WikiIndexer.TITLE_FIELD;
 import java.io.File;
 import java.io.IOException;
@@ -15,7 +16,10 @@ import be.vanoosten.esa.tools.ConceptVector;
 import jdk.internal.org.jline.reader.impl.DefaultParser;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.Token;
+import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.StopAnalyzer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -78,8 +82,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws IOException, ParseException {
-        WikiFactory factory = new EnwikiFactory();
-        CharArraySet stopWords = factory.getStopWords();
+        CharArraySet stopWords = EnwikiFactory.getExtendedStopWords();
         DecimalFormat decimalFormat = new DecimalFormat("#.000");
 
         Options options = new Options();
@@ -105,6 +108,11 @@ public class Main {
         limitOption.setRequired(false);
         options.addOption(limitOption);
 
+        //Debugging
+        Option debugOption = new Option("d", "debug", true, "input.txt / Shows the tokens for a text.");
+        debugOption.setRequired(false);
+        options.addOption(debugOption);
+
         //Indexing
         Option indexOption = new Option("i", "index", true, "dump.bz2 / Indexes a Wikipedia XML dump file in bz2 format.");
         indexOption.setRequired(false);
@@ -124,6 +132,7 @@ public class Main {
             String[] topText = cmd.getOptionValues("tt");
             String[] topFile = cmd.getOptionValues("tf");
             String limit = cmd.getOptionValue("l");
+            String debug = cmd.getOptionValue("d");
             String index = cmd.getOptionValue("i");
 
             //Comparison of texts
@@ -190,6 +199,30 @@ public class Main {
                 for (Iterator<String> it = topTenConcepts; it.hasNext(); ) {
                     String concept = it.next();
                     System.out.println(concept + ": " + decimalFormat.format(vector.getConceptWeights().get(concept)));
+                }
+            }
+
+            //Debug tokens
+            else if(nonEmpty(debug)) {
+                String sourceText = readInputFile(debug, "utf-8");
+                String sourceDesc = sourceText.substring(0, Math.min(16, sourceText.length()));
+                if (sourceText.length() > 16) {
+                    sourceDesc += "...";
+                }
+                System.out.println("Debugging '" + sourceDesc + "':");
+                WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
+                TokenStream ts = analyzer.tokenStream(TEXT_FIELD, sourceText);
+                CharTermAttribute charTermAttribute = ts.addAttribute(CharTermAttribute.class);
+                TypeAttribute typeAttribute = ts.addAttribute(TypeAttribute.class);
+
+                try{
+                    ts.reset();
+                    while (ts.incrementToken()) {
+                        System.out.println(typeAttribute.type() + ": " + charTermAttribute);
+                    }
+                    ts.end();
+                } finally {
+                    ts.close();
                 }
             }
 

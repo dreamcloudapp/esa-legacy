@@ -77,6 +77,7 @@ public final class WikiAnalyzer extends Analyzer {
         result = new ClassicFilter(result);
         result = new StopFilter(matchVersion, result, stoptable);
         result = new PorterStemFilter(result);
+        result = new StopFilter(matchVersion, result, stoptable);
         result = new LengthFilter(matchVersion, result, 2, 24);
         return new Analyzer.TokenStreamComponents(source, result);
     }

@@ -126,45 +126,11 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable {
             inPageText = false;
             String wikiText = content.toString();
             try {
-                WikiAnalyzer analyzer = new WikiAnalyzer(Version.LUCENE_48, EnwikiFactory.getExtendedStopWords());
-                TokenStream ts = analyzer.tokenStream(TEXT_FIELD, wikiText);
-                CharTermAttribute charTermAttribute = ts.addAttribute(CharTermAttribute.class);
-                TypeAttribute typeAttribute = ts.addAttribute(TypeAttribute.class);
-
-                try{
-                    ts.reset();
-                    while (ts.incrementToken()) {
-                        if (charTermAttribute.toString().equals("abbotsfordairport")) {
-                            System.out.println(typeAttribute.type() + ": " + charTermAttribute);
-                            System.out.println("===================================================");
-                            System.out.println(wikiText);
-                            System.exit(1);
-                        }
-                    }
-                    ts.end();
-                } finally {
-                    ts.close();
-                }
-                //abbotsfordairport
                 numTotal++;
                 if (index(wikiTitle, wikiText)) {
                     numIndexed++;
                     if (numIndexed % 1000 == 0) {
                         System.out.println("" + numIndexed + "\t/ " + numTotal + "\t" + wikiTitle);
-                            /*WikiAnalyzer analyzer = new WikiAnalyzer(Version.LUCENE_48, EnwikiFactory.getExtendedStopWords());
-                        TokenStream ts = analyzer.tokenStream(TEXT_FIELD, wikiText);
-                        CharTermAttribute charTermAttribute = ts.addAttribute(CharTermAttribute.class);
-                        TypeAttribute typeAttribute = ts.addAttribute(TypeAttribute.class);
-
-                        try{
-                            ts.reset();
-                            while (ts.incrementToken()) {
-                                System.out.println(typeAttribute.type() + ": " + charTermAttribute.toString());
-                            }
-                            ts.end();
-                        } finally {
-                            ts.close();
-                        }*/
                     }
                 }
             } catch (IOException ex) {
