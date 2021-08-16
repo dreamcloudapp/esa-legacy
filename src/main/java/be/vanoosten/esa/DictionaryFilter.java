@@ -62,6 +62,7 @@ public class DictionaryFilter extends FilteringTokenFilter {
                         System.out.println(line);
                     }
                 }
+                line = reader.readLine();
             }
             reader.close();
         } catch (IOException e) {
