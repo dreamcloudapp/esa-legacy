@@ -1,1 +1,1 @@
-java -jar target/esa-1.0-SNAPSHOT-jar-with-dependencies.jar %*
+java -Djdk.xml.totalEntitySizeLimit=2470000000 -jar target/esa-1.0-SNAPSHOT-jar-with-dependencies.jar %*

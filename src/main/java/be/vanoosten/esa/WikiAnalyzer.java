@@ -22,6 +22,7 @@ import org.apache.lucene.analysis.util.WordlistLoader;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.Version;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
@@ -57,6 +58,8 @@ public final class WikiAnalyzer extends Analyzer {
      */
     @Override
     protected Analyzer.TokenStreamComponents createComponents(String fieldName, Reader aReader) {
+        File dictionary = new File("./src/data/en-words.txt");
+
         Set<String> stopTypes = new HashSet<>();
         stopTypes.add(WikipediaTokenizer.EXTERNAL_LINK_URL);
         stopTypes.add(WikipediaTokenizer.EXTERNAL_LINK);
@@ -75,6 +78,7 @@ public final class WikiAnalyzer extends Analyzer {
         result = new ASCIIFoldingFilter(result, false);
         result = new LowerCaseFilter(matchVersion, result);
         result = new ClassicFilter(result);
+        result = new DictionaryFilter(matchVersion, result, dictionary);
         result = new StopFilter(matchVersion, result, stoptable);
         result = new PorterStemFilter(result);
         result = new StopFilter(matchVersion, result, stoptable);
