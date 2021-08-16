@@ -14,7 +14,7 @@ import java.util.HashSet;
 public class DictionaryFilter extends FilteringTokenFilter {
     File dictionary;
     Boolean ignoreCase;
-    HashSet<String> words;
+    HashSet<String> words = new HashSet<String>();
     Boolean loaded = false;
     private final CharTermAttribute termAtt = this.addAttribute(CharTermAttribute.class);
 
