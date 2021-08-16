@@ -40,27 +40,20 @@ public class DictionaryFilter extends FilteringTokenFilter {
     public DictionaryFilter(Version version, TokenStream input, File dictionary) {
         super(version, input);
         this.dictionary = dictionary;
-        this.ignoreCase = false;
+        this.ignoreCase = true;
     }
 
     protected void loadDictionary() {
-        System.out.println("Loading the dictionary " + dictionary.getName() + "...");
         BufferedReader reader;
         try {
             reader = new BufferedReader(new FileReader(dictionary));
             String line = reader.readLine();
-            int i = 0;
             while (line != null) {
                 if (!"".equals(line)) {
                     if (ignoreCase) {
                         line = line.toLowerCase();
                     }
                     words.add(line);
-                    i++;
-
-                    if (i % 1000 == 0) {
-                        System.out.println(line);
-                    }
                 }
                 line = reader.readLine();
             }
@@ -69,7 +62,6 @@ public class DictionaryFilter extends FilteringTokenFilter {
             e.printStackTrace();
         } finally {
             loaded = true;
-            System.out.println("Dictionary loaded.");
         }
     }
 
