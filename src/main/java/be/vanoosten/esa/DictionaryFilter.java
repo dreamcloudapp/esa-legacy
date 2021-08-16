@@ -14,8 +14,8 @@ import java.util.HashSet;
 public class DictionaryFilter extends FilteringTokenFilter {
     File dictionary;
     Boolean ignoreCase;
-    HashSet<String> words = new HashSet<String>();
-    Boolean loaded = false;
+    static HashSet<String> words = new HashSet<String>();
+    static Boolean loaded = false;
     private final CharTermAttribute termAtt = this.addAttribute(CharTermAttribute.class);
 
     /**
@@ -44,26 +44,36 @@ public class DictionaryFilter extends FilteringTokenFilter {
     }
 
     protected void loadDictionary() {
+        System.out.println("Loading the dictionary " + dictionary.getName() + "...");
         BufferedReader reader;
         try {
             reader = new BufferedReader(new FileReader(dictionary));
             String line = reader.readLine();
+            int i = 0;
             while (line != null) {
                 if (!"".equals(line)) {
                     if (ignoreCase) {
                         line = line.toLowerCase();
                     }
                     words.add(line);
+                    i++;
+
+                    if (i % 1000 == 0) {
+                        System.out.println(line);
+                    }
                 }
             }
             reader.close();
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            loaded = true;
+            System.out.println("Dictionary loaded.");
         }
     }
 
     protected boolean accept() throws IOException {
-        if (!this.loaded) {
+        if (!loaded) {
             this.loadDictionary();
         }
         //Why is reading from a char array so damn hard?
