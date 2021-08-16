@@ -148,7 +148,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable {
 
     boolean index(String title, String wikiText) throws IOException {
         Matcher matcher = pat.matcher(title);
-        if (matcher.find() || title.startsWith("List of ") || wikiText.length() < getMinimumArticleLength()) {
+        if (matcher.find() || title.startsWith("List of ") || title.contains("discography") || wikiText.length() < getMinimumArticleLength()) {
             return false;
         }
         Document doc = new Document();
