@@ -5,6 +5,7 @@ import static be.vanoosten.esa.WikiIndexer.TITLE_FIELD;
 import java.io.File;
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.time.Instant;
 import java.util.Iterator;
 
 import be.vanoosten.esa.tools.ConceptVector;
@@ -52,8 +53,7 @@ import java.nio.file.Paths;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  *
@@ -128,6 +128,9 @@ public class Main {
             String limit = cmd.getOptionValue("l");
             String debug = cmd.getOptionValue("d");
             String index = cmd.getOptionValue("i");
+
+            //Get the unixtime
+            long startTime = Instant.now().getEpochSecond();
 
             //Comparison of texts
             if (hasLength(compareTexts, 2) || hasLength(compareFiles, 2)) {
@@ -238,7 +241,9 @@ public class Main {
             } else {
                 formatter.printHelp("wiki-esa", options);
             }
-
+            long endTime = Instant.now().getEpochSecond();
+            System.out.println("----------------------------------------");
+            System.out.println("Process finished in " + (endTime - startTime) + " seconds.");
         } catch (org.apache.commons.cli.ParseException e) {
             System.out.println(e.getMessage());
             formatter.printHelp("wiki-esa", options);
@@ -270,37 +275,40 @@ public class Main {
                 while(termsIterator.next() != null) {
                     termCount++;
                 }
+                AtomicLong termsProcessed = new AtomicLong(0);
 
                 final long termsPerThread = termCount / THREAD_COUNT;
                 System.out.println("Creating " + THREAD_COUNT + " threads each processing " + termsPerThread + " terms.");
                 final long termsLeftOver = terms.size() % THREAD_COUNT;
 
                 for (int i=0; i<16; i++) {
-                    System.out.println("Spawning thread " + (i + 1) + "...");
                     final int iCopy = i;
+                    long finalTermCount = termCount;
                     executorService.submit(() -> {
-                        System.out.println("Thread " + iCopy + " is starting...");
                         long startTermIndex = termsPerThread * iCopy;
                         long endTermIndex = startTermIndex + termsPerThread + (iCopy == 15 ? termsLeftOver : 0);
 
-                        System.out.println("Thread " + iCopy + " starting seeking [" + startTermIndex + ", " + endTermIndex + "]...");
+                        System.out.println("Thread " + iCopy + " is handling terms [" + startTermIndex + ", " + (endTermIndex - 1) + "]");
 
                         try {
                             TermsEnum termsEnum = terms.iterator(null);
-
                             for (long termIndex = 0; termIndex < startTermIndex; termIndex++) {
                                 termsEnum.next();
                             }
-
-                            System.out.println("Thread " + iCopy + " finished seeking [" + startTermIndex + ", " + endTermIndex + "].");
 
                             int t = 0;
                             BytesRef bytesRef;
                             while ((bytesRef = termsEnum.next()) != null && startTermIndex < endTermIndex) {
                                 String termString = bytesRef.utf8ToString();
+                                String padding = "";
+                                int tabs = 4 - (termString.length() / 8);
+                                while (tabs-- > 0) {
+                                    padding += "\t";
+                                }
+                                long processed = termsProcessed.incrementAndGet();
                                 if (t++ == 1000) {
                                     t = 0;
-                                    System.out.println(termString);
+                                    System.out.println(termString + padding + "[" + processed + " / " + finalTermCount + "]");
                                 }
                                 TopDocs td = SearchTerm(bytesRef, docSearcher);
 
@@ -339,10 +347,8 @@ public class Main {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                        System.out.println("Thread " + iCopy + " is finished!");
                     });
                 }
-                System.out.println("Waiting for threads to finish...");
                 try {
                     executorService.shutdown();
                     Boolean result = executorService.awaitTermination(600, TimeUnit.SECONDS);
