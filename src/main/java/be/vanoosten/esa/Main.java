@@ -49,6 +49,9 @@ import static org.apache.lucene.util.Version.LUCENE_48;
 //Reading input files
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,6 +60,7 @@ import java.util.regex.Pattern;
  * @author Philip van Oosten
  */
 public class Main {
+    static int THREAD_COUNT = 16;
 
     public static String readInputFile(String path, String encoding) throws IOException {
         byte[] encoded = Files.readAllBytes(Paths.get(path));
@@ -246,7 +250,6 @@ public class Main {
      * Creates a concept-term index from a term-to-concept index (a full text index of a Wikipedia dump).
      * @param termDocIndexDirectory The directory that contains the term-to-concept index, which is created by {@code indexing()} or in a similar fashion.
      * @param conceptTermIndexDirectory The directory that shall contain the concept-term index.
-     * @throws IOException
      */
     static void createConceptTermIndex(File termDocIndexDirectory, File conceptTermIndexDirectory) throws IOException {
         final Directory termDocDirectory = FSDirectory.open(termDocIndexDirectory);
@@ -256,60 +259,102 @@ public class Main {
         Fields fields = MultiFields.getFields(termDocReader);
         if (fields != null) {
             Terms terms = fields.terms(WikiIndexer.TEXT_FIELD);
-            TermsEnum termsEnum = terms.iterator(null);
 
             final IndexWriterConfig conceptIndexWriterConfig = new IndexWriterConfig(LUCENE_48, null);
             try (IndexWriter conceptIndexWriter = new IndexWriter(FSDirectory.open(conceptTermIndexDirectory), conceptIndexWriterConfig)) {
-                Pattern p = Pattern.compile("(^([a-zA-Z]+:/.*)|(\\d+)$)|([\\.\\?_\\s/:!-])");
-                int t = 0;
-                BytesRef bytesRef;
-                while ((bytesRef = termsEnum.next()) != null) {
-                    String termString = bytesRef.utf8ToString();
-                    Matcher m = p.matcher(termString);
-                    if (m.find()) {
-                        continue;
-                    }
-                    if (termString.charAt(0) >= '0' && termString.charAt(0) <= '9') {
-                        continue;
-                    }
-                    if (t++ == 1000) {
-                        t = 0;
-                        System.out.println(termString);
-                    }
-                    TopDocs td = SearchTerm(bytesRef, docSearcher);
 
-                    // add the concepts to the token stream
-                    byte[] payloadBytes = new byte[5];
-                    ByteArrayDataOutput dataOutput = new ByteArrayDataOutput(payloadBytes);
-                    CachingTokenStream pcTokenStream = new CachingTokenStream();
-                    double norm = ConceptSimilarity.SIMILARITY_FACTOR;
-                    int last = 0;
-                    for(ScoreDoc scoreDoc : td.scoreDocs){
-                        if(scoreDoc.score/norm < ConceptSimilarity.SIMILARITY_FACTOR ||
-                                last>= 1.0f / ConceptSimilarity.SIMILARITY_FACTOR) break;
-                        norm += scoreDoc.score * scoreDoc.score;
-                        last++;
-                    }
-                    for (int i=0; i<last; i++) {
-                        ScoreDoc scoreDoc = td.scoreDocs[i];
-                        Document termDocDocument = termDocReader.document(scoreDoc.doc);
-                        String concept = termDocDocument.get(WikiIndexer.TITLE_FIELD);
-                        Token conceptToken = new Token(concept, i * 10, (i + 1) * 10, "CONCEPT");
-                        // set similarity score as payload
-                        int integerScore = (int) ((scoreDoc.score/norm)/ConceptSimilarity.SIMILARITY_FACTOR);
-                        dataOutput.reset(payloadBytes);
-                        dataOutput.writeVInt(integerScore);
-                        BytesRef payloadBytesRef = new BytesRef(payloadBytes, 0, dataOutput.getPosition());
-                        conceptToken.setPayload(payloadBytesRef);
-                        pcTokenStream.produceToken(conceptToken);
-                    }
+                ExecutorService executorService = Executors.newFixedThreadPool(THREAD_COUNT);
 
-                    Document conceptTermDocument = new Document();
-                    AttributeSource attributeSource = termsEnum.attributes();
-                    conceptTermDocument.add(new StringField(WikiIndexer.TEXT_FIELD, termString, Field.Store.YES));
-                    conceptTermDocument.add(new TextField("concept", pcTokenStream));
-                    conceptIndexWriter.addDocument(conceptTermDocument);
+                long termCount = 0;
+                TermsEnum termsIterator = terms.iterator(null);
+                while(termsIterator.next() != null) {
+                    termCount++;
                 }
+
+                final long termsPerThread = termCount / THREAD_COUNT;
+                System.out.println("Creating " + THREAD_COUNT + " threads each processing " + termsPerThread + " terms.");
+                final long termsLeftOver = terms.size() % THREAD_COUNT;
+
+                for (int i=0; i<16; i++) {
+                    System.out.println("Spawning thread " + (i + 1) + "...");
+                    final int iCopy = i;
+                    executorService.submit(() -> {
+                        System.out.println("Thread " + iCopy + " is starting...");
+                        long startTermIndex = termsPerThread * iCopy;
+                        long endTermIndex = startTermIndex + termsPerThread + (iCopy == 15 ? termsLeftOver : 0);
+
+                        System.out.println("Thread " + iCopy + " starting seeking [" + startTermIndex + ", " + endTermIndex + "]...");
+
+                        try {
+                            TermsEnum termsEnum = terms.iterator(null);
+
+                            for (long termIndex = 0; termIndex < startTermIndex; termIndex++) {
+                                termsEnum.next();
+                            }
+
+                            System.out.println("Thread " + iCopy + " finished seeking [" + startTermIndex + ", " + endTermIndex + "].");
+
+                            int t = 0;
+                            BytesRef bytesRef;
+                            while ((bytesRef = termsEnum.next()) != null && startTermIndex < endTermIndex) {
+                                String termString = bytesRef.utf8ToString();
+                                if (t++ == 1000) {
+                                    t = 0;
+                                    System.out.println(termString);
+                                }
+                                TopDocs td = SearchTerm(bytesRef, docSearcher);
+
+                                // add the concepts to the token stream
+                                byte[] payloadBytes = new byte[5];
+                                ByteArrayDataOutput dataOutput = new ByteArrayDataOutput(payloadBytes);
+                                CachingTokenStream pcTokenStream = new CachingTokenStream();
+                                double norm = ConceptSimilarity.SIMILARITY_FACTOR;
+                                int last = 0;
+                                for (ScoreDoc scoreDoc : td.scoreDocs) {
+                                    if (scoreDoc.score / norm < ConceptSimilarity.SIMILARITY_FACTOR ||
+                                            last >= 1.0f / ConceptSimilarity.SIMILARITY_FACTOR) break;
+                                    norm += scoreDoc.score * scoreDoc.score;
+                                    last++;
+                                }
+                                for (int j = 0; j < last; j++) {
+                                    ScoreDoc scoreDoc = td.scoreDocs[j];
+                                    Document termDocDocument = termDocReader.document(scoreDoc.doc);
+                                    String concept = termDocDocument.get(WikiIndexer.TITLE_FIELD);
+                                    Token conceptToken = new Token(concept, j * 10, (j + 1) * 10, "CONCEPT");
+                                    // set similarity score as payload
+                                    int integerScore = (int) ((scoreDoc.score / norm) / ConceptSimilarity.SIMILARITY_FACTOR);
+                                    dataOutput.reset(payloadBytes);
+                                    dataOutput.writeVInt(integerScore);
+                                    BytesRef payloadBytesRef = new BytesRef(payloadBytes, 0, dataOutput.getPosition());
+                                    conceptToken.setPayload(payloadBytesRef);
+                                    pcTokenStream.produceToken(conceptToken);
+                                }
+
+                                Document conceptTermDocument = new Document();
+                                conceptTermDocument.add(new StringField(WikiIndexer.TEXT_FIELD, termString, Field.Store.YES));
+                                conceptTermDocument.add(new TextField("concept", pcTokenStream));
+                                conceptIndexWriter.addDocument(conceptTermDocument);
+                                startTermIndex++;
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        System.out.println("Thread " + iCopy + " is finished!");
+                    });
+                }
+                System.out.println("Waiting for threads to finish...");
+                try {
+                    executorService.shutdown();
+                    Boolean result = executorService.awaitTermination(600, TimeUnit.SECONDS);
+                    if (result) {
+                        System.out.println("All threads successfully completed.");
+                    } else {
+                        System.out.println("Thread timeout exceeded.");
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
             }
         }
     }
