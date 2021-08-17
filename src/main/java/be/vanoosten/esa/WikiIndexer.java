@@ -101,6 +101,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable {
             wikiInputStream = new BufferedInputStream(wikiInputStream);
             wikiInputStream = new BZip2CompressorInputStream(wikiInputStream, true);
             saxParser.parse(wikiInputStream, this);
+            executorService.shutdown();
         } catch (ParserConfigurationException | SAXException | FileNotFoundException ex) {
             Logger.getLogger(WikiIndexer.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
@@ -128,14 +129,16 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable {
             wikiTitle = content.toString();
         } else if (inPage && inPageText && "text".equals(localName)) {
             inPageText = false;
+            String wikiTitleCopy = wikiTitle;
             String wikiText = content.toString();
             numTotal++;
+
             executorService.submit(() -> {
                 try {
-                    if (index(wikiTitle, wikiText)) {
+                    if (index(wikiTitleCopy, wikiText)) {
                         int indexed = numIndexed.incrementAndGet();
                         if (indexed % 1000 == 0) {
-                            System.out.println("" + indexed + "\t/ " + numTotal + "\t" + wikiTitle);
+                            System.out.println("" + indexed + "\t/ " + numTotal + "\t" + wikiTitleCopy);
                         }
                     }
                 } catch (IOException e) {
