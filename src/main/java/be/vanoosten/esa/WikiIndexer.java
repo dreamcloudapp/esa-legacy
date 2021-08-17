@@ -6,6 +6,10 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -26,20 +30,23 @@ import org.apache.lucene.util.Version;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  *
  * @author Philip van Oosten
  */
 public class WikiIndexer extends DefaultHandler implements AutoCloseable {
-
     private final SAXParserFactory saxFactory;
+    private final ExecutorService executorService;
+    private static int THREAD_COUNT = 16;
     private boolean inPage;
     private boolean inPageTitle;
     private boolean inPageText;
     private StringBuilder content = new StringBuilder();
     private String wikiTitle;
-    private int numIndexed = 0;
+    private AtomicInteger numIndexed = new AtomicInteger(0);
     private int numTotal = 0;
 
     public static final String TEXT_FIELD = "text";
@@ -80,6 +87,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable {
         String regex = "^[a-zA-z]+:.*";
         pat = Pattern.compile(regex);
         setMinimumArticleLength(2000);
+        executorService = Executors.newFixedThreadPool(THREAD_COUNT);
     }
 
     public void parseXmlDump(String path) {
@@ -121,17 +129,19 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable {
         } else if (inPage && inPageText && "text".equals(localName)) {
             inPageText = false;
             String wikiText = content.toString();
-            try {
-                numTotal++;
-                if (index(wikiTitle, wikiText)) {
-                    numIndexed++;
-                    if (numIndexed % 1000 == 0) {
-                        System.out.println("" + numIndexed + "\t/ " + numTotal + "\t" + wikiTitle);
+            numTotal++;
+            executorService.submit(() -> {
+                try {
+                    if (index(wikiTitle, wikiText)) {
+                        int indexed = numIndexed.incrementAndGet();
+                        if (indexed % 1000 == 0) {
+                            System.out.println("" + indexed + "\t/ " + numTotal + "\t" + wikiTitle);
+                        }
                     }
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            } catch (IOException ex) {
-                throw new RuntimeException(ex);
-            }
+            });
         } else if (inPage && "page".equals(localName)) {
             inPage = false;
         }

@@ -37,7 +37,6 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.ByteArrayDataOutput;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.AttributeSource;
 import org.apache.lucene.util.BytesRef;
 
 import org.apache.commons.cli.*;
@@ -281,7 +280,7 @@ public class Main {
                 System.out.println("Creating " + THREAD_COUNT + " threads each processing " + termsPerThread + " terms.");
                 final long termsLeftOver = terms.size() % THREAD_COUNT;
 
-                for (int i=0; i<16; i++) {
+                for (int i=0; i<THREAD_COUNT; i++) {
                     final int iCopy = i;
                     long finalTermCount = termCount;
                     executorService.submit(() -> {
