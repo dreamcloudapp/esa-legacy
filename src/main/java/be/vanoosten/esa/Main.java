@@ -408,9 +408,15 @@ public class Main {
      */
     public static void indexing(File termDocIndexDirectory, File wikipediaDumpFile, CharArraySet stopWords) throws IOException {
         try (Directory directory = FSDirectory.open(termDocIndexDirectory)) {
-            Analyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
-            try(WikiIndexer indexer = new WikiIndexer(analyzer, directory)){
-                indexer.parseXmlDump(wikipediaDumpFile);
+
+            try(WikiIndexer indexer = new WikiIndexer(directory)){
+                System.out.println("Analyzing the Wikipedia dump file to calculate token and link counts...");
+                indexer.generateArticleInfo(wikipediaDumpFile);
+                System.out.println("Finished analysis.");
+
+                System.out.println("");
+                System.out.println("Writing the index...");
+                indexer.indexArticles(wikipediaDumpFile);
             }
         }
     }

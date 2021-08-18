@@ -6,9 +6,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -37,14 +35,16 @@ import org.xml.sax.helpers.DefaultHandler;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static org.apache.lucene.util.Version.LUCENE_48;
+
 /**
  *
  * @author Philip van Oosten
  */
-public class WikiIndexer extends DefaultHandler implements AutoCloseable {
+public class WikiIndexer<HashTable> extends DefaultHandler implements AutoCloseable {
     private final SAXParserFactory saxFactory;
-    private final ExecutorService executorService;
-    private static int THREAD_COUNT = 1;
+    private ExecutorService executorService;
+    private static int THREAD_COUNT = 16;
     private boolean inPage;
     private boolean inPageTitle;
     private boolean inPageText;
@@ -52,16 +52,23 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable {
     private String wikiTitle;
     private AtomicInteger numIndexed = new AtomicInteger(0);
     private int numTotal = 0;
+    private int articleIndex = 0;
+
+    private Directory directory;
+    private Analyzer analyzer;
+    private String mode;
 
     public static final String TEXT_FIELD = "text";
     public static final String TITLE_FIELD = "title";
     Pattern pat;
-
     IndexWriter indexWriter;
 
-    int minimumWordCount;
+    //Requirements for articles we'll index
+    int minimumWordCount; //i.e. tokens including stopwords
     int minimumIngoingLinks;
     int minimumOutgoingLinks;
+    Vector<String> incomingLinks = new Vector<>(4096);
+    ConcurrentHashMap <Integer, WikipediaArticle> articleInfo = new ConcurrentHashMap<>();
 
     public int getMinimumWordCount() {
         return minimumWordCount;
@@ -87,24 +94,33 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable {
         this.minimumOutgoingLinks = minimumOutgoingLinks;
     }
 
-    public WikiIndexer(Analyzer analyzer, Directory directory) throws IOException {
+    public WikiIndexer(Directory directory) {
+        this.directory = directory;
         saxFactory = SAXParserFactory.newInstance();
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(true);
         saxFactory.setXIncludeAware(true);
-
-        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(Version.LUCENE_48, analyzer);
-        indexWriter = new IndexWriter(directory, indexWriterConfig);
-        String regex = "^[a-zA-z]+:.*";
-        pat = Pattern.compile(regex);
         setMinimumWordCount(100);
         setMinimumIngoingLinks(3);
         setMinimumOutgoingLinks(3);
-        executorService = Executors.newFixedThreadPool(THREAD_COUNT);
+        String regex = "^[a-zA-z]+:.*";
+        pat = Pattern.compile(regex);
     }
 
-    public void parseXmlDump(String path) {
-        parseXmlDump(new File(path));
+    public void generateArticleInfo(File file) {
+        executorService = Executors.newFixedThreadPool(THREAD_COUNT);
+        analyzer = new WikiAnalyzer(LUCENE_48, EnwikiFactory.getExtendedStopWords(), true);
+        mode = "analyze";
+        parseXmlDump(file);
+    }
+
+    public void indexArticles(File file) throws IOException {
+        executorService = Executors.newFixedThreadPool(THREAD_COUNT);
+        analyzer = new WikiAnalyzer(LUCENE_48, EnwikiFactory.getExtendedStopWords());
+        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(Version.LUCENE_48, analyzer);
+        indexWriter = new IndexWriter(directory, indexWriterConfig);
+        mode = "index";
+        parseXmlDump(file);
     }
 
     public void parseXmlDump(File file) {
@@ -115,15 +131,24 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable {
             wikiInputStream = new BZip2CompressorInputStream(wikiInputStream, true);
             saxParser.parse(wikiInputStream, this);
             executorService.shutdown();
+            Boolean result = executorService.awaitTermination(4, TimeUnit.HOURS);
+            wikiInputStream.close();
+            if (result) {
+                System.out.println("All threads successfully completed.");
+            } else {
+                System.out.println("Thread timeout exceeded.");
+            }
         } catch (ParserConfigurationException | SAXException | FileNotFoundException ex) {
             Logger.getLogger(WikiIndexer.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
             Logger.getLogger(WikiIndexer.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
     @Override
-    public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
+    public void startElement(String uri, String localName, String qName, Attributes attributes) {
         if ("page".equals(localName)) {
             inPage = true;
         } else if (inPage && "title".equals(localName)) {
@@ -136,7 +161,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable {
     }
 
     @Override
-    public void endElement(String uri, String localName, String qName) throws SAXException {
+    public void endElement(String uri, String localName, String qName) {
         if (inPage && inPageTitle && "title".equals(localName)) {
             inPageTitle = false;
             wikiTitle = content.toString();
@@ -144,42 +169,71 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable {
             inPageText = false;
             String wikiTitleCopy = wikiTitle;
             String wikiText = content.toString();
+            int articleIndexCopy = articleIndex;
             numTotal++;
+
+            Matcher matcher = pat.matcher(wikiTitle);
+            if (matcher.find() || wikiTitle.startsWith("List of ") || wikiTitle.contains("discography")) {
+                return;
+            }
 
             executorService.submit(() -> {
                 try {
-                    System.out.println("==========================================");
-                    WikiAnalyzer analyzer = new WikiAnalyzer(Version.LUCENE_48, EnwikiFactory.getExtendedStopWords(), true);
-                    TokenStream tokenStream = analyzer.tokenStream(TEXT_FIELD, "[[" + wikiTitleCopy + "]] " + wikiText);
-                    CharTermAttribute termAttribute = tokenStream.addAttribute(CharTermAttribute.class);
-                    TypeAttribute typeAttribute = tokenStream.addAttribute(TypeAttribute.class);
-                    tokenStream.reset();
-                    int linkCount = 0;
-                    int tokenCount = 0;
-                    String articleTitleToken = null;
-                    while(tokenStream.incrementToken()) {
-                        if (articleTitleToken == null) {
-                            articleTitleToken = termAttribute.toString();
-                            continue;
+                    if ("analyze".equals(mode)) {
+                        TokenStream tokenStream = analyzer.tokenStream(TEXT_FIELD, "[[" + wikiTitleCopy + "]] " + wikiText);
+                        CharTermAttribute termAttribute = tokenStream.addAttribute(CharTermAttribute.class);
+                        TypeAttribute typeAttribute = tokenStream.addAttribute(TypeAttribute.class);
+                        tokenStream.reset();
+                        int outgoingLinkCount = 0;
+                        int tokenCount = 0;
+                        String articleTitleToken = null;
+                        while(tokenStream.incrementToken()) {
+                            if (articleTitleToken == null) {
+                                articleTitleToken = termAttribute.toString();
+                                continue;
+                            }
+
+                            tokenCount++;
+                            if ("il".equals(typeAttribute.type())) {
+                                outgoingLinkCount++;
+                                if (articleTitleToken != null) {
+                                    incomingLinks.add(termAttribute.toString());
+                                }
+                            }
+                        }
+                        tokenStream.close();
+
+                        if (articleIndexCopy % 1000 == 0) {
+                            System.out.println("Analyzed " + articleIndexCopy + "\t/ " + numTotal + "\t" + wikiTitleCopy);
                         }
 
-                        tokenCount++;
-                        if ("il".equals(typeAttribute.type())) {
-                            linkCount++;
+                        //Add article information
+                        if (articleTitleToken != null) {
+                            if (tokenCount >= getMinimumWordCount() && outgoingLinkCount >= getMinimumOutgoingLinks()) {
+                                articleInfo.put(articleIndexCopy, new WikipediaArticle(articleTitleToken, tokenCount, outgoingLinkCount));
+                            }
                         }
-                    }
-                    tokenStream.close();
+                    } else {
+                        //Get article information
+                        if (articleInfo.contains(articleIndexCopy)) {
+                            WikipediaArticle article = articleInfo.get(articleIndexCopy);
+                            articleInfo.remove(articleIndexCopy);
 
-                    if (linkCount >= getMinimumOutgoingLinks() && tokenCount >= getMinimumWordCount() && index(wikiTitleCopy, wikiText)) {
-                        int indexed = numIndexed.incrementAndGet();
-                        if (indexed % 1000 == 0) {
-                            System.out.println("" + indexed + "\t/ " + numTotal + "\t" + wikiTitleCopy);
+                            if (Collections.frequency(incomingLinks, article.title) >= getMinimumIngoingLinks()) {
+                                if (index(wikiTitleCopy, wikiText)) {
+                                    int indexed = numIndexed.incrementAndGet();
+                                    if (indexed % 1000 == 0) {
+                                        System.out.println("Indexed " + indexed + "\t/ " + numTotal + "\t" + wikiTitleCopy);
+                                    }
+                                }
+                            }
                         }
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             });
+            articleIndex++;
         } else if (inPage && "page".equals(localName)) {
             inPage = false;
         }
