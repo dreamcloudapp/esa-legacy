@@ -234,14 +234,14 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
                             WikipediaArticle article = articleInfo.get(articleIndexCopy);
                             articleInfo.remove(articleIndexCopy);
 
-                            if (Collections.frequency(incomingLinks, article.title) >= getMinimumIngoingLinks()) {
+                            //if (Collections.frequency(incomingLinks, article.title) >= getMinimumIngoingLinks()) {
                                 if (index(wikiTitleCopy, wikiText)) {
                                     int indexed = numIndexed.incrementAndGet();
                                     if (indexed % 1000 == 0) {
                                         System.out.println("Indexed " + indexed + "\t/ " + numTotal + "\t" + wikiTitleCopy);
                                     }
                                 }
-                            }
+                            //}
                         }
                     }
                 } catch (IOException e) {
