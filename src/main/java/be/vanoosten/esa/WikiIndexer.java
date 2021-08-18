@@ -107,7 +107,21 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
         pat = Pattern.compile(regex);
     }
 
+    void reset() {
+        articleIndex = 0;
+        numIndexed = new AtomicInteger(0);
+        numTotal = 0;
+        inPage = false;
+        inPageTitle = false;
+        inPageText = false;
+        content = new StringBuilder();
+        wikiTitle = null;
+    }
+
     public void generateArticleInfo(File file) {
+        reset();
+        articleInfo = new ConcurrentHashMap<>();
+        incomingLinks = new Vector<>();
         executorService = Executors.newFixedThreadPool(THREAD_COUNT);
         analyzer = new WikiAnalyzer(LUCENE_48, EnwikiFactory.getExtendedStopWords(), true);
         mode = "analyze";
@@ -115,6 +129,7 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
     }
 
     public void indexArticles(File file) throws IOException {
+        reset();
         executorService = Executors.newFixedThreadPool(THREAD_COUNT);
         analyzer = new WikiAnalyzer(LUCENE_48, EnwikiFactory.getExtendedStopWords());
         IndexWriterConfig indexWriterConfig = new IndexWriterConfig(Version.LUCENE_48, analyzer);
@@ -215,7 +230,7 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
                         }
                     } else {
                         //Get article information
-                        if (articleInfo.contains(articleIndexCopy)) {
+                        if (articleInfo.containsKey(articleIndexCopy)) {
                             WikipediaArticle article = articleInfo.get(articleIndexCopy);
                             articleInfo.remove(articleIndexCopy);
 
@@ -245,10 +260,6 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
     }
 
     boolean index(String title, String wikiText) throws IOException {
-        Matcher matcher = pat.matcher(title);
-        if (matcher.find() || title.startsWith("List of ") || title.contains("discography")) {
-            return false;
-        }
         Document doc = new Document();
         doc.add(new StoredField(TITLE_FIELD, title));
         doc.add(new TextField(TEXT_FIELD, wikiText, Field.Store.NO));
