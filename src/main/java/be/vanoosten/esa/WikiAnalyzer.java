@@ -29,6 +29,7 @@ public final class WikiAnalyzer extends Analyzer {
      * Contains the stopwords used with the StopFilter.
      */
     private final CharArraySet stoptable;
+    private boolean linkAnalysis;
 
     // null if on 3.1 or later - only for bw compat
     private final Version matchVersion;
@@ -36,6 +37,13 @@ public final class WikiAnalyzer extends Analyzer {
     public WikiAnalyzer(Version matchVersion, CharArraySet stopwords) {
         this.matchVersion = matchVersion;
         this.stoptable = CharArraySet.unmodifiableSet(CharArraySet.copy(matchVersion, stopwords));
+        this.linkAnalysis = false;
+    }
+
+    public WikiAnalyzer(Version matchVersion, CharArraySet stopwords, boolean linkAnalysis) {
+        this.matchVersion = matchVersion;
+        this.stoptable = CharArraySet.unmodifiableSet(CharArraySet.copy(matchVersion, stopwords));
+        this.linkAnalysis = linkAnalysis;
     }
 
     /**
@@ -51,29 +59,33 @@ public final class WikiAnalyzer extends Analyzer {
     protected Analyzer.TokenStreamComponents createComponents(String fieldName, Reader aReader) {
         File dictionary = new File("./src/data/en-words.txt");
 
+        Set<String> untokenizedTypes = new HashSet<>();
+        untokenizedTypes.add(WikipediaTokenizer.INTERNAL_LINK);
+
         Set<String> stopTypes = new HashSet<>();
         stopTypes.add(WikipediaTokenizer.EXTERNAL_LINK_URL);
         stopTypes.add(WikipediaTokenizer.EXTERNAL_LINK);
-        //stopTypes.add(WikipediaTokenizer.INTERNAL_LINK);
         stopTypes.add(WikipediaTokenizer.CITATION);
-        /*skip.add(WikipediaTokenizer.BOLD);
-        skip.add(WikipediaTokenizer.BOLD_ITALICS);
-        skip.add(WikipediaTokenizer.CATEGORY);
-        skip.add(WikipediaTokenizer.HEADING);
-        skip.add(WikipediaTokenizer.ITALICS);
-        skip.add(WikipediaTokenizer.SUB_HEADING);*/
-        final Tokenizer source = new WikipediaTokenizer(aReader);
-        TokenStream result = new TypeTokenFilter(matchVersion, source, stopTypes);
-        result = new StandardFilter(matchVersion, result);
-        result = new TypeTokenFilter(matchVersion, result, stopTypes);
-        result = new ASCIIFoldingFilter(result, false);
-        result = new LowerCaseFilter(matchVersion, result);
-        result = new ClassicFilter(result);
-        result = new DictionaryFilter(matchVersion, result, dictionary);
-        result = new StopFilter(matchVersion, result, stoptable);
-        result = new PorterStemFilter(result);
-        result = new StopFilter(matchVersion, result, stoptable);
-        result = new LengthFilter(matchVersion, result, 2, 24);
-        return new Analyzer.TokenStreamComponents(source, result);
+        final Tokenizer source;
+        if (linkAnalysis) {
+           source = new WikipediaTokenizer(aReader, WikipediaTokenizer.UNTOKENIZED_ONLY, untokenizedTypes);
+        } else {
+            source = new WikipediaTokenizer(aReader);
+        }
+
+        TokenStream result = new TypeTokenFilter(matchVersion, source, stopTypes, !linkAnalysis);
+        if (!linkAnalysis) {
+            result = new StandardFilter(matchVersion, result);
+            result = new ASCIIFoldingFilter(result, false);
+            result = new LowerCaseFilter(matchVersion, result);
+            result = new ClassicFilter(result);
+            result = new DictionaryFilter(matchVersion, result, dictionary);
+            result = new StopFilter(matchVersion, result, stoptable);
+            result = new PorterStemFilter(result);
+            result = new StopFilter(matchVersion, result, stoptable);
+            result = new LengthFilter(matchVersion, result, 2, 24);
+        }
+
+        return new Analyzer.TokenStreamComponents(source, linkAnalysis ? source : result);
     }
 }

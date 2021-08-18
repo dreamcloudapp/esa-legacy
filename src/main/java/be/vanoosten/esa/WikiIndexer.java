@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.*;
@@ -19,6 +20,9 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StoredField;
@@ -40,7 +44,7 @@ import java.util.concurrent.Executors;
 public class WikiIndexer extends DefaultHandler implements AutoCloseable {
     private final SAXParserFactory saxFactory;
     private final ExecutorService executorService;
-    private static int THREAD_COUNT = 16;
+    private static int THREAD_COUNT = 1;
     private boolean inPage;
     private boolean inPageTitle;
     private boolean inPageText;
@@ -55,25 +59,32 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable {
 
     IndexWriter indexWriter;
 
-    int minimumArticleLength;
+    int minimumWordCount;
+    int minimumIngoingLinks;
+    int minimumOutgoingLinks;
 
-    /**
-     * Gets the minimum length of an article in characters that should be
-     * indexed.
-     *
-     * @return
-     */
-    public int getMinimumArticleLength() {
-        return minimumArticleLength;
+    public int getMinimumWordCount() {
+        return minimumWordCount;
     }
 
-    /**
-     * Sets the minimum length of an article in characters for it to be indexed.
-     *
-     * @param minimumArticleLength
-     */
-    public final void setMinimumArticleLength(int minimumArticleLength) {
-        this.minimumArticleLength = minimumArticleLength;
+    public final void setMinimumWordCount(int minimumWordCount) {
+        this.minimumWordCount = minimumWordCount;
+    }
+
+    public int getMinimumIngoingLinks() {
+        return minimumIngoingLinks;
+    }
+
+    public void setMinimumIngoingLinks(int minimumIngoingLinks) {
+        this.minimumIngoingLinks = minimumIngoingLinks;
+    }
+
+    public int getMinimumOutgoingLinks() {
+        return minimumOutgoingLinks;
+    }
+
+    public void setMinimumOutgoingLinks(int minimumOutgoingLinks) {
+        this.minimumOutgoingLinks = minimumOutgoingLinks;
     }
 
     public WikiIndexer(Analyzer analyzer, Directory directory) throws IOException {
@@ -86,7 +97,9 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable {
         indexWriter = new IndexWriter(directory, indexWriterConfig);
         String regex = "^[a-zA-z]+:.*";
         pat = Pattern.compile(regex);
-        setMinimumArticleLength(2000);
+        setMinimumWordCount(100);
+        setMinimumIngoingLinks(3);
+        setMinimumOutgoingLinks(3);
         executorService = Executors.newFixedThreadPool(THREAD_COUNT);
     }
 
@@ -135,7 +148,29 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable {
 
             executorService.submit(() -> {
                 try {
-                    if (index(wikiTitleCopy, wikiText)) {
+                    System.out.println("==========================================");
+                    WikiAnalyzer analyzer = new WikiAnalyzer(Version.LUCENE_48, EnwikiFactory.getExtendedStopWords(), true);
+                    TokenStream tokenStream = analyzer.tokenStream(TEXT_FIELD, "[[" + wikiTitleCopy + "]] " + wikiText);
+                    CharTermAttribute termAttribute = tokenStream.addAttribute(CharTermAttribute.class);
+                    TypeAttribute typeAttribute = tokenStream.addAttribute(TypeAttribute.class);
+                    tokenStream.reset();
+                    int linkCount = 0;
+                    int tokenCount = 0;
+                    String articleTitleToken = null;
+                    while(tokenStream.incrementToken()) {
+                        if (articleTitleToken == null) {
+                            articleTitleToken = termAttribute.toString();
+                            continue;
+                        }
+
+                        tokenCount++;
+                        if ("il".equals(typeAttribute.type())) {
+                            linkCount++;
+                        }
+                    }
+                    tokenStream.close();
+
+                    if (linkCount >= getMinimumOutgoingLinks() && tokenCount >= getMinimumWordCount() && index(wikiTitleCopy, wikiText)) {
                         int indexed = numIndexed.incrementAndGet();
                         if (indexed % 1000 == 0) {
                             System.out.println("" + indexed + "\t/ " + numTotal + "\t" + wikiTitleCopy);
@@ -157,7 +192,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable {
 
     boolean index(String title, String wikiText) throws IOException {
         Matcher matcher = pat.matcher(title);
-        if (matcher.find() || title.startsWith("List of ") || title.contains("discography") || wikiText.length() < getMinimumArticleLength()) {
+        if (matcher.find() || title.startsWith("List of ") || title.contains("discography")) {
             return false;
         }
         Document doc = new Document();

@@ -115,6 +115,10 @@ public class Main {
         mapOption.setRequired(false);
         options.addOption(mapOption);
 
+        Option indexMapOption = new Option("im", "index-map", true, "Indexes and maps together.");
+        indexMapOption.setRequired(false);
+        options.addOption(indexMapOption);
+
         CommandLineParser parser = new BasicParser();
         HelpFormatter formatter = new HelpFormatter();
 
@@ -127,6 +131,7 @@ public class Main {
             String limit = cmd.getOptionValue("l");
             String debug = cmd.getOptionValue("d");
             String index = cmd.getOptionValue("i");
+            String indexMap = cmd.getOptionValue("im");
 
             //Get the unixtime
             long startTime = Instant.now().getEpochSecond();
@@ -224,22 +229,31 @@ public class Main {
                 }
             }
 
-            //Index a dump file
-            else if (nonEmpty(index)) {
-                System.out.println("Indexing " + index + "...");
-                File wikipediaDumpFile = new File(index);
-                indexing(new File("./index/termdoc"), wikipediaDumpFile, stopWords);
-                System.out.println("Created index at 'index/termdoc'.");
+            //Indexing and mapping
+            else if(nonEmpty(indexMap) || nonEmpty(index) || cmd.hasOption("m")) {
+                if (nonEmpty(indexMap) || nonEmpty(index)) {
+                    String fileName = nonEmpty(indexMap) ? indexMap : index;
+                    System.out.println("Indexing " + fileName + "...");
+                    File wikipediaDumpFile = new File(fileName);
+                    indexing(new File("./index/termdoc"), wikipediaDumpFile, stopWords);
+                    System.out.println("Created index at 'index/termdoc'.");
+                }
+
+                if (nonEmpty(indexMap)) {
+                    System.out.println("");
+                }
+
+                if (nonEmpty(indexMap) || cmd.hasOption("m")) {
+                    System.out.println("Mapping terms to concepts...");
+                    createConceptTermIndex(new File("./index/termdoc"), new File("./index/conceptterm"));
+                    System.out.println("Created index at 'index/conceptterm'.");
+                }
             }
 
-            //Map the terms to concepts
-            else if (cmd.hasOption("m")) {
-                System.out.println("Mapping terms to concepts...");
-                createConceptTermIndex(new File("./index/termdoc"), new File("./index/conceptterm"));
-                System.out.println("Created index at 'index/conceptterm'.");
-            } else {
+            else {
                 formatter.printHelp("wiki-esa", options);
             }
+
             long endTime = Instant.now().getEpochSecond();
             System.out.println("----------------------------------------");
             System.out.println("Process finished in " + (endTime - startTime) + " seconds.");
