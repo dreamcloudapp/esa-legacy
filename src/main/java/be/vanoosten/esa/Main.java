@@ -350,7 +350,7 @@ public class Main {
                 }
                 try {
                     executorService.shutdown();
-                    Boolean result = executorService.awaitTermination(600, TimeUnit.SECONDS);
+                    Boolean result = executorService.awaitTermination(12, TimeUnit.HOURS);
                     if (result) {
                         System.out.println("All threads successfully completed.");
                     } else {
