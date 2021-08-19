@@ -73,7 +73,7 @@ public final class WikiAnalyzer extends Analyzer {
             source = new WikipediaTokenizer(aReader);
         }
 
-        TokenStream result = new TypeTokenFilter(matchVersion, source, stopTypes, !linkAnalysis);
+        TokenStream result = new TypeTokenFilter(matchVersion, source, stopTypes);
         if (!linkAnalysis) {
             result = new StandardFilter(matchVersion, result);
             result = new ASCIIFoldingFilter(result, false);
