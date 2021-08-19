@@ -56,6 +56,10 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
     private AtomicInteger numAnalyzed = new AtomicInteger(0);
     private AtomicInteger numIndexed = new AtomicInteger(0);
     private AtomicInteger numSkipped = new AtomicInteger(0);
+    private AtomicInteger numSkippedTitle = new AtomicInteger(0);
+    private AtomicInteger numSkippedWords = new AtomicInteger(0);
+    private AtomicInteger numSkippedIncoming = new AtomicInteger(0);
+    private AtomicInteger numSkippedOutgoing = new AtomicInteger(0);
     private int articleIndex = 0;
 
     private Directory directory;
@@ -106,9 +110,9 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(true);
         saxFactory.setXIncludeAware(true);
-        setMinimumWordCount(100);
-        setMinimumIngoingLinks(3);
-        setMinimumOutgoingLinks(3);
+        setMinimumWordCount(10);
+        setMinimumIngoingLinks(2);
+        setMinimumOutgoingLinks(2);
         String regex = "^[a-zA-z]+:.*";
         pat = Pattern.compile(regex);
     }
@@ -156,9 +160,13 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
 
         //Show logs
         System.out.println("----------------------------------------");
-        System.out.println("Articles Analyzed:\t" + numTotal);
+        System.out.println("Articles Analyzed:\t" + numAnalyzed.get());
         System.out.println("Articles Indexed:\t" + numIndexed.get());
         System.out.println("Articles Skipped:\t" + numSkipped.get());
+        System.out.println("    Reason=title:\t" + numSkippedTitle.get());
+        System.out.println("    Reason=words:\t" + numSkippedWords.get());
+        System.out.println("    Reason=i-links:\t" + numSkippedIncoming.get());
+        System.out.println("    Reason=o-links:\t" + numSkippedOutgoing.get());
         NumberFormat format = NumberFormat.getPercentInstance();
         format.setMinimumFractionDigits(1);
         System.out.println("Acceptance Rate:\t" + format.format(((double) numIndexed.get()) / ((double) numTotal)));
@@ -218,7 +226,9 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
             if (matcher.find() || wikiTitle.startsWith("List of ") || wikiTitle.contains("discography")) {
                 //Don't bother with the threads, just skip straight away
                 if("analyze".equals(mode)) {
+                    numAnalyzed.incrementAndGet();
                     numSkipped.incrementAndGet();
+                    numSkippedTitle.incrementAndGet();
                 }
                 return;
             }
@@ -259,6 +269,12 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
                             if (tokenCount >= getMinimumWordCount() && outgoingLinkCount >= getMinimumOutgoingLinks()) {
                                 acceptedArticles.add(articleIndexCopy);
                             } else {
+                                if (tokenCount < getMinimumWordCount()) {
+                                    numSkippedWords.incrementAndGet();
+                                }
+                                if (outgoingLinkCount < getMinimumOutgoingLinks()) {
+                                    numSkippedOutgoing.incrementAndGet();
+                                }
                                 numSkipped.incrementAndGet();
                             }
                         }
@@ -275,6 +291,7 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
                                 }
                             } else {
                                 numSkipped.incrementAndGet();
+                                numSkippedIncoming.incrementAndGet();
                             }
                         }
                     }

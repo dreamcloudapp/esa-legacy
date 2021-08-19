@@ -86,6 +86,6 @@ public final class WikiAnalyzer extends Analyzer {
             result = new LengthFilter(matchVersion, result, 2, 24);
         }
 
-        return new Analyzer.TokenStreamComponents(source, linkAnalysis ? source : result);
+        return new Analyzer.TokenStreamComponents(source, result);
     }
 }
