@@ -14,6 +14,7 @@ public class WikipediaArticleAnalysis {
     }
 
     public boolean canIndex() {
-        return this.outgoingLinks.size() > 1 && this.tokenCount > 9;
+        return true;
+        //return this.outgoingLinks.size() > 1 && this.tokenCount > 9;
     }
 }

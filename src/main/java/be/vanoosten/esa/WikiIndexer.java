@@ -221,10 +221,12 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
                 } else {
                     this.processIndexQueue();
                 }
+                queue.clear();
+                queue.ensureCapacity(BATCH_SIZE * THREAD_COUNT);
                 if ("analyze".equals(mode)) {
                     System.out.println("Analyzed articles\t[" + numLastTotal + " - " + numTotal + "]");
                 } else {
-                    System.out.println("Indexed articles\t[" + numLastTotal + " - " + numAnalyzed + "]");
+                    System.out.println("Indexed articles\t[" + numTotal + " / " + numAnalyzed + "]");
                 }
                 numLastTotal = numTotal;
             }
@@ -239,11 +241,12 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
     }
 
     void processAnalysisQueue() {
+        System.out.println("processing " + queue.size() + " items in the queue");
         //Spawn up THREAD_COUNT threads and give each BATCH_SIZE articles
         ArrayList<Callable<Vector<WikipediaArticle>>> processors = new ArrayList<>();
         for (int i=0; i<THREAD_COUNT && (i * BATCH_SIZE) < queue.size(); i++) {
-            Vector<WikipediaArticle> articles = new Vector<>(BATCH_SIZE);
-            for (int j = i * BATCH_SIZE; j<((i+1 * BATCH_SIZE)) && j<queue.size(); j++) {
+            final Vector<WikipediaArticle> articles = new Vector<>(BATCH_SIZE);
+            for (int j = i * BATCH_SIZE; j<(((i+1) * BATCH_SIZE)) && j<queue.size(); j++) {
                 articles.add(queue.get(j));
             }
             processors.add(() -> this.analyzeArticles(articles));
@@ -275,9 +278,6 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
             e.printStackTrace();
             System.exit(1);
         }
-
-        queue.clear();
-        queue.ensureCapacity(BATCH_SIZE * THREAD_COUNT);
     }
 
     Vector<WikipediaArticle> analyzeArticles(Vector<WikipediaArticle> articles) throws IOException {
@@ -333,9 +333,6 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
             e.printStackTrace();
             System.exit(1);
         }
-
-        queue.clear();
-        queue.ensureCapacity(BATCH_SIZE * THREAD_COUNT);
     }
 
     Integer indexArticles (Vector<WikipediaArticle> articles) throws IOException {
