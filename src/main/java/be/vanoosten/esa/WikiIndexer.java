@@ -241,7 +241,6 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
     }
 
     void processAnalysisQueue() {
-        System.out.println("processing " + queue.size() + " items in the queue");
         //Spawn up THREAD_COUNT threads and give each BATCH_SIZE articles
         ArrayList<Callable<Vector<WikipediaArticle>>> processors = new ArrayList<>();
         for (int i=0; i<THREAD_COUNT && (i * BATCH_SIZE) < queue.size(); i++) {
@@ -314,7 +313,7 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
         ArrayList<Callable<Integer>> processors = new ArrayList<>();
         for (int i=0; i<THREAD_COUNT && (i * BATCH_SIZE) < queue.size(); i++) {
             Vector<WikipediaArticle> articles = new Vector<>(BATCH_SIZE);
-            for (int j = i * BATCH_SIZE; j<((i+1 * BATCH_SIZE)) && j<queue.size(); j++) {
+            for (int j = i * BATCH_SIZE; j<(((i+1) * BATCH_SIZE)) && j<queue.size(); j++) {
                 articles.add(queue.get(j));
             }
             processors.add(() -> this.indexArticles(articles));
