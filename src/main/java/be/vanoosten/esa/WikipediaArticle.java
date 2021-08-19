@@ -1,13 +1,29 @@
 package be.vanoosten.esa;
 
-public class WikipediaArticle {
-    public String title;
-    public int tokenCount;
-    public int outgoingLinkCount;
+import java.util.ArrayList;
 
-    WikipediaArticle(String title, int tokenCount, int outgoingLinkCount) {
+public class WikipediaArticle {
+    public int index;
+    public String title;
+    public String text;
+    public WikipediaArticleAnalysis analysis = null;
+    public boolean indexed = false;
+
+    WikipediaArticle(int index, String title, String text) {
+        this.index = index;
         this.title = title;
-        this.tokenCount = tokenCount;
-        this.outgoingLinkCount = outgoingLinkCount;
+        this.text = text;
+    }
+
+    public boolean canIndex() {
+        return this.analysis != null && this.analysis.canIndex();
+    }
+
+    public ArrayList<String> getOutgoingLinks() {
+        if (analysis == null) {
+            return new ArrayList<>();
+        } else {
+            return this.analysis.outgoingLinks;
+        }
     }
 }
