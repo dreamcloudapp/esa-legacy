@@ -38,6 +38,10 @@ public class ConceptVector {
         }
     }
 
+    ConceptVector(Map<String, Float> conceptWeights) {
+        this.conceptWeights = conceptWeights;
+    }
+
     public float dotProduct(ConceptVector other) {
         Set<String> commonConcepts = new HashSet<>(other.conceptWeights.keySet());
         commonConcepts.retainAll(conceptWeights.keySet());

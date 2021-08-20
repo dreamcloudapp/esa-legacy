@@ -22,7 +22,7 @@ import org.apache.lucene.store.FSDirectory;
  *
  * @author Philip van Oosten
  */
-public class Vectorizer implements AutoCloseable {
+public class Vectorizer implements AutoCloseable, TextVectorizer {
 
     Directory termToConceptDirectory;
     IndexReader indexReader;

@@ -11,13 +11,17 @@ import javax.swing.*;
  */
 public class SemanticSimilarityTool {
 
-    Vectorizer vectorizer;
+    TextVectorizer vectorizer;
     
-    public SemanticSimilarityTool(Vectorizer vectorizer) {
+    public SemanticSimilarityTool(TextVectorizer vectorizer) {
         this.vectorizer = vectorizer;
     }
-    
-    public float findSemanticSimilarity(String formerText, String latterText) throws ParseException, IOException{
+
+    public TextVectorizer getVectorizer() {
+        return vectorizer;
+    }
+
+    public float findSemanticSimilarity(String formerText, String latterText) throws Exception {
         ConceptVector formerVector = vectorizer.vectorize(formerText);
         ConceptVector latterVector = vectorizer.vectorize(latterText);
         return formerVector.dotProduct(latterVector);

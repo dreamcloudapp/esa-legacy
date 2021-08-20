@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.util.Iterator;
 
 import be.vanoosten.esa.tools.ConceptVector;
+import be.vanoosten.esa.tools.NarrativeVectorizer;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.Token;
 import org.apache.lucene.analysis.TokenStream;
@@ -161,6 +162,8 @@ public class Main {
                System.out.println("Comparing '" + sourceDesc + "' to '" + compareDesc + "':");
                 WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
                 Vectorizer vectorizer = new Vectorizer(new File("./index/termdoc"), analyzer);
+                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(vectorizer)
+                ;
                 if (nonEmpty(limit)) {
                     try {
                         Integer conceptCount = Integer.parseInt(limit);
@@ -170,8 +173,8 @@ public class Main {
                     }
                 }
                 System.out.println("Limiting to top " + vectorizer.getConceptCount() + " concepts per document.");
-                SemanticSimilarityTool similarity = new SemanticSimilarityTool(vectorizer);
-                System.out.println("Vector relatedness: " + decimalFormat.format(similarity.findSemanticSimilarity(sourceText, compareText))
+                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(narrativeVectorizer);
+                System.out.println("Vector relatedness: " + decimalFormat.format(similarityTool.findSemanticSimilarity(sourceText, compareText))
                 );
             }
 
@@ -261,6 +264,8 @@ public class Main {
             System.out.println(e.getMessage());
             formatter.printHelp("wiki-esa", options);
             System.exit(1);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
