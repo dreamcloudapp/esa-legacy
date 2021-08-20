@@ -6,11 +6,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -31,12 +29,13 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Version;
+import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
+import org.eclipse.collections.api.map.primitive.*;
 import static org.apache.lucene.util.Version.LUCENE_48;
 
 /**
@@ -70,36 +69,8 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
     Pattern pat;
     IndexWriter indexWriter;
 
-    //Requirements for articles we'll index
-    int minimumWordCount; //i.e. tokens including stopwords
-    int minimumIngoingLinks;
-    int minimumOutgoingLinks;
     String[] indexTitles;
-    HashMap <String, Integer> incomingLinkMap = new HashMap<>();
-
-    public int getMinimumWordCount() {
-        return minimumWordCount;
-    }
-
-    public final void setMinimumWordCount(int minimumWordCount) {
-        this.minimumWordCount = minimumWordCount;
-    }
-
-    public int getMinimumIngoingLinks() {
-        return minimumIngoingLinks;
-    }
-
-    public void setMinimumIngoingLinks(int minimumIngoingLinks) {
-        this.minimumIngoingLinks = minimumIngoingLinks;
-    }
-
-    public int getMinimumOutgoingLinks() {
-        return minimumOutgoingLinks;
-    }
-
-    public void setMinimumOutgoingLinks(int minimumOutgoingLinks) {
-        this.minimumOutgoingLinks = minimumOutgoingLinks;
-    }
+    MutableObjectIntMap<String> incomingLinkMap = ObjectIntMaps.mutable.empty();
 
     public WikiIndexer(Directory directory) {
         this.directory = directory;
@@ -107,9 +78,6 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(true);
         saxFactory.setXIncludeAware(true);
-        setMinimumWordCount(10);
-        setMinimumIngoingLinks(3);
-        setMinimumOutgoingLinks(3);
         String regex = "^[a-zA-z]+:.*";
         pat = Pattern.compile(regex);
         queue = new Vector<>(BATCH_SIZE * THREAD_COUNT);
@@ -132,6 +100,10 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
         analyzer = new WikiAnalyzer(LUCENE_48, EnwikiFactory.getExtendedStopWords(), true);
         mode = "analyze";
         parseXmlDump(file);
+        //There may be queue items left over
+        if (queue.size() > 0) {
+            this.processQueue();
+        }
         numAnalyzed = numTotal;
 
         System.out.println("----------------------------------------");
@@ -148,6 +120,10 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
         indexWriter = new IndexWriter(directory, indexWriterConfig);
         mode = "index";
         parseXmlDump(file);
+        //There may be queue items left over
+        if (queue.size() > 0) {
+            this.processQueue();
+        }
 
         //Show logs
         System.out.println("----------------------------------------");
@@ -168,20 +144,11 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
             wikiInputStream = new BufferedInputStream(wikiInputStream);
             wikiInputStream = new BZip2CompressorInputStream(wikiInputStream, true);
             saxParser.parse(wikiInputStream, this);
-            executorService.shutdown();
-            Boolean result = executorService.awaitTermination(4, TimeUnit.HOURS);
             wikiInputStream.close();
-            if (result) {
-                System.out.println("All threads successfully completed.");
-            } else {
-                System.out.println("Thread timeout exceeded.");
-            }
         } catch (ParserConfigurationException | SAXException | FileNotFoundException ex) {
             Logger.getLogger(WikiIndexer.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
             Logger.getLogger(WikiIndexer.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         }
     }
 
@@ -217,19 +184,7 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
             queue.add(new WikipediaArticle(numTotal, wikiTitleCopy, wikiText));
 
             if (queue.size() == BATCH_SIZE * THREAD_COUNT) {
-                if ("analyze".equals(mode)) {
-                    this.processAnalysisQueue();
-                } else {
-                    this.processIndexQueue();
-                }
-                queue.clear();
-                queue.ensureCapacity(BATCH_SIZE * THREAD_COUNT);
-                if ("analyze".equals(mode)) {
-                    System.out.println("Analyzed articles\t[" + numLastTotal + " - " + numTotal + "]");
-                } else {
-                    System.out.println("Indexed articles\t[" + numTotal + " / " + numAnalyzed + "]");
-                }
-                numLastTotal = numTotal;
+                this.processQueue();
             }
         } else if (inPage && "page".equals(localName)) {
             inPage = false;
@@ -265,7 +220,7 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
                             indexTitles[article.index] = article.analysis.parsedTitle;
                             for (String link: article.getOutgoingLinks()) {
                                 if (incomingLinkMap.containsKey(link)) {
-                                    Integer count = incomingLinkMap.get(link);
+                                    int count = incomingLinkMap.get(link);
                                     incomingLinkMap.put(link, count + 1);
                                 } else {
                                     incomingLinkMap.put(link, 1);
@@ -308,6 +263,22 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
             }
         }
         return articles;
+    }
+
+    void processQueue() {
+        if ("analyze".equals(mode)) {
+            this.processAnalysisQueue();
+        } else {
+            this.processIndexQueue();
+        }
+        queue.clear();
+        queue.ensureCapacity(BATCH_SIZE * THREAD_COUNT);
+        if ("analyze".equals(mode)) {
+            System.out.println("Analyzed articles\t[" + numLastTotal + " - " + numTotal + "]");
+        } else {
+            System.out.println("Indexed articles\t[" + numTotal + " / " + numAnalyzed + "]");
+        }
+        numLastTotal = numTotal;
     }
 
     void processIndexQueue() {

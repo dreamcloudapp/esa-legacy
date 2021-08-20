@@ -50,7 +50,19 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections-parent</artifactId>
+            <version>11.0.0.M3</version>
+            <type>pom</type>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.eclipse.collections/eclipse-collections -->
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
             <artifactId>eclipse-collections</artifactId>
+            <version>11.0.0.M3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections-api</artifactId>
             <version>11.0.0.M3</version>
         </dependency>
         <dependency>
@@ -91,9 +103,5 @@
     </executions>
   </plugin>
 	 </plugins>
-	 <!--jvmArgs>
-		 <jvmArg>-DtotalEntitySizeLimit=2147480000</jvmArg>
-		 <jvmArg>-Djdk.xml.totalEntitySizeLimit=2147480000</jvmArg>
-	</jvmArgs-->
 	</build>
 </project>

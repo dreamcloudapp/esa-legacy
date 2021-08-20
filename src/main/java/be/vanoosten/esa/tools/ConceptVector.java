@@ -26,33 +26,28 @@ public class ConceptVector {
 
     ConceptVector(TopDocs td, IndexReader indexReader) throws IOException {
         conceptWeights = new HashMap<>();
+        double norm = 0;
+        for (ScoreDoc scoreDoc : td.scoreDocs) {
+            norm += scoreDoc.score * scoreDoc.score;
+        }
+        norm = Math.sqrt(norm);
+
         for (ScoreDoc scoreDoc : td.scoreDocs) {
             String concept = indexReader.document(scoreDoc.doc).get(WikiIndexer.TITLE_FIELD);
-            conceptWeights.put(concept, scoreDoc.score);
+            conceptWeights.put(concept, (float) (scoreDoc.score / norm));
         }
     }
 
     public float dotProduct(ConceptVector other) {
         Set<String> commonConcepts = new HashSet<>(other.conceptWeights.keySet());
         commonConcepts.retainAll(conceptWeights.keySet());
-        double dotProd = 0.0;
+        float dotProd = 0;
         for (String concept : commonConcepts) {
             Float w1 =  conceptWeights.get(concept);
             Float w2 =  other.conceptWeights.get(concept);
             dotProd += w1 * w2;
         }
-
-        float norm1 = 0;
-        for (Float weight: conceptWeights.values()) {
-            norm1 += weight * weight;
-        }
-
-        float norm2 = 0;
-        for (Float weight: other.conceptWeights.values()) {
-            norm2 += weight * weight;
-        }
-
-        return (float) (dotProd / (Math.sqrt(norm1) * Math.sqrt(norm2)));
+        return dotProd;
     }
 
     public Iterator<String> topConcepts(int n) {

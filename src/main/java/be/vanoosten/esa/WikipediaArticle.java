@@ -7,7 +7,6 @@ public class WikipediaArticle {
     public String title;
     public String text;
     public WikipediaArticleAnalysis analysis = null;
-    public boolean indexed = false;
 
     WikipediaArticle(int index, String title, String text) {
         this.index = index;
