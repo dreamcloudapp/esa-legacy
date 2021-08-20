@@ -203,7 +203,8 @@ public class Main {
                 WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
                 Vectorizer vectorizer = new Vectorizer(new File("./index/termdoc"), analyzer);
                 vectorizer.setConceptCount(topConcepts);
-                ConceptVector vector = vectorizer.vectorize(sourceText);
+                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(vectorizer, topConcepts);
+                ConceptVector vector = narrativeVectorizer.vectorize(sourceText);
                 Iterator<String> topTenConcepts = vector.topConcepts();
                 for (Iterator<String> it = topTenConcepts; it.hasNext(); ) {
                     String concept = it.next();
