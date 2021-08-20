@@ -5,15 +5,18 @@ import org.apache.lucene.queryparser.classic.ParseException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 public class NarrativeVectorizer implements TextVectorizer {
     static double TOPIC_COHESION = 0.15;
 
-    private TextVectorizer vectorizer;
+    private final TextVectorizer vectorizer;
+    private final int maxConcepts;
 
-    public NarrativeVectorizer(TextVectorizer vectorizer) {
+    public NarrativeVectorizer(TextVectorizer vectorizer, int maxConcepts) {
         this.vectorizer = vectorizer;
+        this.maxConcepts = maxConcepts;
     }
 
     public ConceptVector vectorize(String text) throws Exception {
@@ -42,7 +45,17 @@ public class NarrativeVectorizer implements TextVectorizer {
             ConceptVector conceptVector = vectorizer.vectorize(String.join(" ", topic.getSentences()));
             this.mergeVectors(mergedWeights, conceptVector.conceptWeights, topic.getSentences().size());
         }
-        return new ConceptVector(mergedWeights);
+        ConceptVector mergedConcepts = new ConceptVector(mergedWeights);
+
+        //Can only include N number of concepts so vectors can be compared
+        Map<String, Float> topWeights = new HashMap<>();
+        Iterator<String> topConcepts = mergedConcepts.topConcepts();
+        int i = 0;
+        for (Iterator<String> it = topConcepts; it.hasNext() && i<this.maxConcepts;  i++ )      {
+            String concept = it.next();
+            topWeights.put(concept, mergedWeights.get(concept));
+        }
+        return new ConceptVector(topWeights);
     }
 
     private void mergeVectors(Map<String, Float> mergedWeights, Map<String, Float> weights, int salience) {

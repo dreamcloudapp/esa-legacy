@@ -93,7 +93,7 @@ public final class EsaViewModel extends AbstractViewModel {
             Vectorizer vectorizer = factory.getOrCreateVectorizer();
             StringBuilder out = new StringBuilder();
             ConceptVector vector = vectorizer.vectorize(getInputText());
-            for (Iterator<String> it = vector.topConcepts(100); it.hasNext();) {
+            for (Iterator<String> it = vector.topConcepts(); it.hasNext();) {
                 String ccpt = it.next();
                 out.append(ccpt).append("\n");
             }

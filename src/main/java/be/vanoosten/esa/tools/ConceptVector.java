@@ -61,7 +61,7 @@ public class ConceptVector {
         return (float) (dotProd / (Math.sqrt(norm1) * Math.sqrt((norm2))));
     }
 
-    public Iterator<String> topConcepts(int n) {
+    public Iterator<String> topConcepts() {
         return conceptWeights.entrySet().stream().
                 sorted((Map.Entry<String, Float> e1, Map.Entry<String, Float> e2) -> (int) Math.signum(e2.getValue() - e1.getValue())).
                 map(e -> e.getKey()).

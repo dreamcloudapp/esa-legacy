@@ -162,16 +162,19 @@ public class Main {
                System.out.println("Comparing '" + sourceDesc + "' to '" + compareDesc + "':");
                 WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
                 Vectorizer vectorizer = new Vectorizer(new File("./index/termdoc"), analyzer);
-                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(vectorizer)
-                ;
+
+                int conceptCount = 1000;
                 if (nonEmpty(limit)) {
                     try {
-                        Integer conceptCount = Integer.parseInt(limit);
-                        vectorizer.setConceptCount(conceptCount);
+                        conceptCount = Integer.parseInt(limit);
                     } catch (NumberFormatException e) {
 
                     }
                 }
+                vectorizer.setConceptCount(conceptCount);
+
+                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(vectorizer, conceptCount);
+
                 System.out.println("Limiting to top " + vectorizer.getConceptCount() + " concepts per document.");
                 SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(narrativeVectorizer);
                 System.out.println("Vector relatedness: " + decimalFormat.format(similarityTool.findSemanticSimilarity(sourceText, compareText))
@@ -201,7 +204,7 @@ public class Main {
                 Vectorizer vectorizer = new Vectorizer(new File("./index/termdoc"), analyzer);
                 vectorizer.setConceptCount(topConcepts);
                 ConceptVector vector = vectorizer.vectorize(sourceText);
-                Iterator<String> topTenConcepts = vector.topConcepts(topConcepts);
+                Iterator<String> topTenConcepts = vector.topConcepts();
                 for (Iterator<String> it = topTenConcepts; it.hasNext(); ) {
                     String concept = it.next();
                     System.out.println(concept + ": " + decimalFormat.format(vector.getConceptWeights().get(concept)));
