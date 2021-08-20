@@ -19,6 +19,7 @@ public class NarrativeVectorizer implements TextVectorizer {
     public ConceptVector vectorize(String text) throws Exception {
         ArrayList<NarrativeTopic> topics = new ArrayList<>();
         ArrayList<String> sentences = getSentences(text);
+        System.out.println("Checking cohesion for " + sentences.size() + " sentences...");
         for (String sentence: sentences) {
             //Compare sentence to existing narrative topics
             boolean hasCohesion = false;
@@ -26,6 +27,7 @@ public class NarrativeVectorizer implements TextVectorizer {
                 if (this.hasTopicalCohesion(sentence, topic)) {
                     topic.addSentence(sentence);
                     hasCohesion = true;
+                    System.out.println("Found cohesion.");
                     break;
                 }
             }
@@ -38,19 +40,20 @@ public class NarrativeVectorizer implements TextVectorizer {
         Map<String, Float> mergedWeights = new HashMap<>();
         for (NarrativeTopic topic: topics) {
             ConceptVector conceptVector = vectorizer.vectorize(String.join(" ", topic.getSentences()));
-            this.mergeVectors(mergedWeights, conceptVector.conceptWeights);
+            this.mergeVectors(mergedWeights, conceptVector.conceptWeights, topic.getSentences().size());
         }
         return new ConceptVector(mergedWeights);
     }
 
-    private void mergeVectors(Map<String, Float> mergedWeights, Map<String, Float> weights) {
+    private void mergeVectors(Map<String, Float> mergedWeights, Map<String, Float> weights, int salience) {
+        double salienceLog = Math.log(salience) + 1;
         //Merges two vectors using addition (not good math at all)
         for(String key: weights.keySet()) {
             if (mergedWeights.containsKey(key)) {
                 Float weight = mergedWeights.get(key);
-                mergedWeights.put(key, weight + weights.get(key));
+                mergedWeights.put(key, (float) (weight + weights.get(key) * salienceLog));
             } else {
-                mergedWeights.put(key, weights.get(key));
+                mergedWeights.put(key, (float) (weights.get(key) * salienceLog));
             }
         }
     }

@@ -45,6 +45,8 @@ public class Vectorizer implements AutoCloseable, TextVectorizer {
     }
 
     public ConceptVector vectorize(String text) throws ParseException, IOException {
+        //We need to escape this thing!
+        text = text.replaceAll("[+\\-&|!(){}\\[\\]^\"~*?:\\\\]+", "");
         Query query = queryParser.parse(text);
         TopDocs td = searcher.search(query, conceptCount);
         return new ConceptVector(td, indexReader);
