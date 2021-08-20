@@ -48,6 +48,7 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
     private ExecutorService executorService;
     private static int THREAD_COUNT = 16;
     private static int BATCH_SIZE = 1000;
+    private static int MAX_EXPECTED_ARTICLES = 32000000;
     Vector<WikipediaArticle> queue;
     private boolean inPage;
     private boolean inPageTitle;
@@ -58,7 +59,7 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
     private int numLastTotal = 0;
     private int numAnalyzed = 0;
     private int numIndexed = 0;
-    private int articleIndex = 0;
+    private int numIndexable = 0;
 
     private Directory directory;
     private Analyzer analyzer;
@@ -73,7 +74,7 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
     int minimumWordCount; //i.e. tokens including stopwords
     int minimumIngoingLinks;
     int minimumOutgoingLinks;
-    HashMap<Integer, String> indexTitles = new HashMap<>();
+    String[] indexTitles;
     HashMap <String, Integer> incomingLinkMap = new HashMap<>();
 
     public int getMinimumWordCount() {
@@ -115,7 +116,6 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
     }
 
     void reset() {
-        articleIndex = 0;
         numLastTotal = 0;
         numTotal = 0;
         inPage = false;
@@ -127,6 +127,7 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
 
     public void generateArticleInfo(File file) {
         reset();
+        indexTitles = new String[MAX_EXPECTED_ARTICLES];
         executorService = Executors.newFixedThreadPool(THREAD_COUNT);
         analyzer = new WikiAnalyzer(LUCENE_48, EnwikiFactory.getExtendedStopWords(), true);
         mode = "analyze";
@@ -135,7 +136,7 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
 
         System.out.println("----------------------------------------");
         System.out.println("Articles Analyzed:\t" + numAnalyzed);
-        System.out.println("Articles Indexable:\t" + indexTitles.size());
+        System.out.println("Articles Indexable:\t" + numIndexable);
         System.out.println("----------------------------------------");
     }
 
@@ -151,7 +152,7 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
         //Show logs
         System.out.println("----------------------------------------");
         System.out.println("Articles Analyzed:\t" + numAnalyzed);
-        System.out.println("Articles Indexable:\t" + indexTitles.size());
+        System.out.println("Articles Indexable:\t" + numIndexable);
         System.out.println("Articles Indexed:\t" + numIndexed);
         System.out.println("Articles Skipped:\t" + (numAnalyzed - numIndexed));
         NumberFormat format = NumberFormat.getPercentInstance();
@@ -260,7 +261,8 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
                     for (WikipediaArticle article: articles) {
                         //If the article is valid for indexing, map it's links
                         if (article.canIndex()) {
-                            indexTitles.put(article.index, article.analysis.parsedTitle);
+                            numIndexable++;
+                            indexTitles[article.index] = article.analysis.parsedTitle;
                             for (String link: article.getOutgoingLinks()) {
                                 if (incomingLinkMap.containsKey(link)) {
                                     Integer count = incomingLinkMap.get(link);
@@ -338,8 +340,8 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
         int indexed = 0;
         for (WikipediaArticle article: articles) {
             //Get title
-            if (indexTitles.containsKey(article.index)) {
-                String indexTitle = indexTitles.get(article.index);
+            String indexTitle = indexTitles[article.index];
+            if (indexTitle != null) {
                 //Check incoming links
                 if (incomingLinkMap.containsKey(indexTitle) && incomingLinkMap.get(indexTitle) > 1) {
                     index(article.title, article.text);
