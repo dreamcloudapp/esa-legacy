@@ -6,10 +6,10 @@ import java.io.File;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Iterator;
 
-import be.vanoosten.esa.tools.ConceptVector;
-import be.vanoosten.esa.tools.NarrativeVectorizer;
+import be.vanoosten.esa.tools.*;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.Token;
 import org.apache.lucene.analysis.TokenStream;
@@ -41,9 +41,6 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
 
 import org.apache.commons.cli.*;
-
-import be.vanoosten.esa.tools.SemanticSimilarityTool;
-import be.vanoosten.esa.tools.Vectorizer;
 
 import static org.apache.lucene.util.Version.LUCENE_48;
 
@@ -116,6 +113,10 @@ public class Main {
         mapOption.setRequired(false);
         options.addOption(mapOption);
 
+        Option testOption = new Option("t", "test", false, "Performs test comparisons on a set of dreams and news sources.");
+        testOption.setRequired(false);
+        options.addOption(testOption);
+
         Option indexMapOption = new Option("im", "index-map", true, "Indexes and maps together.");
         indexMapOption.setRequired(false);
         options.addOption(indexMapOption);
@@ -183,6 +184,7 @@ public class Main {
 
             //Top concepts
             else if (hasLength(topText, 1) || hasLength(topFile, 1)) {
+                stopWords.add("dream");
                 Integer topConcepts = 10;
                 try {
                     topConcepts = Integer.parseInt(limit);
@@ -233,6 +235,46 @@ public class Main {
                     ts.end();
                 } finally {
                     ts.close();
+                }
+            }
+
+            else if(cmd.hasOption("t")) {
+                stopWords.add("dream");
+                //Get test files
+                File dir = new File("./src/test/data");
+                File[] files = dir.listFiles();
+                ArrayList<ComparisonFile> comparisonFiles = new ArrayList<>();
+                for(File file: files) {
+                    comparisonFiles.add(new ComparisonFile(file.getName(), readInputFile(file.getPath(), "utf-8")));
+                }
+
+                //Setup
+                WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
+                Vectorizer vectorizer = new Vectorizer(new File("./index/termdoc"), analyzer);
+
+                int conceptCount = 1000;
+                if (nonEmpty(limit)) {
+                    try {
+                        conceptCount = Integer.parseInt(limit);
+                    } catch (NumberFormatException e) {
+
+                    }
+                }
+                vectorizer.setConceptCount(conceptCount);
+
+                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(vectorizer, conceptCount);
+
+                System.out.println("Limiting to top " + vectorizer.getConceptCount() + " concepts per document.");
+                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(narrativeVectorizer);
+
+                System.out.println("Testing dream and news comparisons...");
+                System.out.println("----------------------------------------");
+                while(comparisonFiles.size() > 1) {
+                    ComparisonFile file = comparisonFiles.remove(0);
+                    for (ComparisonFile comparisonFile: comparisonFiles) {
+                        //Compare the two and show results
+                        System.out.println(file.name + "_" + comparisonFile.name + ": " + decimalFormat.format(similarityTool.findSemanticSimilarity(file.text, comparisonFile.text)));
+                    }
                 }
             }
 

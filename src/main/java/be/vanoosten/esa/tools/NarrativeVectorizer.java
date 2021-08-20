@@ -22,7 +22,6 @@ public class NarrativeVectorizer implements TextVectorizer {
     public ConceptVector vectorize(String text) throws Exception {
         ArrayList<NarrativeTopic> topics = new ArrayList<>();
         ArrayList<String> sentences = getSentences(text);
-        System.out.println("Checking cohesion for " + sentences.size() + " sentences...");
         for (String sentence: sentences) {
             //Compare sentence to existing narrative topics
             boolean hasCohesion = false;
@@ -30,7 +29,6 @@ public class NarrativeVectorizer implements TextVectorizer {
                 if (this.hasTopicalCohesion(sentence, topic)) {
                     topic.addSentence(sentence);
                     hasCohesion = true;
-                    System.out.println("Found cohesion.");
                     break;
                 }
             }
