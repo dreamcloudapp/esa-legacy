@@ -8,9 +8,7 @@ import java.text.DecimalFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Iterator;
-
 import be.vanoosten.esa.tools.*;
-import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.Token;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
@@ -39,10 +37,9 @@ import org.apache.lucene.store.ByteArrayDataOutput;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
-
 import org.apache.commons.cli.*;
-
 import static org.apache.lucene.util.Version.LUCENE_48;
+import io.javalin.Javalin;
 
 //Reading input files
 import java.nio.file.Files;
@@ -75,7 +72,6 @@ public class Main {
     public static void main(String[] args) throws IOException, ParseException {
         CharArraySet stopWords = EnwikiFactory.getExtendedStopWords();
         DecimalFormat decimalFormat = new DecimalFormat("#.000");
-
         Options options = new Options();
         Option compareTextOption = new Option("ct", "compare-texts", true, "\"string one\" \"string two\" / Compare two texts.");
         compareTextOption.setRequired(false);
@@ -99,6 +95,10 @@ public class Main {
         limitOption.setRequired(false);
         options.addOption(limitOption);
 
+        Option cohesionOption = new Option("cohesion", "cohesion", true, "float / The cohesion for grouping sentences into topics.");
+        cohesionOption.setRequired(false);
+        options.addOption(cohesionOption);
+
         //Debugging
         Option debugOption = new Option("d", "debug", true, "input.txt / Shows the tokens for a text.");
         debugOption.setRequired(false);
@@ -121,6 +121,11 @@ public class Main {
         indexMapOption.setRequired(false);
         options.addOption(indexMapOption);
 
+        //Server stuff
+        Option serverOption = new Option("server", "server", true, "port / Starts a vectorizing server using the specified port.");
+        serverOption.setRequired(false);
+        options.addOption(serverOption);
+
         CommandLineParser parser = new BasicParser();
         HelpFormatter formatter = new HelpFormatter();
 
@@ -131,6 +136,16 @@ public class Main {
             String[] topText = cmd.getOptionValues("tt");
             String[] topFile = cmd.getOptionValues("tf");
             String limit = cmd.getOptionValue("l");
+            String cohesion = cmd.getOptionValue("cohesion");
+            String server = cmd.getOptionValue("server");
+            double cohesionValue = 0.15;
+            if (nonEmpty(cohesion)) {
+                try {
+                    cohesionValue = Double.parseDouble(cohesion);
+                } catch (NumberFormatException e) {
+
+                }
+            }
             String debug = cmd.getOptionValue("d");
             String index = cmd.getOptionValue("i");
             String indexMap = cmd.getOptionValue("im");
@@ -174,7 +189,9 @@ public class Main {
                 }
                 vectorizer.setConceptCount(conceptCount);
 
-                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(vectorizer, conceptCount);
+                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(vectorizer, analyzer, conceptCount);
+                narrativeVectorizer.setDebug(true);
+                narrativeVectorizer.setCohesion(cohesionValue);
 
                 System.out.println("Limiting to top " + vectorizer.getConceptCount() + " concepts per document.");
                 SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(narrativeVectorizer);
@@ -205,7 +222,9 @@ public class Main {
                 WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
                 Vectorizer vectorizer = new Vectorizer(new File("./index/termdoc"), analyzer);
                 vectorizer.setConceptCount(topConcepts);
-                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(vectorizer, topConcepts);
+                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(vectorizer, analyzer, topConcepts);
+                narrativeVectorizer.setDebug(true);
+                narrativeVectorizer.setCohesion(cohesionValue);
                 ConceptVector vector = narrativeVectorizer.vectorize(sourceText);
                 Iterator<String> topTenConcepts = vector.topConcepts();
                 for (Iterator<String> it = topTenConcepts; it.hasNext(); ) {
@@ -262,7 +281,8 @@ public class Main {
                 }
                 vectorizer.setConceptCount(conceptCount);
 
-                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(vectorizer, conceptCount);
+                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(vectorizer, analyzer, conceptCount);
+                narrativeVectorizer.setCohesion(cohesionValue);
 
                 System.out.println("Limiting to top " + vectorizer.getConceptCount() + " concepts per document.");
                 SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(narrativeVectorizer);
@@ -297,8 +317,40 @@ public class Main {
                     createConceptTermIndex(new File("./index/termdoc"), new File("./index/conceptterm"));
                     System.out.println("Created index at 'index/conceptterm'.");
                 }
-            }
+            } else if(nonEmpty(server)) {
+                WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
+                Vectorizer vectorizer = new Vectorizer(new File("./index/termdoc"), analyzer);
 
+                int conceptCount = 1000;
+                if (nonEmpty(limit)) {
+                    try {
+                        conceptCount = Integer.parseInt(limit);
+                    } catch (NumberFormatException e) {
+
+                    }
+                }
+                vectorizer.setConceptCount(conceptCount);
+
+                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(vectorizer, analyzer, conceptCount);
+                narrativeVectorizer.setCohesion(cohesionValue);
+
+                int port = 1994;
+                try {
+                    port = Integer.parseInt(server);
+                } catch (NumberFormatException e) {
+
+                }
+                Javalin app = Javalin.create().start(port);
+                app.post("/vectorize", ctx -> {
+                    String text = ctx.body();
+                    if ("".equals(text)) {
+                        ctx.res.sendError(400, "Invalid input text.");
+                    } else {
+                        ConceptVector vector = narrativeVectorizer.vectorize(text);
+                        ctx.json(vector.getConceptWeights());
+                    }
+                });
+            }
             else {
                 formatter.printHelp("wiki-esa", options);
             }
