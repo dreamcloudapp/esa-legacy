@@ -20,14 +20,14 @@ public class VectorizerFactory {
 
     public VectorizerFactory(String type, String similarity, int conceptLimit, double cohesion) {
         this.analyzer = WikiAnalyzerFactory.getVectorizingAnalyzer();
-        this.type = type;
-        this.similarity = similarity;
+        this.type = type == null ? "" : type;
+        this.similarity = similarity == null ? "" : similarity;
         this.conceptLimit = conceptLimit;
         this.cohesion = cohesion;
     }
 
     public TextVectorizer getTextVectorizer() throws IOException {
-        Vectorizer base = new Vectorizer(new File("./termdoc"), analyzer);
+        Vectorizer base = new Vectorizer(new File("./index/termdoc"), analyzer);
         base.setConceptCount(this.conceptLimit);
         base.setSimilarity(this.getSimilarity());
         switch(this.type) {
