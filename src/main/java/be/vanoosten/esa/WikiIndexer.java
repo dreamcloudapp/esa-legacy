@@ -97,7 +97,7 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
         reset();
         indexTitles = new String[MAX_EXPECTED_ARTICLES];
         executorService = Executors.newFixedThreadPool(THREAD_COUNT);
-        analyzer = new WikiAnalyzer(LUCENE_48, EnwikiFactory.getExtendedStopWords(), true);
+        analyzer = WikiAnalyzerFactory.getLinkAnalyzer();
         mode = "analyze";
         parseXmlDump(file);
         //There may be queue items left over
@@ -115,7 +115,7 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
     public void indexArticles(File file) throws IOException {
         reset();
         executorService = Executors.newFixedThreadPool(THREAD_COUNT);
-        analyzer = new WikiAnalyzer(LUCENE_48, EnwikiFactory.getExtendedStopWords());
+        analyzer = WikiAnalyzerFactory.getAnalyzer();
         IndexWriterConfig indexWriterConfig = new IndexWriterConfig(Version.LUCENE_48, analyzer);
         indexWriter = new IndexWriter(directory, indexWriterConfig);
         mode = "index";
@@ -315,6 +315,9 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
             if (indexTitle != null) {
                 //Check incoming links
                 if (incomingLinkMap.containsKey(indexTitle) && incomingLinkMap.get(indexTitle) > 1) {
+                    if (indexTitle.equals("Justin Wilson")) {
+                        System.out.println("Justin Wilson has too many links: " + incomingLinkMap.get(indexTitle));
+                    }
                     index(article.title, article.text);
                     indexed++;
                 }

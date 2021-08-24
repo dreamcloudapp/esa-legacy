@@ -5,7 +5,7 @@ import java.util.ArrayList;
 public class WikipediaArticleAnalysis {
     public String parsedTitle;
     public ArrayList<String> outgoingLinks;
-    public int tokenCount = 0;
+    public int tokenCount;
 
     WikipediaArticleAnalysis(String parsedTitle, ArrayList<String> outgoingLinks, int tokenCount) {
         this.parsedTitle = parsedTitle;
@@ -14,6 +14,6 @@ public class WikipediaArticleAnalysis {
     }
 
     public boolean canIndex() {
-        return this.outgoingLinks.size() > 1 && this.tokenCount > 9;
+        return this.outgoingLinks.size() > 1 && this.tokenCount > 100;
     }
 }

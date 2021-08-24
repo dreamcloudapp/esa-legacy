@@ -14,6 +14,10 @@ import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.similarities.BM25Similarity;
+import org.apache.lucene.search.similarities.DefaultSimilarity;
+import org.apache.lucene.search.similarities.Similarity;
+import org.apache.lucene.search.similarities.TFIDFSimilarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
@@ -28,6 +32,7 @@ public class Vectorizer implements AutoCloseable, TextVectorizer {
     IndexReader indexReader;
     IndexSearcher searcher;
     QueryParser queryParser;
+    Similarity similarity;
     int conceptCount = 1000;
 
     /**
@@ -44,10 +49,23 @@ public class Vectorizer implements AutoCloseable, TextVectorizer {
         queryParser = new QueryParser(LUCENE_48, TEXT_FIELD, analyzer);
     }
 
+    public void setSimilarity(Similarity similarity) {
+        this.similarity = similarity;
+    }
+
+    private Similarity getSimilarity() {
+        if (this.similarity != null) {
+            return similarity;
+        } else {
+            return new DefaultSimilarity();
+        }
+    }
+
     public ConceptVector vectorize(String text) throws ParseException, IOException {
         //We need to escape this thing!
-        text = text.replaceAll("[+\\-&|!(){}\\[\\]^\"~*?:\\\\]+", "");
+        text = text.replaceAll("[+\\-&|!(){}\\[\\]^\"~*?:/\\\\]+", " ");
         Query query = queryParser.parse(text);
+        searcher.setSimilarity(this.getSimilarity());
         TopDocs td = searcher.search(query, conceptCount);
         return new ConceptVector(td, indexReader);
     }

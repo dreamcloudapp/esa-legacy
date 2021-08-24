@@ -18,14 +18,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.Fields;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.MultiFields;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.index.Terms;
-import org.apache.lucene.index.TermsEnum;
+import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
@@ -95,6 +88,14 @@ public class Main {
         limitOption.setRequired(false);
         options.addOption(limitOption);
 
+        Option similarityOption = new Option("similarity", "similarity", true, "[tfidf|bm25] / The scoring similarity algorithm, defaulting to tfidf.");
+        similarityOption.setRequired(false);
+        options.addOption(similarityOption);
+
+        Option vectorizerOption = new Option("vectorizer", "vectorizer", true, "[standard|narrative] / The vectorizing algorithm to use, defaulting to standard.");
+        vectorizerOption.setRequired(false);
+        options.addOption(vectorizerOption);
+
         Option cohesionOption = new Option("cohesion", "cohesion", true, "float / The cohesion for grouping sentences into topics.");
         cohesionOption.setRequired(false);
         options.addOption(cohesionOption);
@@ -135,9 +136,20 @@ public class Main {
             String[] compareFiles = cmd.getOptionValues("cf");
             String[] topText = cmd.getOptionValues("tt");
             String[] topFile = cmd.getOptionValues("tf");
+
             String limit = cmd.getOptionValue("l");
+            int conceptLimit = 1000;
+            if (nonEmpty(limit)) {
+                try {
+                    conceptLimit = Integer.parseInt(limit);
+                } catch (NumberFormatException e) {
+
+                }
+            }
+
+            String similarity = cmd.getOptionValue("similarity");
+            String vectorizer = cmd.getOptionValue("vectorizer");
             String cohesion = cmd.getOptionValue("cohesion");
-            String server = cmd.getOptionValue("server");
             double cohesionValue = 0.15;
             if (nonEmpty(cohesion)) {
                 try {
@@ -146,6 +158,10 @@ public class Main {
 
                 }
             }
+
+            VectorizerFactory vectorizerFactory = new VectorizerFactory(vectorizer, similarity, conceptLimit, cohesionValue);
+
+            String server = cmd.getOptionValue("server");
             String debug = cmd.getOptionValue("d");
             String index = cmd.getOptionValue("i");
             String indexMap = cmd.getOptionValue("im");
@@ -155,8 +171,6 @@ public class Main {
 
             //Comparison of texts
             if (hasLength(compareTexts, 2) || hasLength(compareFiles, 2)) {
-                stopWords.add("dream");
-
                 String sourceText;
                 String compareText;
 
@@ -176,38 +190,14 @@ public class Main {
                     compareDesc += "...";
                 }
                System.out.println("Comparing '" + sourceDesc + "' to '" + compareDesc + "':");
-                WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
-                Vectorizer vectorizer = new Vectorizer(new File("./index/termdoc"), analyzer);
-
-                int conceptCount = 1000;
-                if (nonEmpty(limit)) {
-                    try {
-                        conceptCount = Integer.parseInt(limit);
-                    } catch (NumberFormatException e) {
-
-                    }
-                }
-                vectorizer.setConceptCount(conceptCount);
-
-                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(vectorizer, analyzer, conceptCount);
-                narrativeVectorizer.setDebug(true);
-                narrativeVectorizer.setCohesion(cohesionValue);
-
-                System.out.println("Limiting to top " + vectorizer.getConceptCount() + " concepts per document.");
-                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(narrativeVectorizer);
+                TextVectorizer textVectorizer = vectorizerFactory.getTextVectorizer();
+                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
                 System.out.println("Vector relatedness: " + decimalFormat.format(similarityTool.findSemanticSimilarity(sourceText, compareText))
                 );
             }
 
             //Top concepts
             else if (hasLength(topText, 1) || hasLength(topFile, 1)) {
-                stopWords.add("dream");
-                Integer topConcepts = 10;
-                try {
-                    topConcepts = Integer.parseInt(limit);
-                } catch (NumberFormatException e) {
-
-                }
                 String sourceText;
                 if (hasLength(topText, 1)) {
                     sourceText = topText[0];
@@ -218,14 +208,8 @@ public class Main {
                 if (sourceText.length() > 16) {
                     sourceDesc += "...";
                 }
-                System.out.println("Getting top " + topConcepts + " concepts for '" + sourceDesc + "':");
-                WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
-                Vectorizer vectorizer = new Vectorizer(new File("./index/termdoc"), analyzer);
-                vectorizer.setConceptCount(topConcepts);
-                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(vectorizer, analyzer, topConcepts);
-                narrativeVectorizer.setDebug(true);
-                narrativeVectorizer.setCohesion(cohesionValue);
-                ConceptVector vector = narrativeVectorizer.vectorize(sourceText);
+                TextVectorizer textVectorizer = vectorizerFactory.getTextVectorizer();
+                ConceptVector vector = textVectorizer.vectorize(sourceText);
                 Iterator<String> topTenConcepts = vector.topConcepts();
                 for (Iterator<String> it = topTenConcepts; it.hasNext(); ) {
                     String concept = it.next();
@@ -241,8 +225,7 @@ public class Main {
                     sourceDesc += "...";
                 }
                 System.out.println("Debugging '" + sourceDesc + "':");
-                WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
-                TokenStream ts = analyzer.tokenStream(TEXT_FIELD, sourceText);
+                TokenStream ts = WikiAnalyzerFactory.getVectorizingAnalyzer().tokenStream(TEXT_FIELD, sourceText);
                 CharTermAttribute charTermAttribute = ts.addAttribute(CharTermAttribute.class);
                 TypeAttribute typeAttribute = ts.addAttribute(TypeAttribute.class);
 
@@ -258,7 +241,6 @@ public class Main {
             }
 
             else if(cmd.hasOption("t")) {
-                stopWords.add("dream");
                 //Get test files
                 File dir = new File("./src/test/data");
                 File[] files = dir.listFiles();
@@ -268,24 +250,8 @@ public class Main {
                 }
 
                 //Setup
-                WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
-                Vectorizer vectorizer = new Vectorizer(new File("./index/termdoc"), analyzer);
-
-                int conceptCount = 1000;
-                if (nonEmpty(limit)) {
-                    try {
-                        conceptCount = Integer.parseInt(limit);
-                    } catch (NumberFormatException e) {
-
-                    }
-                }
-                vectorizer.setConceptCount(conceptCount);
-
-                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(vectorizer, analyzer, conceptCount);
-                narrativeVectorizer.setCohesion(cohesionValue);
-
-                System.out.println("Limiting to top " + vectorizer.getConceptCount() + " concepts per document.");
-                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(narrativeVectorizer);
+                TextVectorizer textVectorizer = vectorizerFactory.getTextVectorizer();
+                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
 
                 System.out.println("Testing dream and news comparisons...");
                 System.out.println("----------------------------------------");
@@ -318,22 +284,7 @@ public class Main {
                     System.out.println("Created index at 'index/conceptterm'.");
                 }
             } else if(nonEmpty(server)) {
-                WikiAnalyzer analyzer = new WikiAnalyzer(LUCENE_48, stopWords);
-                Vectorizer vectorizer = new Vectorizer(new File("./index/termdoc"), analyzer);
-
-                int conceptCount = 1000;
-                if (nonEmpty(limit)) {
-                    try {
-                        conceptCount = Integer.parseInt(limit);
-                    } catch (NumberFormatException e) {
-
-                    }
-                }
-                vectorizer.setConceptCount(conceptCount);
-
-                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(vectorizer, analyzer, conceptCount);
-                narrativeVectorizer.setCohesion(cohesionValue);
-
+                TextVectorizer textVectorizer = vectorizerFactory.getTextVectorizer();
                 int port = 1994;
                 try {
                     port = Integer.parseInt(server);
@@ -346,7 +297,7 @@ public class Main {
                     if ("".equals(text)) {
                         ctx.res.sendError(400, "Invalid input text.");
                     } else {
-                        ConceptVector vector = narrativeVectorizer.vectorize(text);
+                        ConceptVector vector = textVectorizer.vectorize(text);
                         ctx.json(vector.getConceptWeights());
                     }
                 });
