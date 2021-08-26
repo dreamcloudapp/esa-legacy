@@ -274,7 +274,7 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
                     continue;
                 }
                 tokenCount++;
-                if ("il".equals(typeAttribute.type())) {
+                if ("il".equals(typeAttribute.type()) && !outgoingLinks.contains(termAttribute)) {
                     outgoingLinks.add(termAttribute.toString());
                 }
             }
