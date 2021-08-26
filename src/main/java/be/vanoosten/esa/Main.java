@@ -148,6 +148,10 @@ public class Main {
             }
 
             String similarity = cmd.getOptionValue("similarity");
+            if (nonEmpty(similarity)) {
+                SimilarityFactory.setSimilarityType(similarity);
+            }
+
             String vectorizer = cmd.getOptionValue("vectorizer");
             String cohesion = cmd.getOptionValue("cohesion");
             double cohesionValue = 0.15;
@@ -159,7 +163,7 @@ public class Main {
                 }
             }
 
-            VectorizerFactory vectorizerFactory = new VectorizerFactory(vectorizer, similarity, conceptLimit, cohesionValue);
+            VectorizerFactory vectorizerFactory = new VectorizerFactory(vectorizer, conceptLimit, cohesionValue);
 
             String server = cmd.getOptionValue("server");
             String debug = cmd.getOptionValue("d");

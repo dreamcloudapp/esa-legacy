@@ -29,14 +29,13 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Version;
+import org.eclipse.collections.api.map.primitive.MutableObjectIntMap;
 import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.eclipse.collections.api.map.primitive.*;
-import static org.apache.lucene.util.Version.LUCENE_48;
 
 /**
  *
@@ -46,9 +45,10 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
     private final SAXParserFactory saxFactory;
     private ExecutorService executorService;
     private static int THREAD_COUNT = 16;
-    private static int BATCH_SIZE = 1000;
+    private static int BATCH_SIZE = 100;
     private static int MAX_EXPECTED_ARTICLES = 32000000;
-    Vector<WikipediaArticle> queue;
+    WikipediaArticle[] fixedQueue = new WikipediaArticle[THREAD_COUNT * BATCH_SIZE];
+    int queueSize = 0;
     private boolean inPage;
     private boolean inPageTitle;
     private boolean inPageText;
@@ -76,11 +76,10 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
         this.directory = directory;
         saxFactory = SAXParserFactory.newInstance();
         saxFactory.setNamespaceAware(true);
-        saxFactory.setValidating(true);
+        saxFactory.setValidating(false);
         saxFactory.setXIncludeAware(true);
         String regex = "^[a-zA-z]+:.*";
         pat = Pattern.compile(regex);
-        queue = new Vector<>(BATCH_SIZE * THREAD_COUNT);
     }
 
     void reset() {
@@ -101,9 +100,20 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
         mode = "analyze";
         parseXmlDump(file);
         //There may be queue items left over
-        if (queue.size() > 0) {
+        if (queueSize > 0) {
             this.processQueue();
         }
+
+        analyzer.close();
+        executorService.shutdown();
+        try {
+            executorService.awaitTermination(12, TimeUnit.HOURS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.gc();
+
         numAnalyzed = numTotal;
 
         System.out.println("----------------------------------------");
@@ -117,12 +127,21 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
         executorService = Executors.newFixedThreadPool(THREAD_COUNT);
         analyzer = WikiAnalyzerFactory.getAnalyzer();
         IndexWriterConfig indexWriterConfig = new IndexWriterConfig(Version.LUCENE_48, analyzer);
+        indexWriterConfig.setSimilarity(SimilarityFactory.getSimilarity());
         indexWriter = new IndexWriter(directory, indexWriterConfig);
         mode = "index";
         parseXmlDump(file);
         //There may be queue items left over
-        if (queue.size() > 0) {
+        if (queueSize > 0) {
             this.processQueue();
+        }
+
+        analyzer.close();
+        executorService.shutdown();
+        try {
+            executorService.awaitTermination(12, TimeUnit.HOURS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
 
         //Show logs
@@ -141,10 +160,13 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
         try {
             SAXParser saxParser = saxFactory.newSAXParser();
             InputStream wikiInputStream = new FileInputStream(file);
-            wikiInputStream = new BufferedInputStream(wikiInputStream);
-            wikiInputStream = new BZip2CompressorInputStream(wikiInputStream, true);
-            saxParser.parse(wikiInputStream, this);
+            InputStream bufferedInputStream = new BufferedInputStream(wikiInputStream);
+            InputStream bzipInputStream = new BZip2CompressorInputStream(bufferedInputStream, true);
+            saxParser.parse(bzipInputStream, this);
+            bzipInputStream.close();
+            bufferedInputStream.close();
             wikiInputStream.close();
+
         } catch (ParserConfigurationException | SAXException | FileNotFoundException ex) {
             Logger.getLogger(WikiIndexer.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
@@ -181,10 +203,10 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
                 return;
             }
 
-            queue.add(new WikipediaArticle(numTotal, wikiTitleCopy, wikiText));
-
-            if (queue.size() == BATCH_SIZE * THREAD_COUNT) {
+            fixedQueue[queueSize++] = new WikipediaArticle(numTotal, wikiTitleCopy, wikiText);
+            if (queueSize == BATCH_SIZE * THREAD_COUNT) {
                 this.processQueue();
+                queueSize = 0;
             }
         } else if (inPage && "page".equals(localName)) {
             inPage = false;
@@ -192,17 +214,18 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
     }
 
     @Override
-    public void characters(char[] ch, int start, int length) throws SAXException {
+    public void characters(char[] ch, int start, int length) {
         content.append(ch, start, length);
     }
+
 
     void processAnalysisQueue() {
         //Spawn up THREAD_COUNT threads and give each BATCH_SIZE articles
         ArrayList<Callable<Vector<WikipediaArticle>>> processors = new ArrayList<>();
-        for (int i=0; i<THREAD_COUNT && (i * BATCH_SIZE) < queue.size(); i++) {
+        for (int i=0; i<THREAD_COUNT && (i * BATCH_SIZE) < queueSize; i++) {
             final Vector<WikipediaArticle> articles = new Vector<>(BATCH_SIZE);
-            for (int j = i * BATCH_SIZE; j<(((i+1) * BATCH_SIZE)) && j<queue.size(); j++) {
-                articles.add(queue.get(j));
+            for (int j = i * BATCH_SIZE; j<(((i+1) * BATCH_SIZE)) && j<queueSize; j++) {
+                articles.add(fixedQueue[j]);
             }
             processors.add(() -> this.analyzeArticles(articles));
         }
@@ -271,8 +294,10 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
         } else {
             this.processIndexQueue();
         }
-        queue.clear();
-        queue.ensureCapacity(BATCH_SIZE * THREAD_COUNT);
+        for (int i=0; i<THREAD_COUNT * BATCH_SIZE; i++) {
+            fixedQueue[i] = null;
+        }
+        queueSize = 0;
         if ("analyze".equals(mode)) {
             System.out.println("Analyzed articles\t[" + numLastTotal + " - " + numTotal + "]");
         } else {
@@ -284,10 +309,10 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
     void processIndexQueue() {
         //Spawn up THREAD_COUNT threads and give each BATCH_SIZE articles
         ArrayList<Callable<Integer>> processors = new ArrayList<>();
-        for (int i=0; i<THREAD_COUNT && (i * BATCH_SIZE) < queue.size(); i++) {
+        for (int i=0; i<THREAD_COUNT && (i * BATCH_SIZE) < queueSize; i++) {
             Vector<WikipediaArticle> articles = new Vector<>(BATCH_SIZE);
-            for (int j = i * BATCH_SIZE; j<(((i+1) * BATCH_SIZE)) && j<queue.size(); j++) {
-                articles.add(queue.get(j));
+            for (int j = i * BATCH_SIZE; j<(((i+1) * BATCH_SIZE)) && j<queueSize; j++) {
+                articles.add(fixedQueue[j]);
             }
             processors.add(() -> this.indexArticles(articles));
         }
@@ -314,10 +339,7 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
             String indexTitle = indexTitles[article.index];
             if (indexTitle != null) {
                 //Check incoming links
-                if (incomingLinkMap.containsKey(indexTitle) && incomingLinkMap.get(indexTitle) > 1) {
-                    if (indexTitle.equals("Justin Wilson")) {
-                        System.out.println("Justin Wilson has too many links: " + incomingLinkMap.get(indexTitle));
-                    }
+                if (incomingLinkMap.containsKey(indexTitle) && incomingLinkMap.get(indexTitle) > 4) {
                     index(article.title, article.text);
                     indexed++;
                 }
