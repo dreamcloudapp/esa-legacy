@@ -110,6 +110,12 @@ public class Main {
         indexOption.setRequired(false);
         options.addOption(indexOption);
 
+        //Indexing
+        Option indexWiktionaryOption = new Option("iw", "index-wiktionary", true, "dump.bz2 / Indexes a Wiktionary XML dump file in bz2 format.");
+        indexWiktionaryOption.setRequired(false);
+        options.addOption(indexWiktionaryOption);
+
+
         Option mapOption = new Option("m", "map", false, "Maps terms to concepts. Must run the index first.");
         mapOption.setRequired(false);
         options.addOption(mapOption);
@@ -168,6 +174,7 @@ public class Main {
             String server = cmd.getOptionValue("server");
             String debug = cmd.getOptionValue("d");
             String index = cmd.getOptionValue("i");
+            String indexWiktionary = cmd.getOptionValue("iw");
             String indexMap = cmd.getOptionValue("im");
 
             //Get the unixtime
@@ -305,6 +312,12 @@ public class Main {
                         ctx.json(vector.getConceptWeights());
                     }
                 });
+            }
+            else if(nonEmpty(indexWiktionary)) {
+                System.out.println("Indexing " + indexWiktionary + "...");
+                File wikipediaDumpFile = new File(indexWiktionary);
+                indexWiktionary(new File("./index/wiktionarytermdoc"), wikipediaDumpFile, stopWords);
+                System.out.println("Created index at 'index/termdoc'.");
             }
             else {
                 formatter.printHelp("wiki-esa", options);
@@ -472,6 +485,24 @@ public class Main {
                 indexer.generateArticleInfo(wikipediaDumpFile);
                 System.out.println("Finished analysis.");
 
+                System.out.println("");
+                System.out.println("Writing the index...");
+                indexer.indexArticles(wikipediaDumpFile);
+            }
+        }
+    }
+
+    /**
+     * Creates a term to concept index from a Wikipedia article dump.
+     * @param termDocIndexDirectory The directory where the term to concept index must be created
+     * @param wikipediaDumpFile The Wikipedia dump file that must be read to create the index
+     * @param stopWords The words that are not used in the semantic analysis
+     * @throws IOException
+     */
+    public static void indexWiktionary(File termDocIndexDirectory, File wikipediaDumpFile, CharArraySet stopWords) throws IOException {
+        try (Directory directory = FSDirectory.open(termDocIndexDirectory)) {
+
+            try(WiktionaryIndexer indexer = new WiktionaryIndexer(directory)){
                 System.out.println("");
                 System.out.println("Writing the index...");
                 indexer.indexArticles(wikipediaDumpFile);
