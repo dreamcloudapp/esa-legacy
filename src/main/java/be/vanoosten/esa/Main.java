@@ -84,6 +84,10 @@ public class Main {
         topFileOption.setRequired(false);
         options.addOption(topFileOption);
 
+        Option docTypeOption = new Option("doctype", "doctype", true, "string / The document type (article|dream). Defaults to article.");
+        docTypeOption.setRequired(false);
+        options.addOption(docTypeOption);
+
         Option limitOption = new Option("l", "limit", true, "int / The maximum number of concepts to query when comparing texts and finding top concepts.");
         limitOption.setRequired(false);
         options.addOption(limitOption);
@@ -136,6 +140,14 @@ public class Main {
             String[] compareFiles = cmd.getOptionValues("cf");
             String[] topText = cmd.getOptionValues("tt");
             String[] topFile = cmd.getOptionValues("tf");
+
+            String docType = cmd.getOptionValue("doctype");
+            if (!nonEmpty(docType)) {
+                docType = "article";
+            }
+            String termDoc = docType + "_" + "termdoc";
+            //Need to clean this up
+            WikiFactory.docType = docType;
 
             String limit = cmd.getOptionValue("l");
             int conceptLimit = 1000;
@@ -229,7 +241,7 @@ public class Main {
                     sourceDesc += "...";
                 }
                 System.out.println("Debugging '" + sourceDesc + "':");
-                TokenStream ts = WikiAnalyzerFactory.getVectorizingAnalyzer().tokenStream(TEXT_FIELD, sourceText);
+                TokenStream ts = AnalyzerFactory.getVectorizingAnalyzer().tokenStream(TEXT_FIELD, sourceText);
                 CharTermAttribute charTermAttribute = ts.addAttribute(CharTermAttribute.class);
                 TypeAttribute typeAttribute = ts.addAttribute(TypeAttribute.class);
 
@@ -274,8 +286,8 @@ public class Main {
                     String fileName = nonEmpty(indexMap) ? indexMap : index;
                     System.out.println("Indexing " + fileName + "...");
                     File wikipediaDumpFile = new File(fileName);
-                    indexing(new File("./index/termdoc"), wikipediaDumpFile, stopWords);
-                    System.out.println("Created index at 'index/termdoc'.");
+                    indexing(new File("./index/" + termDoc), wikipediaDumpFile, stopWords, docType);
+                    System.out.println("Created index at 'index/" + termDoc + "'.");
                 }
 
                 if (nonEmpty(indexMap)) {
@@ -284,8 +296,8 @@ public class Main {
 
                 if (nonEmpty(indexMap) || cmd.hasOption("m")) {
                     System.out.println("Mapping terms to concepts...");
-                    createConceptTermIndex(new File("./index/termdoc"), new File("./index/conceptterm"));
-                    System.out.println("Created index at 'index/conceptterm'.");
+                    createConceptTermIndex(new File("./index/" + termDoc), new File("./index/wiki_conceptterm"));
+                    System.out.println("Created index at 'index/wiki_conceptterm'.");
                 }
             } else if(nonEmpty(server)) {
                 TextVectorizer textVectorizer = vectorizerFactory.getTextVectorizer();
@@ -303,6 +315,7 @@ public class Main {
                     } else {
                         ConceptVector vector = textVectorizer.vectorize(text);
                         ctx.json(vector.getConceptWeights());
+                        System.out.println("Processed dream: " + text.substring(0, 16) + "...");
                     }
                 });
             }
@@ -464,17 +477,25 @@ public class Main {
      * @param stopWords The words that are not used in the semantic analysis
      * @throws IOException
      */
-    public static void indexing(File termDocIndexDirectory, File wikipediaDumpFile, CharArraySet stopWords) throws IOException {
+    public static void indexing(File termDocIndexDirectory, File wikipediaDumpFile, CharArraySet stopWords, String docType) throws IOException {
         try (Directory directory = FSDirectory.open(termDocIndexDirectory)) {
 
-            try(WikiIndexer indexer = new WikiIndexer(directory)){
+            Indexer indexer;
+            if ("article".equals(docType)) {
+                indexer =  new WikiIndexer(directory);
+            } else {
+                indexer = new DreamIndexer(directory);
+            }
+            try{
                 System.out.println("Analyzing the Wikipedia dump file to calculate token and link counts...");
-                indexer.generateArticleInfo(wikipediaDumpFile);
+                indexer.analyze(wikipediaDumpFile);
                 System.out.println("Finished analysis.");
 
                 System.out.println("");
                 System.out.println("Writing the index...");
-                indexer.indexArticles(wikipediaDumpFile);
+                indexer.index(wikipediaDumpFile);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }

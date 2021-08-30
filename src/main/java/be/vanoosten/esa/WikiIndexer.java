@@ -41,7 +41,7 @@ import java.util.concurrent.Executors;
  *
  * @author Philip van Oosten
  */
-public class WikiIndexer<HashTable> extends DefaultHandler implements AutoCloseable {
+public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexer {
     private final SAXParserFactory saxFactory;
     private ExecutorService executorService;
     private static int THREAD_COUNT = 16;
@@ -75,9 +75,9 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
     public WikiIndexer(Directory directory) {
         this.directory = directory;
         saxFactory = SAXParserFactory.newInstance();
-        saxFactory.setNamespaceAware(true);
+        saxFactory.setNamespaceAware(false);
         saxFactory.setValidating(false);
-        saxFactory.setXIncludeAware(true);
+        saxFactory.setXIncludeAware(false);
         String regex = "^[a-zA-z]+:.*";
         pat = Pattern.compile(regex);
     }
@@ -92,11 +92,11 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
         wikiTitle = null;
     }
 
-    public void generateArticleInfo(File file) {
+    public void analyze(File file) {
         reset();
         indexTitles = new String[MAX_EXPECTED_ARTICLES];
         executorService = Executors.newFixedThreadPool(THREAD_COUNT);
-        analyzer = WikiAnalyzerFactory.getLinkAnalyzer();
+        analyzer = AnalyzerFactory.getLinkAnalyzer();
         mode = "analyze";
         parseXmlDump(file);
         //There may be queue items left over
@@ -122,10 +122,10 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
         System.out.println("----------------------------------------");
     }
 
-    public void indexArticles(File file) throws IOException {
+    public void index(File file) throws IOException {
         reset();
         executorService = Executors.newFixedThreadPool(THREAD_COUNT);
-        analyzer = WikiAnalyzerFactory.getAnalyzer();
+        analyzer = AnalyzerFactory.getAnalyzer();
         IndexWriterConfig indexWriterConfig = new IndexWriterConfig(Version.LUCENE_48, analyzer);
         indexWriterConfig.setSimilarity(SimilarityFactory.getSimilarity());
         indexWriter = new IndexWriter(directory, indexWriterConfig);
@@ -274,7 +274,7 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
                     continue;
                 }
                 tokenCount++;
-                if ("il".equals(typeAttribute.type()) && !outgoingLinks.contains(termAttribute)) {
+                if ("il".equals(typeAttribute.type()) && !outgoingLinks.contains(termAttribute.toString())) {
                     outgoingLinks.add(termAttribute.toString());
                 }
             }
@@ -339,8 +339,8 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
             String indexTitle = indexTitles[article.index];
             if (indexTitle != null) {
                 //Check incoming links
-                if (incomingLinkMap.containsKey(indexTitle) && incomingLinkMap.get(indexTitle) > 4) {
-                    index(article.title, article.text);
+                if (incomingLinkMap.containsKey(indexTitle) && incomingLinkMap.get(indexTitle) > 0) {
+                    indexDocument(article.title, article.text);
                     indexed++;
                 }
             }
@@ -348,7 +348,7 @@ public class WikiIndexer<HashTable> extends DefaultHandler implements AutoClosea
         return indexed;
     }
 
-    void index(String title, String wikiText) throws IOException {
+    void indexDocument(String title, String wikiText) throws IOException {
         Document doc = new Document();
         doc.add(new StoredField(TITLE_FIELD, title));
         doc.add(new TextField(TEXT_FIELD, wikiText, Field.Store.NO));

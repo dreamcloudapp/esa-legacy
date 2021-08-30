@@ -20,7 +20,7 @@ import static org.apache.lucene.util.Version.LUCENE_48;
  * @author Philip van Oosten
  */
 public abstract class WikiFactory implements AutoCloseable {
-
+    public static String docType = "article";
     private Vectorizer vectorizer;
     private Analyzer analyzer;
     private RelatedTokensFinder relatedTokensFinder;
@@ -103,6 +103,6 @@ public abstract class WikiFactory implements AutoCloseable {
     }
 
     public final File getConceptTermIndexDirectory() {
-        return new File(getIndexRootPath(), "conceptterm");
+        return new File(getIndexRootPath(), docType + "_conceptterm");
     }
 }
