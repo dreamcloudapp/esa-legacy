@@ -103,6 +103,6 @@ public abstract class WikiFactory implements AutoCloseable {
     }
 
     public final File getConceptTermIndexDirectory() {
-        return new File(getIndexRootPath(), docType + "_conceptterm");
+        return new File(getIndexRootPath(), docType + "_conceptdoc");
     }
 }

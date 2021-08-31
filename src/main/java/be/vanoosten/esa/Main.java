@@ -4,20 +4,19 @@ import static be.vanoosten.esa.WikiIndexer.TEXT_FIELD;
 import static be.vanoosten.esa.WikiIndexer.TITLE_FIELD;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Iterator;
 import be.vanoosten.esa.tools.*;
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.Token;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.apache.lucene.analysis.util.CharArraySet;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.document.TextField;
+import org.apache.lucene.document.*;
 import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
@@ -37,6 +36,7 @@ import io.javalin.Javalin;
 //Reading input files
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -47,7 +47,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author Philip van Oosten
  */
 public class Main {
-    static int THREAD_COUNT = 16;
+    static int THREAD_COUNT = 1;
 
     public static String readInputFile(String path, String encoding) throws IOException {
         byte[] encoded = Files.readAllBytes(Paths.get(path));
@@ -83,6 +83,10 @@ public class Main {
         Option topFileOption = new Option("tf", "top-file", true, "input.txt / Get the top concepts for text in a file.");
         topFileOption.setRequired(false);
         options.addOption(topFileOption);
+
+        Option termLookupOption = new Option("term", "term", true, "\"string\" / Get the top concepts for a single term from the inverse mapping.");
+        termLookupOption.setRequired(false);
+        options.addOption(termLookupOption);
 
         Option docTypeOption = new Option("doctype", "doctype", true, "string / The document type (article|dream). Defaults to article.");
         docTypeOption.setRequired(false);
@@ -146,6 +150,7 @@ public class Main {
                 docType = "article";
             }
             String termDoc = docType + "_" + "termdoc";
+            String conceptDoc = docType + "_" + "conceptdoc";
             //Need to clean this up
             WikiFactory.docType = docType;
 
@@ -177,6 +182,8 @@ public class Main {
 
             VectorizerFactory vectorizerFactory = new VectorizerFactory(vectorizer, conceptLimit, cohesionValue);
 
+
+            String lookupTerm = cmd.getOptionValue("term");
             String server = cmd.getOptionValue("server");
             String debug = cmd.getOptionValue("d");
             String index = cmd.getOptionValue("i");
@@ -256,6 +263,23 @@ public class Main {
                 }
             }
 
+            else if(nonEmpty(lookupTerm)) {
+                Directory conceptDocDirectory = FSDirectory.open(new File("./index/" + conceptDoc));
+                IndexReader conceptDocReader = DirectoryReader.open(conceptDocDirectory);
+                IndexSearcher docSearcher = new IndexSearcher(conceptDocReader);
+                docSearcher.setSimilarity(SimilarityFactory.getSimilarity());
+                Analyzer analyzer = AnalyzerFactory.getAnalyzer();
+                QueryParser queryParser = new QueryParser(LUCENE_48, TEXT_FIELD, analyzer);
+                Query query = queryParser.parse(lookupTerm);
+                TopDocs topDocs = docSearcher.search(query, conceptLimit);
+                System.out.println("Term docs:" + topDocs.totalHits);
+                for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
+                    Document conceptDocument = conceptDocReader.document(scoreDoc.doc);
+                    IndexableField[] titleFields = conceptDocument.getFields(TITLE_FIELD);
+                    System.out.println(titleFields.length + ": " + scoreDoc.score);
+                }
+            }
+
             //Run unit tests
             else if(cmd.hasOption("t")) {
                 //Get test files
@@ -297,8 +321,8 @@ public class Main {
 
                 if (nonEmpty(indexMap) || cmd.hasOption("m")) {
                     System.out.println("Mapping terms to concepts...");
-                    createConceptTermIndex(new File("./index/" + termDoc), new File("./index/wiki_conceptterm"));
-                    System.out.println("Created index at 'index/wiki_conceptterm'.");
+                    createConceptTermIndex(new File("./index/" + termDoc), new File("./index/" + conceptDoc));
+                    System.out.println("Created index at 'index/" + conceptDoc + "'.");
                 }
             } else if(nonEmpty(server)) {
                 TextVectorizer textVectorizer = vectorizerFactory.getTextVectorizer();
@@ -343,12 +367,12 @@ public class Main {
      */
     static void createConceptTermIndex(File termDocIndexDirectory, File conceptTermIndexDirectory) throws IOException {
         final Directory termDocDirectory = FSDirectory.open(termDocIndexDirectory);
-        final IndexReader termDocReader = IndexReader.open(termDocDirectory);
+        final IndexReader termDocReader = DirectoryReader.open(termDocDirectory);
         final IndexSearcher docSearcher = new IndexSearcher(termDocReader);
 
         Fields fields = MultiFields.getFields(termDocReader);
         if (fields != null) {
-            Terms terms = fields.terms(WikiIndexer.TEXT_FIELD);
+            Terms terms = fields.terms(TEXT_FIELD);
 
             final IndexWriterConfig conceptIndexWriterConfig = new IndexWriterConfig(LUCENE_48, null);
             try (IndexWriter conceptIndexWriter = new IndexWriter(FSDirectory.open(conceptTermIndexDirectory), conceptIndexWriterConfig)) {
@@ -360,7 +384,6 @@ public class Main {
                 while(termsIterator.next() != null) {
                     termCount++;
                 }
-                AtomicLong termsProcessed = new AtomicLong(0);
 
                 final long termsPerThread = termCount / THREAD_COUNT;
                 System.out.println("Creating " + THREAD_COUNT + " threads each processing " + termsPerThread + " terms.");
@@ -368,65 +391,29 @@ public class Main {
 
                 for (int i=0; i<THREAD_COUNT; i++) {
                     final int iCopy = i;
-                    long finalTermCount = termCount;
                     executorService.submit(() -> {
                         long startTermIndex = termsPerThread * iCopy;
-                        long endTermIndex = startTermIndex + termsPerThread + (iCopy == 15 ? termsLeftOver : 0);
-
+                        long endTermIndex = startTermIndex + termsPerThread + (iCopy == (THREAD_COUNT - 1) ? termsLeftOver : 0);
                         System.out.println("Thread " + iCopy + " is handling terms [" + startTermIndex + ", " + (endTermIndex - 1) + "]");
-
                         try {
                             TermsEnum termsEnum = terms.iterator(null);
                             for (long termIndex = 0; termIndex < startTermIndex; termIndex++) {
                                 termsEnum.next();
                             }
 
-                            int t = 0;
                             BytesRef bytesRef;
                             while ((bytesRef = termsEnum.next()) != null && startTermIndex < endTermIndex) {
-                                String termString = bytesRef.utf8ToString();
-                                String padding = "";
-                                int tabs = 4 - (termString.length() / 8);
-                                while (tabs-- > 0) {
-                                    padding += "\t";
-                                }
-                                long processed = termsProcessed.incrementAndGet();
-                                if (t++ == 1000) {
-                                    t = 0;
-                                    System.out.println(termString + padding + "[" + processed + " / " + finalTermCount + "]");
-                                }
+                                System.out.println("term: " + bytesRef.utf8ToString());
                                 TopDocs td = SearchTerm(bytesRef, docSearcher);
-
-                                // add the concepts to the token stream
-                                byte[] payloadBytes = new byte[5];
-                                ByteArrayDataOutput dataOutput = new ByteArrayDataOutput(payloadBytes);
-                                CachingTokenStream pcTokenStream = new CachingTokenStream();
-                                double norm = ConceptSimilarity.SIMILARITY_FACTOR;
-                                int last = 0;
-                                for (ScoreDoc scoreDoc : td.scoreDocs) {
-                                    if (scoreDoc.score / norm < ConceptSimilarity.SIMILARITY_FACTOR ||
-                                            last >= 1.0f / ConceptSimilarity.SIMILARITY_FACTOR) break;
-                                    norm += scoreDoc.score * scoreDoc.score;
-                                    last++;
-                                }
-                                for (int j = 0; j < last; j++) {
-                                    ScoreDoc scoreDoc = td.scoreDocs[j];
+                                Document doc = new Document();
+                                doc.add(new TextField(TEXT_FIELD, bytesRef.utf8ToString(), Field.Store.NO));
+                                for (ScoreDoc scoreDoc: td.scoreDocs) {
                                     Document termDocDocument = termDocReader.document(scoreDoc.doc);
-                                    String concept = termDocDocument.get(WikiIndexer.TITLE_FIELD);
-                                    Token conceptToken = new Token(concept, j * 10, (j + 1) * 10, "CONCEPT");
-                                    // set similarity score as payload
-                                    int integerScore = (int) ((scoreDoc.score / norm) / ConceptSimilarity.SIMILARITY_FACTOR);
-                                    dataOutput.reset(payloadBytes);
-                                    dataOutput.writeVInt(integerScore);
-                                    BytesRef payloadBytesRef = new BytesRef(payloadBytes, 0, dataOutput.getPosition());
-                                    conceptToken.setPayload(payloadBytesRef);
-                                    pcTokenStream.produceToken(conceptToken);
+                                    String title = termDocDocument.get(TITLE_FIELD);
+                                    System.out.println(bytesRef.utf8ToString() + ": " + title);
+                                    doc.add(new StoredField(TITLE_FIELD, title));
                                 }
-
-                                Document conceptTermDocument = new Document();
-                                conceptTermDocument.add(new StringField(WikiIndexer.TEXT_FIELD, termString, Field.Store.YES));
-                                conceptTermDocument.add(new TextField("concept", pcTokenStream));
-                                conceptIndexWriter.addDocument(conceptTermDocument);
+                                conceptIndexWriter.addDocument(doc);
                                 startTermIndex++;
                             }
                         } catch (IOException e) {
@@ -435,6 +422,7 @@ public class Main {
                     });
                 }
                 try {
+                    conceptIndexWriter.commit();
                     executorService.shutdown();
                     Boolean result = executorService.awaitTermination(12, TimeUnit.HOURS);
                     if (result) {
@@ -445,13 +433,12 @@ public class Main {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-
             }
         }
     }
 
     private static TopDocs SearchTerm(BytesRef bytesRef, IndexSearcher docSearcher) throws IOException {
-        Term term = new Term(WikiIndexer.TEXT_FIELD, bytesRef);
+        Term term = new Term(TEXT_FIELD, bytesRef);
         Query query = new TermQuery(term);
         int n = 1000;
         TopDocs td = docSearcher.search(query, n);
