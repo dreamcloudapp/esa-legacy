@@ -1,6 +1,7 @@
 package be.vanoosten.esa;
 
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.core.KeywordTokenizer;
 import org.apache.lucene.analysis.core.LowerCaseFilter;
 import org.apache.lucene.analysis.core.StopFilter;
 import org.apache.lucene.analysis.TokenStream;
@@ -8,8 +9,10 @@ import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.en.PorterStemFilter;
 import org.apache.lucene.analysis.miscellaneous.ASCIIFoldingFilter;
 import org.apache.lucene.analysis.standard.ClassicFilter;
+import org.apache.lucene.analysis.standard.ClassicTokenizer;
 import org.apache.lucene.analysis.standard.StandardFilter;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
+import org.apache.lucene.analysis.tokenattributes.*;
 import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.util.Version;
 
@@ -33,7 +36,7 @@ public final class DreamAnalyzer extends Analyzer {
 
     protected Analyzer.TokenStreamComponents createComponents(String fieldName, Reader aReader) {
         File dictionary = new File("./src/data/en-words.txt");
-        Tokenizer source = new StandardTokenizer(matchVersion, aReader);
+        Tokenizer source = new ClassicTokenizer(matchVersion, aReader);
         TokenStream result = new StandardFilter(matchVersion, source);
         result = new ASCIIFoldingFilter(result, false);
         result = new LowerCaseFilter(matchVersion, result);

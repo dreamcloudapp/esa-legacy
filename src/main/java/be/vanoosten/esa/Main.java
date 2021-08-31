@@ -256,6 +256,7 @@ public class Main {
                 }
             }
 
+            //Run unit tests
             else if(cmd.hasOption("t")) {
                 //Get test files
                 File dir = new File("./src/test/data");
@@ -478,25 +479,25 @@ public class Main {
      * @throws IOException
      */
     public static void indexing(File termDocIndexDirectory, File wikipediaDumpFile, CharArraySet stopWords, String docType) throws IOException {
-        try (Directory directory = FSDirectory.open(termDocIndexDirectory)) {
+        Directory directory = FSDirectory.open(termDocIndexDirectory);
+        Indexer indexer;
+        if ("article".equals(docType)) {
+            System.out.println("indexing wikipedia");
+            indexer =  new WikiIndexer(directory);
+        } else {
+            System.out.println("indexing dreams");
+            indexer = new DreamIndexer(directory);
+        }
+        try{
+            System.out.println("Analyzing the Wikipedia dump file to calculate token and link counts...");
+            indexer.analyze(wikipediaDumpFile);
+            System.out.println("Finished analysis.");
 
-            Indexer indexer;
-            if ("article".equals(docType)) {
-                indexer =  new WikiIndexer(directory);
-            } else {
-                indexer = new DreamIndexer(directory);
-            }
-            try{
-                System.out.println("Analyzing the Wikipedia dump file to calculate token and link counts...");
-                indexer.analyze(wikipediaDumpFile);
-                System.out.println("Finished analysis.");
-
-                System.out.println("");
-                System.out.println("Writing the index...");
-                indexer.index(wikipediaDumpFile);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            System.out.println("");
+            System.out.println("Writing the index...");
+            indexer.index(wikipediaDumpFile);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

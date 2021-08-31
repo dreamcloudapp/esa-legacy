@@ -14,6 +14,9 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StoredField;
@@ -111,6 +114,14 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
                 String dreamText = (dreamTitle + " " + dreamContent).trim();
                 if (dreamText.length() > 0) {
                     try {
+                        TokenStream tokenStream = analyzer.tokenStream(TEXT_FIELD, dreamText);
+                        CharTermAttribute termAttribute = tokenStream.addAttribute(CharTermAttribute.class);
+                        TypeAttribute typeAttribute = tokenStream.addAttribute(TypeAttribute.class);
+                        tokenStream.reset();
+                        while(tokenStream.incrementToken()) {
+                            System.out.println(typeAttribute.type() + ": " + termAttribute.toString());
+                        }
+                        tokenStream.close();
                         index(dreamId, dreamTitle, dreamText, dreamUserId);
                         numIndexed++;
                     } catch (IOException e) {
