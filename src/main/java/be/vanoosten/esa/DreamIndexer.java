@@ -101,30 +101,22 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
     public void endElement(String uri, String localName, String qName) {
         switch (localName) {
             case "id":
-                dreamId = content.toString();
+                dreamId = content.toString().trim();
                 break;
             case "title":
-                dreamTitle = content.toString();
+                dreamTitle = content.toString().trim();
                 break;
             case "content":
-                dreamContent = content.toString();
+                dreamContent = content.toString().trim();
                 break;
             case "user":
-                dreamUserId = content.toString();
+                dreamUserId = content.toString().trim();
                 break;
             case "dream":
                 numTotal++;
                 String dreamText = (dreamTitle + " " + dreamContent).trim();
                 if (dreamText.length() > 0) {
                     try {
-                        TokenStream tokenStream = analyzer.tokenStream(TEXT_FIELD, dreamText);
-                        CharTermAttribute termAttribute = tokenStream.addAttribute(CharTermAttribute.class);
-                        TypeAttribute typeAttribute = tokenStream.addAttribute(TypeAttribute.class);
-                        tokenStream.reset();
-                        while(tokenStream.incrementToken()) {
-                            System.out.println(typeAttribute.type() + ": " + termAttribute.toString());
-                        }
-                        tokenStream.close();
                         index(dreamId, dreamTitle, dreamText, dreamUserId);
                         numIndexed++;
                     } catch (IOException e) {

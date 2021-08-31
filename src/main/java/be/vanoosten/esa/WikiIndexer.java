@@ -136,6 +136,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
             this.processQueue();
         }
 
+        indexWriter.commit();
         analyzer.close();
         executorService.shutdown();
         try {
