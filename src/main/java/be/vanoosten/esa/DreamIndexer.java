@@ -71,16 +71,16 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
             InputStream dreamInputStream = new FileInputStream(file);
             InputStream bufferedInputStream = new BufferedInputStream(dreamInputStream);
             saxParser.parse(bufferedInputStream, this);
-            bufferedInputStream.close();
-            dreamInputStream.close();
+            /*bufferedInputStream.close();
+            dreamInputStream.close();*/
 
         } catch (ParserConfigurationException | SAXException | FileNotFoundException ex) {
-            Logger.getLogger(WikiIndexer.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(DreamIndexer.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
-            Logger.getLogger(WikiIndexer.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(DreamIndexer.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        analyzer.close();
+        //analyzer.close();
 
         //Show logs
         System.out.println("----------------------------------------");
@@ -120,6 +120,7 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
                     }
                 }
         }
+        content = new StringBuilder();
     }
 
     public void characters(char[] ch, int start, int length) {
@@ -128,15 +129,17 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
 
     void index(String id, String title, String text, String userId) throws IOException {
         Document doc = new Document();
-        doc.add(new StoredField(ID_FIELD, id));
+        //doc.add(new StoredField(ID_FIELD, id));
         doc.add(new StoredField(TITLE_FIELD, title));
         doc.add(new TextField(TEXT_FIELD, text, Field.Store.NO));
-        doc.add(new StoredField(USER_FIELD, userId));
+        //doc.add(new StoredField(USER_FIELD, userId));
         indexWriter.addDocument(doc);
+        System.out.println("Indexed dream: '" + ("".equals(title) ? "(untitled)" : title) + "'.");
+        System.out.println("Text: " + text);
     }
 
     public void close() throws IOException {
-        indexWriter.close();
+        //indexWriter.close();
     }
 }
 

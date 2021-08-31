@@ -25,7 +25,7 @@ public class VectorizerFactory {
     }
 
     public TextVectorizer getTextVectorizer() throws IOException {
-        Vectorizer base = new Vectorizer(new File("./index/wiki_termdoc"), analyzer);
+        Vectorizer base = new Vectorizer(new File("./index/" + WikiFactory.docType + "_termdoc"), analyzer);
         base.setConceptCount(this.conceptLimit);
         base.setSimilarity(SimilarityFactory.getSimilarity());
         switch(this.type) {

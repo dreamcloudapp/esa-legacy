@@ -25,6 +25,6 @@ public class AnalyzerFactory {
     public static Analyzer getDreamAnalyzer() {
         CharArraySet stopWords = EnwikiFactory.getExtendedStopWords();
         stopWords.add("dream");
-        return new WikiAnalyzer(LUCENE_48, stopWords, false);
+        return new DreamAnalyzer(LUCENE_48, stopWords);
     }
 }
