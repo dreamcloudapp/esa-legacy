@@ -25,6 +25,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Version;
+import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
@@ -74,8 +75,8 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
             InputStream dreamInputStream = new FileInputStream(file);
             InputStream bufferedInputStream = new BufferedInputStream(dreamInputStream);
             saxParser.parse(bufferedInputStream, this);
-            /*bufferedInputStream.close();
-            dreamInputStream.close();*/
+            bufferedInputStream.close();
+            dreamInputStream.close();
 
         } catch (ParserConfigurationException | SAXException | FileNotFoundException ex) {
             Logger.getLogger(DreamIndexer.class.getName()).log(Level.SEVERE, null, ex);
@@ -83,7 +84,8 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
             Logger.getLogger(DreamIndexer.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        //analyzer.close();
+        indexWriter.commit();
+        analyzer.close();
 
         //Show logs
         System.out.println("----------------------------------------");
@@ -95,6 +97,7 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
         System.out.println("----------------------------------------");
     }
 
+    @Override
     public void endElement(String uri, String localName, String qName) {
         switch (localName) {
             case "id":
@@ -134,23 +137,27 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
         content = new StringBuilder();
     }
 
+    @Override
     public void characters(char[] ch, int start, int length) {
         content.append(ch, start, length);
     }
 
+    @Override
+    public void startElement(String uri, String localName, String qName, Attributes attributes) {
+
+    }
+
     void index(String id, String title, String text, String userId) throws IOException {
         Document doc = new Document();
-        //doc.add(new StoredField(ID_FIELD, id));
+        doc.add(new StoredField(ID_FIELD, id));
         doc.add(new StoredField(TITLE_FIELD, title));
         doc.add(new TextField(TEXT_FIELD, text, Field.Store.NO));
-        //doc.add(new StoredField(USER_FIELD, userId));
+        doc.add(new StoredField(USER_FIELD, userId));
         indexWriter.addDocument(doc);
-        System.out.println("Indexed dream: '" + ("".equals(title) ? "(untitled)" : title) + "'.");
-        System.out.println("Text: " + text);
     }
 
     public void close() throws IOException {
-        //indexWriter.close();
+        indexWriter.close();
     }
 }
 

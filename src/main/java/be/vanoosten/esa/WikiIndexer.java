@@ -75,9 +75,9 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     public WikiIndexer(Directory directory) {
         this.directory = directory;
         saxFactory = SAXParserFactory.newInstance();
-        saxFactory.setNamespaceAware(false);
+        saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);
-        saxFactory.setXIncludeAware(false);
+        saxFactory.setXIncludeAware(true);
         String regex = "^[a-zA-z]+:.*";
         pat = Pattern.compile(regex);
     }
