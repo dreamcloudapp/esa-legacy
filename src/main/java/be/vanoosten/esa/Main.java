@@ -20,11 +20,8 @@ import org.apache.lucene.document.*;
 import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.queryparser.xml.builders.BooleanQueryBuilder;
+import org.apache.lucene.search.*;
 import org.apache.lucene.store.ByteArrayDataOutput;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
@@ -48,17 +45,18 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class Main {
     static int THREAD_COUNT = 1;
+    private Query query;
 
     public static String readInputFile(String path, String encoding) throws IOException {
         byte[] encoded = Files.readAllBytes(Paths.get(path));
         return new String(encoded, encoding);
     }
 
-    public static Boolean nonEmpty(String s) {
+    public static boolean nonEmpty(String s) {
         return s != null && !s.equals("");
     }
 
-    public static Boolean hasLength(String[] a, int length) {
+    public static boolean hasLength(String[] a, int length) {
         return a != null && a.length == length;
     }
 
@@ -87,6 +85,11 @@ public class Main {
         Option termLookupOption = new Option("term", "term", true, "\"string\" / Get the top concepts for a single term from the inverse mapping.");
         termLookupOption.setRequired(false);
         options.addOption(termLookupOption);
+
+        Option relevanceOption = new Option("relevance", "relevance", true, "\"term docId\" / Computes the relevance of a term to a document id.");
+        relevanceOption.setArgs(2);
+        relevanceOption.setRequired(false);
+        options.addOption(relevanceOption);
 
         Option docTypeOption = new Option("doctype", "doctype", true, "string / The document type (article|dream). Defaults to article.");
         docTypeOption.setRequired(false);
@@ -144,6 +147,7 @@ public class Main {
             String[] compareFiles = cmd.getOptionValues("cf");
             String[] topText = cmd.getOptionValues("tt");
             String[] topFile = cmd.getOptionValues("tf");
+            String[] relevanceArgs = cmd.getOptionValues("relevance");
 
             String docType = cmd.getOptionValue("doctype");
             if (!nonEmpty(docType)) {
@@ -268,15 +272,47 @@ public class Main {
                 IndexReader conceptDocReader = DirectoryReader.open(conceptDocDirectory);
                 IndexSearcher docSearcher = new IndexSearcher(conceptDocReader);
                 docSearcher.setSimilarity(SimilarityFactory.getSimilarity());
-                Analyzer analyzer = AnalyzerFactory.getAnalyzer();
-                QueryParser queryParser = new QueryParser(LUCENE_48, TEXT_FIELD, analyzer);
-                Query query = queryParser.parse(lookupTerm);
-                TopDocs topDocs = docSearcher.search(query, conceptLimit);
-                System.out.println("Term docs:" + topDocs.totalHits);
+                Term term = new Term(TEXT_FIELD, lookupTerm);
+                Query query = new TermQuery(term);
+                TopDocs topDocs = docSearcher.search(query, 1);
                 for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
                     Document conceptDocument = conceptDocReader.document(scoreDoc.doc);
-                    IndexableField[] titleFields = conceptDocument.getFields(TITLE_FIELD);
-                    System.out.println(titleFields.length + ": " + scoreDoc.score);
+                    IndexableField[] idFields = conceptDocument.getFields("ids");
+                    IndexableField[] titleFields = conceptDocument.getFields( "names");
+                    IndexableField[] weightFields = conceptDocument.getFields("weights");
+                    for (int i = 0; i<idFields.length; i++) {
+                        String id = idFields[i].stringValue();
+                        String title = titleFields[i].stringValue();
+                        Number weight = weightFields[i].numericValue();
+                        System.out.println(title + " : (" + id + ") : " + weight);
+                    }
+                }
+            }
+
+            //Relevance of term to document
+            else if(hasLength(relevanceArgs, 2)) {
+                String termString = relevanceArgs[0];
+                String documentId = relevanceArgs[1];
+                Directory dir = FSDirectory.open(new File("./index/" + termDoc));
+                IndexReader docReader = DirectoryReader.open(dir);
+                IndexSearcher docSearcher = new IndexSearcher(docReader);
+                docSearcher.setSimilarity(SimilarityFactory.getSimilarity());
+
+                //Must include the term
+                Term term = new Term(TEXT_FIELD, termString);
+                Query termQuery = new TermQuery(term);
+
+                //Must be the specific document
+                Term idTerm = new Term(DreamIndexer.ID_FIELD, documentId);
+                Query idQuery = new TermQuery(idTerm);
+
+                BooleanQuery booleanQuery = new BooleanQuery();
+                booleanQuery.add(new BooleanClause(termQuery, BooleanClause.Occur.MUST));
+                booleanQuery.add(new BooleanClause(idQuery, BooleanClause.Occur.MUST));
+
+                TopDocs topDocs = docSearcher.search(booleanQuery, 10);
+                for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
+                    System.out.println("relevance: " + scoreDoc.score);
                 }
             }
 
@@ -372,69 +408,30 @@ public class Main {
 
         Fields fields = MultiFields.getFields(termDocReader);
         if (fields != null) {
-            Terms terms = fields.terms(TEXT_FIELD);
-
-            final IndexWriterConfig conceptIndexWriterConfig = new IndexWriterConfig(LUCENE_48, null);
+            final IndexWriterConfig conceptIndexWriterConfig = new IndexWriterConfig(LUCENE_48, AnalyzerFactory.getDreamAnalyzer());
             try (IndexWriter conceptIndexWriter = new IndexWriter(FSDirectory.open(conceptTermIndexDirectory), conceptIndexWriterConfig)) {
-
-                ExecutorService executorService = Executors.newFixedThreadPool(THREAD_COUNT);
-
-                long termCount = 0;
-                TermsEnum termsIterator = terms.iterator(null);
-                while(termsIterator.next() != null) {
-                    termCount++;
-                }
-
-                final long termsPerThread = termCount / THREAD_COUNT;
-                System.out.println("Creating " + THREAD_COUNT + " threads each processing " + termsPerThread + " terms.");
-                final long termsLeftOver = terms.size() % THREAD_COUNT;
-
-                for (int i=0; i<THREAD_COUNT; i++) {
-                    final int iCopy = i;
-                    executorService.submit(() -> {
-                        long startTermIndex = termsPerThread * iCopy;
-                        long endTermIndex = startTermIndex + termsPerThread + (iCopy == (THREAD_COUNT - 1) ? termsLeftOver : 0);
-                        System.out.println("Thread " + iCopy + " is handling terms [" + startTermIndex + ", " + (endTermIndex - 1) + "]");
-                        try {
-                            TermsEnum termsEnum = terms.iterator(null);
-                            for (long termIndex = 0; termIndex < startTermIndex; termIndex++) {
-                                termsEnum.next();
-                            }
-
-                            BytesRef bytesRef;
-                            while ((bytesRef = termsEnum.next()) != null && startTermIndex < endTermIndex) {
-                                System.out.println("term: " + bytesRef.utf8ToString());
-                                TopDocs td = SearchTerm(bytesRef, docSearcher);
-                                Document doc = new Document();
-                                doc.add(new TextField(TEXT_FIELD, bytesRef.utf8ToString(), Field.Store.NO));
-                                for (ScoreDoc scoreDoc: td.scoreDocs) {
-                                    Document termDocDocument = termDocReader.document(scoreDoc.doc);
-                                    String title = termDocDocument.get(TITLE_FIELD);
-                                    System.out.println(bytesRef.utf8ToString() + ": " + title);
-                                    doc.add(new StoredField(TITLE_FIELD, title));
-                                }
-                                conceptIndexWriter.addDocument(doc);
-                                startTermIndex++;
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    });
-                }
-                try {
-                    conceptIndexWriter.commit();
-                    executorService.shutdown();
-                    Boolean result = executorService.awaitTermination(12, TimeUnit.HOURS);
-                    if (result) {
-                        System.out.println("All threads successfully completed.");
-                    } else {
-                        System.out.println("Thread timeout exceeded.");
+                Terms terms = fields.terms(TEXT_FIELD);
+                TermsEnum termsEnum = terms.iterator(null);
+                BytesRef bytesRef;
+                while ((bytesRef = termsEnum.next()) != null) {
+                    System.out.println("term: " + bytesRef.utf8ToString());
+                    TopDocs td = SearchTerm(bytesRef, docSearcher);
+                    Document doc = new Document();
+                    doc.add(new TextField(TEXT_FIELD, bytesRef.utf8ToString(), Field.Store.NO));
+                    for (ScoreDoc scoreDoc: td.scoreDocs) {
+                        Document termDocDocument = termDocReader.document(scoreDoc.doc);
+                        String title = termDocDocument.get(TITLE_FIELD);
+                        String id = termDocDocument.get(DreamIndexer.ID_FIELD);
+                        doc.add(new StoredField("ids", id));
+                        doc.add(new StoredField("names", title));
+                        doc.add(new StoredField("weights", scoreDoc.score));
                     }
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    conceptIndexWriter.addDocument(doc);
                 }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        }
+        };
     }
 
     private static TopDocs SearchTerm(BytesRef bytesRef, IndexSearcher docSearcher) throws IOException {
