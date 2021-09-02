@@ -293,7 +293,7 @@ public class Main {
 
                 BooleanQuery.Builder builder = new BooleanQuery.Builder();
                 builder.add(new BooleanClause(termQuery, BooleanClause.Occur.MUST));
-                builder.add(new BooleanClause(idQuery, BooleanClause.Occur.MUST));
+                builder.add(new BooleanClause(idQuery, BooleanClause.Occur.FILTER));
 
                 TopDocs topDocs = docSearcher.search(builder.build(), 10);
                 for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
@@ -399,15 +399,12 @@ public class Main {
         final Directory termDocDirectory = FSDirectory.open(termDocIndexDirectory);
         final IndexReader termDocReader = DirectoryReader.open(termDocDirectory);
         final IndexSearcher docSearcher = new IndexSearcher(termDocReader);
-        //@todo: this probably doesn't work
-        Fields fields = termDocReader.getTermVectors(0);
-        if (fields != null) {
-            final IndexWriterConfig conceptIndexWriterConfig = new IndexWriterConfig(AnalyzerFactory.getDreamAnalyzer());
-            try (IndexWriter conceptIndexWriter = new IndexWriter(FSDirectory.open(conceptTermIndexDirectory), conceptIndexWriterConfig)) {
-                Terms terms = fields.terms(TEXT_FIELD);
-                TermsEnum termsEnum = terms.iterator();
-                BytesRef bytesRef;
-                while ((bytesRef = termsEnum.next()) != null) {
+        IndexWriterConfig conceptIndexWriterConfig = new IndexWriterConfig(AnalyzerFactory.getDreamAnalyzer());
+        try (IndexWriter conceptIndexWriter = new IndexWriter(FSDirectory.open(conceptTermIndexDirectory), conceptIndexWriterConfig)) {
+            for(int l = 0; l < termDocReader.leaves().size(); l++) {
+                System.out.println("leaf: " + l);
+                TermsEnum terms = termDocReader.leaves().get(l).reader().terms(TEXT_FIELD).iterator();
+                for (BytesRef bytesRef = terms.term(); terms.next() != null; ) {
                     System.out.println("term: " + bytesRef.utf8ToString());
                     TopDocs td = SearchTerm(bytesRef, docSearcher);
                     Document doc = new Document();
@@ -422,10 +419,10 @@ public class Main {
                     }
                     conceptIndexWriter.addDocument(doc);
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
             }
-        };
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private static TopDocs SearchTerm(BytesRef bytesRef, IndexSearcher docSearcher) throws IOException {

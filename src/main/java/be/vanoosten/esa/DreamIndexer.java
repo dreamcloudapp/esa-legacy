@@ -7,16 +7,12 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.NumberFormat;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
@@ -62,7 +58,8 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
     }
 
     public void index(File file) throws IOException {
-        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(AnalyzerFactory.getDreamAnalyzer());
+        analyzer = AnalyzerFactory.getDreamAnalyzer();
+        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(analyzer);
         indexWriter = new IndexWriter(directory, indexWriterConfig);
 
         try {
@@ -135,11 +132,17 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
     }
 
     void index(String id, String title, String text, String userId) throws IOException {
+        if (!"Mom Getting Rid of Stray Cat".equals(title) && text.contains("cat")) {
+            return;
+        }
         Document doc = new Document();
         doc.add(new StringField(ID_FIELD, id, Field.Store.YES));
         doc.add(new StringField(TITLE_FIELD, title, Field.Store.YES));
         FieldType fieldType = new FieldType();
         fieldType.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS);
+        fieldType.setStoreTermVectors(true);
+        fieldType.setStoreTermVectorOffsets(true);
+        fieldType.setStoreTermVectorPositions(true);
         fieldType.setStored(false);
         fieldType.setTokenized(true);
         Field textField = new Field(TEXT_FIELD, text, fieldType);
