@@ -4,30 +4,26 @@ import static be.vanoosten.esa.WikiIndexer.TEXT_FIELD;
 import static be.vanoosten.esa.WikiIndexer.TITLE_FIELD;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.text.DecimalFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Iterator;
 import be.vanoosten.esa.tools.*;
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.Token;
+import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
-import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.queryparser.xml.builders.BooleanQueryBuilder;
 import org.apache.lucene.search.*;
-import org.apache.lucene.store.ByteArrayDataOutput;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.commons.cli.*;
-import static org.apache.lucene.util.Version.LUCENE_48;
+
 import io.javalin.Javalin;
 
 //Reading input files
@@ -99,10 +95,6 @@ public class Main {
         limitOption.setRequired(false);
         options.addOption(limitOption);
 
-        Option similarityOption = new Option("similarity", "similarity", true, "[tfidf|bm25] / The scoring similarity algorithm, defaulting to tfidf.");
-        similarityOption.setRequired(false);
-        options.addOption(similarityOption);
-
         Option vectorizerOption = new Option("vectorizer", "vectorizer", true, "[standard|narrative] / The vectorizing algorithm to use, defaulting to standard.");
         vectorizerOption.setRequired(false);
         options.addOption(vectorizerOption);
@@ -166,11 +158,6 @@ public class Main {
                 } catch (NumberFormatException e) {
 
                 }
-            }
-
-            String similarity = cmd.getOptionValue("similarity");
-            if (nonEmpty(similarity)) {
-                SimilarityFactory.setSimilarityType(similarity);
             }
 
             String vectorizer = cmd.getOptionValue("vectorizer");
@@ -268,10 +255,9 @@ public class Main {
             }
 
             else if(nonEmpty(lookupTerm)) {
-                Directory conceptDocDirectory = FSDirectory.open(new File("./index/" + conceptDoc));
+                Directory conceptDocDirectory = FSDirectory.open(Paths.get("./index/" + conceptDoc));
                 IndexReader conceptDocReader = DirectoryReader.open(conceptDocDirectory);
                 IndexSearcher docSearcher = new IndexSearcher(conceptDocReader);
-                docSearcher.setSimilarity(SimilarityFactory.getSimilarity());
                 Term term = new Term(TEXT_FIELD, lookupTerm);
                 Query query = new TermQuery(term);
                 TopDocs topDocs = docSearcher.search(query, 1);
@@ -293,10 +279,9 @@ public class Main {
             else if(hasLength(relevanceArgs, 2)) {
                 String termString = relevanceArgs[0];
                 String documentId = relevanceArgs[1];
-                Directory dir = FSDirectory.open(new File("./index/" + termDoc));
+                Directory dir = FSDirectory.open(Paths.get("./index/" + termDoc));
                 IndexReader docReader = DirectoryReader.open(dir);
                 IndexSearcher docSearcher = new IndexSearcher(docReader);
-                docSearcher.setSimilarity(SimilarityFactory.getSimilarity());
 
                 //Must include the term
                 Term term = new Term(TEXT_FIELD, termString);
@@ -306,13 +291,22 @@ public class Main {
                 Term idTerm = new Term(DreamIndexer.ID_FIELD, documentId);
                 Query idQuery = new TermQuery(idTerm);
 
-                BooleanQuery booleanQuery = new BooleanQuery();
-                booleanQuery.add(new BooleanClause(termQuery, BooleanClause.Occur.MUST));
-                booleanQuery.add(new BooleanClause(idQuery, BooleanClause.Occur.MUST));
+                BooleanQuery.Builder builder = new BooleanQuery.Builder();
+                builder.add(new BooleanClause(termQuery, BooleanClause.Occur.MUST));
+                builder.add(new BooleanClause(idQuery, BooleanClause.Occur.MUST));
 
-                TopDocs topDocs = docSearcher.search(booleanQuery, 10);
+                TopDocs topDocs = docSearcher.search(builder.build(), 10);
                 for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
                     System.out.println("relevance: " + scoreDoc.score);
+                    Terms terms = docReader.getTermVector(scoreDoc.doc, TEXT_FIELD);
+                    TermsEnum termsEnum = terms.iterator();
+                    BytesRef bytesRef = new BytesRef(termString);
+                    if (termsEnum.seekExact(bytesRef)) {
+                        PostingsEnum pe = termsEnum.postings(null, PostingsEnum.FREQS);
+                        pe.nextDoc();
+                        int freq = pe.freq();
+                        System.out.println("freq:" + freq);
+                    }
                 }
             }
 
@@ -347,7 +341,7 @@ public class Main {
                     String fileName = nonEmpty(indexMap) ? indexMap : index;
                     System.out.println("Indexing " + fileName + "...");
                     File wikipediaDumpFile = new File(fileName);
-                    indexing(new File("./index/" + termDoc), wikipediaDumpFile, stopWords, docType);
+                    indexing(Paths.get("./index/" + termDoc), wikipediaDumpFile, stopWords, docType);
                     System.out.println("Created index at 'index/" + termDoc + "'.");
                 }
 
@@ -357,7 +351,7 @@ public class Main {
 
                 if (nonEmpty(indexMap) || cmd.hasOption("m")) {
                     System.out.println("Mapping terms to concepts...");
-                    createConceptTermIndex(new File("./index/" + termDoc), new File("./index/" + conceptDoc));
+                    createConceptTermIndex(Paths.get("./index/" + termDoc), Paths.get("./index/" + conceptDoc));
                     System.out.println("Created index at 'index/" + conceptDoc + "'.");
                 }
             } else if(nonEmpty(server)) {
@@ -401,17 +395,17 @@ public class Main {
      * @param termDocIndexDirectory The directory that contains the term-to-concept index, which is created by {@code indexing()} or in a similar fashion.
      * @param conceptTermIndexDirectory The directory that shall contain the concept-term index.
      */
-    static void createConceptTermIndex(File termDocIndexDirectory, File conceptTermIndexDirectory) throws IOException {
+    static void createConceptTermIndex(Path termDocIndexDirectory, Path conceptTermIndexDirectory) throws IOException {
         final Directory termDocDirectory = FSDirectory.open(termDocIndexDirectory);
         final IndexReader termDocReader = DirectoryReader.open(termDocDirectory);
         final IndexSearcher docSearcher = new IndexSearcher(termDocReader);
-
-        Fields fields = MultiFields.getFields(termDocReader);
+        //@todo: this probably doesn't work
+        Fields fields = termDocReader.getTermVectors(0);
         if (fields != null) {
-            final IndexWriterConfig conceptIndexWriterConfig = new IndexWriterConfig(LUCENE_48, AnalyzerFactory.getDreamAnalyzer());
+            final IndexWriterConfig conceptIndexWriterConfig = new IndexWriterConfig(AnalyzerFactory.getDreamAnalyzer());
             try (IndexWriter conceptIndexWriter = new IndexWriter(FSDirectory.open(conceptTermIndexDirectory), conceptIndexWriterConfig)) {
                 Terms terms = fields.terms(TEXT_FIELD);
-                TermsEnum termsEnum = terms.iterator(null);
+                TermsEnum termsEnum = terms.iterator();
                 BytesRef bytesRef;
                 while ((bytesRef = termsEnum.next()) != null) {
                     System.out.println("term: " + bytesRef.utf8ToString());
@@ -439,8 +433,8 @@ public class Main {
         Query query = new TermQuery(term);
         int n = 1000;
         TopDocs td = docSearcher.search(query, n);
-        if (n < td.totalHits) {
-            n = td.totalHits;
+        if (n < td.totalHits.value) {
+            n = (int) td.totalHits.value;
             td = docSearcher.search(query, n);
         }
         return td;
@@ -449,9 +443,9 @@ public class Main {
     private static void searchForQuery(final QueryParser parser, final IndexSearcher searcher, final String queryString, final IndexReader indexReader) throws ParseException, IOException {
         Query query = parser.parse(queryString);
         TopDocs topDocs = searcher.search(query, 12);
-        System.out.println(String.format("%d hits voor \"%s\"", topDocs.totalHits, queryString));
+        System.out.printf("%d hits voor \"%s\"%n", topDocs.totalHits.value, queryString);
         for (ScoreDoc sd : topDocs.scoreDocs) {
-            System.out.println(String.format("doc %d score %.2f shardIndex %d title \"%s\"", sd.doc, sd.score, sd.shardIndex, indexReader.document(sd.doc).get(TITLE_FIELD)));
+            System.out.printf("doc %d score %.2f shardIndex %d title \"%s\"%n", sd.doc, sd.score, sd.shardIndex, indexReader.document(sd.doc).get(TITLE_FIELD));
         }
     }
 
@@ -462,7 +456,7 @@ public class Main {
      * @param stopWords The words that are not used in the semantic analysis
      * @throws IOException
      */
-    public static void indexing(File termDocIndexDirectory, File wikipediaDumpFile, CharArraySet stopWords, String docType) throws IOException {
+    public static void indexing(Path termDocIndexDirectory, File wikipediaDumpFile, CharArraySet stopWords, String docType) throws IOException {
         Directory directory = FSDirectory.open(termDocIndexDirectory);
         Indexer indexer;
         if ("article".equals(docType)) {

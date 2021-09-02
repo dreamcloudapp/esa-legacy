@@ -4,16 +4,16 @@ import be.vanoosten.esa.tools.RelatedTokensFinder;
 import be.vanoosten.esa.tools.Vectorizer;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.util.CharArraySet;
+import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.Version;
-import static org.apache.lucene.util.Version.LUCENE_48;
 
 /**
  *
@@ -24,24 +24,24 @@ public abstract class WikiFactory implements AutoCloseable {
     private Vectorizer vectorizer;
     private Analyzer analyzer;
     private RelatedTokensFinder relatedTokensFinder;
-    private final File indexRootPath;
-    private final File dumpFile;
+    private final Path indexRootPath;
+    private final Path dumpFile;
     private final CharArraySet stopWords;
     private IndexSearcher relatedTermsSearcher;
     private FSDirectory relatedTermsIndex;
     private DirectoryReader relatedTermsIndexReader;
 
-    protected WikiFactory(File indexRootPath, File dumpFile, CharArraySet stopWords) {
+    protected WikiFactory(Path indexRootPath, Path dumpFile, CharArraySet stopWords) {
         this.indexRootPath = indexRootPath;
         this.dumpFile = dumpFile;
         this.stopWords = stopWords;
     }
 
-    public final File getIndexRootPath() {
+    public final Path getIndexRootPath() {
         return indexRootPath;
     }
 
-    public final File getWikipediaDumpFile() {
+    public final Path getWikipediaDumpFile() {
         return dumpFile;
     }
 
@@ -51,7 +51,7 @@ public abstract class WikiFactory implements AutoCloseable {
 
     public final Analyzer getAnalyzer() {
         if (analyzer == null) {
-            analyzer = new WikiAnalyzer(Version.LUCENE_48, getStopWords());
+            analyzer = new WikiAnalyzer(getStopWords());
         }
         return analyzer;
     }
@@ -85,7 +85,7 @@ public abstract class WikiFactory implements AutoCloseable {
             try {
                 relatedTermsIndex = FSDirectory.open(getConceptTermIndexDirectory());
                 relatedTermsIndexReader = DirectoryReader.open(relatedTermsIndex);
-                QueryParser conceptQueryParser = new QueryParser(LUCENE_48, WikiIndexer.TEXT_FIELD, getAnalyzer());
+                QueryParser conceptQueryParser = new QueryParser(WikiIndexer.TEXT_FIELD, getAnalyzer());
                 relatedTermsSearcher = new IndexSearcher(relatedTermsIndexReader);
             } catch (IOException ex) {
                 Logger.getLogger(WikiFactory.class.getName()).log(Level.SEVERE, null, ex);
@@ -102,7 +102,7 @@ public abstract class WikiFactory implements AutoCloseable {
         return relatedTokensFinder;
     }
 
-    public final File getConceptTermIndexDirectory() {
-        return new File(getIndexRootPath(), docType + "_conceptdoc");
+    public final Path getConceptTermIndexDirectory() {
+        return Paths.get(getIndexRootPath().toString(), docType + "_conceptdoc");
     }
 }

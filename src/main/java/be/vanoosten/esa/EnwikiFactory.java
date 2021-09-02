@@ -4,12 +4,10 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Iterator;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-import org.apache.lucene.analysis.core.StopAnalyzer;
-import org.apache.lucene.analysis.util.CharArraySet;
-
-import static org.apache.lucene.util.Version.LUCENE_48;
+import org.apache.lucene.analysis.CharArraySet;
 
 /**
  *
@@ -27,7 +25,7 @@ public class EnwikiFactory extends WikiFactory {
     }
 
     public static CharArraySet getExtendedStopWords() {
-        CharArraySet stopwords = new CharArraySet(LUCENE_48, 1024, true);
+        CharArraySet stopwords = new CharArraySet(1024, true);
         File stopFile = new File("./src/data/en-stopwords.txt");
         BufferedReader reader;
         try {
@@ -48,11 +46,11 @@ public class EnwikiFactory extends WikiFactory {
 
     public EnwikiFactory() {
         super(indexRootPath(),
-                new File(indexRootPath(), String.join(File.separator, getWikiDumpFile(20211))),
+                Paths.get(indexRootPath().toString(), String.join(File.separator, getWikiDumpFile(20211))),
                 getExtendedStopWords());
     }
 
-    private static File indexRootPath() {
-        return new File(String.join(File.separator, "F:", "dev", "esa", "enwiki"));
+    private static Path indexRootPath() {
+        return Paths.get(String.join(File.separator, "F:", "dev", "esa", "enwiki"));
     }
 }

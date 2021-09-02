@@ -126,8 +126,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
         reset();
         executorService = Executors.newFixedThreadPool(THREAD_COUNT);
         analyzer = AnalyzerFactory.getAnalyzer();
-        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(Version.LUCENE_48, analyzer);
-        indexWriterConfig.setSimilarity(SimilarityFactory.getSimilarity());
+        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(analyzer);
         indexWriter = new IndexWriter(directory, indexWriterConfig);
         mode = "index";
         parseXmlDump(file);

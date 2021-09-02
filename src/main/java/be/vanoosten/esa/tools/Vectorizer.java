@@ -1,9 +1,8 @@
 package be.vanoosten.esa.tools;
 
 import static be.vanoosten.esa.WikiIndexer.TEXT_FIELD;
-import static org.apache.lucene.util.Version.LUCENE_48;
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.lucene.analysis.Analyzer;
@@ -14,10 +13,8 @@ import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.similarities.BM25Similarity;
-import org.apache.lucene.search.similarities.DefaultSimilarity;
+import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.search.similarities.Similarity;
-import org.apache.lucene.search.similarities.TFIDFSimilarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
@@ -42,30 +39,17 @@ public class Vectorizer implements AutoCloseable, TextVectorizer {
      * @param analyzer The analyzer to use to create search queries
      * @throws java.io.IOException
      */
-    public Vectorizer(File termConceptDirectory, Analyzer analyzer) throws IOException {
+    public Vectorizer(Path termConceptDirectory, Analyzer analyzer) throws IOException {
         termToConceptDirectory = FSDirectory.open(termConceptDirectory);
         indexReader = DirectoryReader.open(termToConceptDirectory);
         searcher = new IndexSearcher(indexReader);
-        queryParser = new QueryParser(LUCENE_48, TEXT_FIELD, analyzer);
-    }
-
-    public void setSimilarity(Similarity similarity) {
-        this.similarity = similarity;
-    }
-
-    private Similarity getSimilarity() {
-        if (this.similarity != null) {
-            return similarity;
-        } else {
-            return new DefaultSimilarity();
-        }
+        queryParser = new QueryParser(TEXT_FIELD, analyzer);
     }
 
     public ConceptVector vectorize(String text) throws ParseException, IOException {
         //We need to escape this thing!
         text = text.replaceAll("[+\\-&|!(){}\\[\\]^\"~*?:/\\\\]+", " ");
         Query query = queryParser.parse(text);
-        searcher.setSimilarity(this.getSimilarity());
         TopDocs td = searcher.search(query, conceptCount);
         return new ConceptVector(td, indexReader);
     }

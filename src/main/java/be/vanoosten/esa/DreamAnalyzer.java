@@ -1,7 +1,7 @@
 package be.vanoosten.esa;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.core.KeywordTokenizer;
+import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.core.LowerCaseFilter;
 import org.apache.lucene.analysis.core.StopFilter;
 import org.apache.lucene.analysis.TokenStream;
@@ -10,8 +10,6 @@ import org.apache.lucene.analysis.en.PorterStemFilter;
 import org.apache.lucene.analysis.miscellaneous.ASCIIFoldingFilter;
 import org.apache.lucene.analysis.standard.ClassicFilter;
 import org.apache.lucene.analysis.standard.ClassicTokenizer;
-import org.apache.lucene.analysis.standard.StandardFilter;
-import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.util.Version;
 
 import java.io.File;
@@ -24,25 +22,20 @@ public final class DreamAnalyzer extends Analyzer {
      */
     private final CharArraySet stoptable;
 
-    // null if on 3.1 or later - only for bw compat
-    private final Version matchVersion;
-
-    public DreamAnalyzer(Version matchVersion, CharArraySet stopwords) {
-        this.matchVersion = matchVersion;
-        this.stoptable = CharArraySet.unmodifiableSet(CharArraySet.copy(matchVersion, stopwords));
+    public DreamAnalyzer(CharArraySet stopwords) {
+        this.stoptable = CharArraySet.unmodifiableSet(CharArraySet.copy(stopwords));
     }
 
-    protected Analyzer.TokenStreamComponents createComponents(String fieldName, Reader aReader) {
+    protected Analyzer.TokenStreamComponents createComponents(String fieldName) {
         File dictionary = new File("./src/data/en-words.txt");
-        Tokenizer source = new ClassicTokenizer(matchVersion, aReader);
-        TokenStream result = new StandardFilter(matchVersion, source);
-        result = new ASCIIFoldingFilter(result, false);
-        result = new LowerCaseFilter(matchVersion, result);
+        Tokenizer source = new ClassicTokenizer();
+        TokenStream result = new ASCIIFoldingFilter(source, false);
+        result = new LowerCaseFilter(result);
         result = new ClassicFilter(result);
-        result = new DictionaryFilter(matchVersion, result, dictionary);
-        result = new StopFilter(matchVersion, result, stoptable);
+        result = new DictionaryFilter(result, dictionary);
+        result = new StopFilter(result, stoptable);
         result = new PorterStemFilter(result);
-        result = new StopFilter(matchVersion, result, stoptable);
+        result = new StopFilter(result, stoptable);
         return new Analyzer.TokenStreamComponents(source, result);
     }
 }

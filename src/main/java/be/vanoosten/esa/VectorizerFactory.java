@@ -4,12 +4,8 @@ import be.vanoosten.esa.tools.NarrativeVectorizer;
 import be.vanoosten.esa.tools.TextVectorizer;
 import be.vanoosten.esa.tools.Vectorizer;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.search.similarities.BM25Similarity;
-import org.apache.lucene.search.similarities.DefaultSimilarity;
-import org.apache.lucene.search.similarities.Similarity;
-
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 
 public class VectorizerFactory {
     private final String type;
@@ -25,9 +21,8 @@ public class VectorizerFactory {
     }
 
     public TextVectorizer getTextVectorizer() throws IOException {
-        Vectorizer base = new Vectorizer(new File("./index/" + WikiFactory.docType + "_termdoc"), analyzer);
+        Vectorizer base = new Vectorizer(Paths.get("./index/" + WikiFactory.docType + "_termdoc"), analyzer);
         base.setConceptCount(this.conceptLimit);
-        base.setSimilarity(SimilarityFactory.getSimilarity());
         switch(this.type) {
             case "narrative":
                 NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(base, analyzer, conceptLimit);

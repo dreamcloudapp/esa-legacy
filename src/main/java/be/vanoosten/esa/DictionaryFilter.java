@@ -1,8 +1,8 @@
 package be.vanoosten.esa;
 
+import org.apache.lucene.analysis.FilteringTokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.analysis.util.FilteringTokenFilter;
 import org.apache.lucene.util.Version;
 import java.io.*;
 import java.util.HashSet;
@@ -25,8 +25,8 @@ public class DictionaryFilter extends FilteringTokenFilter {
      * @param input
      * @param ignoreCase
      */
-    public DictionaryFilter(Version version, TokenStream input, File dictionary, Boolean ignoreCase) {
-        super(version, input);
+    public DictionaryFilter(TokenStream input, File dictionary, Boolean ignoreCase) {
+        super(input);
         this.dictionary = dictionary;
         this.ignoreCase = ignoreCase;
     }
@@ -37,8 +37,8 @@ public class DictionaryFilter extends FilteringTokenFilter {
      * @param dictionary
      * @param input
      */
-    public DictionaryFilter(Version version, TokenStream input, File dictionary) {
-        super(version, input);
+    public DictionaryFilter(TokenStream input, File dictionary) {
+        super(input);
         this.dictionary = dictionary;
         this.ignoreCase = true;
     }

@@ -9,12 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.*;
 
 /**
  *
@@ -73,13 +68,13 @@ public class ConceptVector {
     }
 
     public Query asQuery() {
-        BooleanQuery relatedTermsQuery = new BooleanQuery();
+        BooleanQuery.Builder builder = new BooleanQuery.Builder();
         for (Map.Entry<String, Float> entry : conceptWeights.entrySet()) {
             String concept = entry.getKey();
             TermQuery conceptAsTermQuery = new TermQuery(new Term("concept", concept));
-            conceptAsTermQuery.setBoost(entry.getValue());
-            relatedTermsQuery.add(conceptAsTermQuery, BooleanClause.Occur.SHOULD);
+            BoostQuery boostQuery = new BoostQuery(conceptAsTermQuery, entry.getValue());
+            builder.add(boostQuery, BooleanClause.Occur.SHOULD);
         }
-        return relatedTermsQuery;
+        return builder.build();
     }
 }

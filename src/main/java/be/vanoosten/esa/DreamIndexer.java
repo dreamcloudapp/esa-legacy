@@ -17,14 +17,11 @@ import javax.xml.parsers.SAXParserFactory;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.StoredField;
-import org.apache.lucene.document.TextField;
+import org.apache.lucene.document.*;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.util.Version;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -65,11 +62,7 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
     }
 
     public void index(File file) throws IOException {
-        Map<String, Analyzer> analyzerPerField = new HashMap<>();
-        analyzerPerField.put(TEXT_FIELD, AnalyzerFactory.getDreamAnalyzer());
-        analyzer = new PerFieldAnalyzerWrapper(new StandardAnalyzer(Version.LUCENE_48), analyzerPerField);
-        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(Version.LUCENE_48, analyzer);
-        indexWriterConfig.setSimilarity(SimilarityFactory.getSimilarity());
+        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(AnalyzerFactory.getDreamAnalyzer());
         indexWriter = new IndexWriter(directory, indexWriterConfig);
 
         try {
@@ -143,10 +136,15 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
 
     void index(String id, String title, String text, String userId) throws IOException {
         Document doc = new Document();
-        doc.add(new TextField(ID_FIELD, id, Field.Store.YES));
-        doc.add(new StoredField(TITLE_FIELD, title));
-        doc.add(new TextField(TEXT_FIELD, text, Field.Store.NO));
-        doc.add(new TextField(USER_FIELD, userId, Field.Store.YES));
+        doc.add(new StringField(ID_FIELD, id, Field.Store.YES));
+        doc.add(new StringField(TITLE_FIELD, title, Field.Store.YES));
+        FieldType fieldType = new FieldType();
+        fieldType.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS);
+        fieldType.setStored(false);
+        fieldType.setTokenized(true);
+        Field textField = new Field(TEXT_FIELD, text, fieldType);
+        doc.add(textField);
+        doc.add(new StringField(USER_FIELD, userId, Field.Store.YES));
         indexWriter.addDocument(doc);
     }
 
