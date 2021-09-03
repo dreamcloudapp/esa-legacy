@@ -285,29 +285,9 @@ public class Main {
 
                 //Must include the term
                 Term term = new Term(TEXT_FIELD, termString);
-                Query termQuery = new TermQuery(term);
-
-                //Must be the specific document
                 Term idTerm = new Term(DreamIndexer.ID_FIELD, documentId);
-                Query idQuery = new TermQuery(idTerm);
-
-                BooleanQuery.Builder builder = new BooleanQuery.Builder();
-                builder.add(new BooleanClause(termQuery, BooleanClause.Occur.MUST));
-                builder.add(new BooleanClause(idQuery, BooleanClause.Occur.FILTER));
-
-                TopDocs topDocs = docSearcher.search(builder.build(), 10);
-                for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
-                    System.out.println("relevance: " + scoreDoc.score);
-                    Terms terms = docReader.getTermVector(scoreDoc.doc, TEXT_FIELD);
-                    TermsEnum termsEnum = terms.iterator();
-                    BytesRef bytesRef = new BytesRef(termString);
-                    if (termsEnum.seekExact(bytesRef)) {
-                        PostingsEnum pe = termsEnum.postings(null, PostingsEnum.FREQS);
-                        pe.nextDoc();
-                        int freq = pe.freq();
-                        System.out.println("freq:" + freq);
-                    }
-                }
+                DocumentTermRelevance relevance = new DocumentTermRelevance(idTerm, docSearcher);
+                System.out.println("Relevance: " + relevance.score(term));
             }
 
             //Run unit tests
