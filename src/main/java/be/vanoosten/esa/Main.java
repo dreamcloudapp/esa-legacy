@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Iterator;
 import be.vanoosten.esa.tools.*;
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
@@ -82,6 +83,11 @@ public class Main {
         termLookupOption.setRequired(false);
         options.addOption(termLookupOption);
 
+        Option weightOption = new Option("weight", "weight", true, "docId documentText / Gets the weights of terms within a document");
+        weightOption.setArgs(2);
+        weightOption.setRequired(false);
+        options.addOption(weightOption);
+
         Option relevanceOption = new Option("relevance", "relevance", true, "\"term docId\" / Computes the relevance of a term to a document id.");
         relevanceOption.setArgs(2);
         relevanceOption.setRequired(false);
@@ -140,7 +146,7 @@ public class Main {
             String[] topText = cmd.getOptionValues("tt");
             String[] topFile = cmd.getOptionValues("tf");
             String[] relevanceArgs = cmd.getOptionValues("relevance");
-
+            String[] weightArgs = cmd.getOptionValues("weight");
             String docType = cmd.getOptionValue("doctype");
             if (!nonEmpty(docType)) {
                 docType = "article";
@@ -273,6 +279,19 @@ public class Main {
                         System.out.println(title + " : (" + id + ") : " + weight);
                     }
                 }
+            }
+
+            else if(hasLength(weightArgs, 2)) {
+                String documentId = weightArgs[0];
+                String documentText = weightArgs[1];
+                Directory dir = FSDirectory.open(Paths.get("./index/" + termDoc));
+                IndexReader docReader = DirectoryReader.open(dir);
+                IndexSearcher docSearcher = new IndexSearcher(docReader);
+                Analyzer analyzer = AnalyzerFactory.getDreamAnalyzer();
+
+                Term idTerm = new Term(DreamIndexer.ID_FIELD, documentId);
+                WeighedDocumentQueryBuilder builder = new WeighedDocumentQueryBuilder(analyzer, docSearcher);
+                System.out.println("Weighted Query: " + builder.weight(idTerm, documentText));
             }
 
             //Relevance of term to document
