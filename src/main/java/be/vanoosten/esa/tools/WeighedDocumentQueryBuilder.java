@@ -29,6 +29,8 @@ public class WeighedDocumentQueryBuilder {
      * @return a new query text with weights added ("cat dog" --> "cat^1.1 dog^0.9")
      */
     public String weight(Term documentId,  String documentText) throws IOException {
+        System.out.println("weighing dream " + documentId.text());
+        System.out.println("==================================================");
         DocumentTermRelevance relevance = new DocumentTermRelevance(documentId, searcher);
         ArrayList<Term> terms = this.getTerms(documentText);
         StringBuilder queryTextBuilder = new StringBuilder();
@@ -45,8 +47,11 @@ public class WeighedDocumentQueryBuilder {
             float score = relevance.score(term);
             score = (float) Math.pow(score, 1.0 / termOccurrences.get(term.text()));
             queryTextBuilder.append(term.text()).append("^").append(score).append(" ");
+            System.out.println(term.text() + "\t" + score);
         }
+        System.out.println("==================================================");
         return queryTextBuilder.toString().trim();
+
     }
 
     private ArrayList<Term> getTerms(String documentText) throws IOException {
@@ -55,6 +60,7 @@ public class WeighedDocumentQueryBuilder {
         CharTermAttribute termAttribute = tokenStream.addAttribute(CharTermAttribute.class);
         tokenStream.reset();
         while(tokenStream.incrementToken()) {
+            //System.out.println("dd-token: " + termAttribute.toString());
             tokens.add(new Term(TEXT_FIELD, termAttribute.toString()));
         }
         tokenStream.close();

@@ -126,15 +126,7 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
         content.append(ch, start, length);
     }
 
-    @Override
-    public void startElement(String uri, String localName, String qName, Attributes attributes) {
-
-    }
-
     void index(String id, String title, String text, String userId) throws IOException {
-        if (!"Mom Getting Rid of Stray Cat".equals(title) && text.contains("cat")) {
-            return;
-        }
         Document doc = new Document();
         doc.add(new StringField(ID_FIELD, id, Field.Store.YES));
         doc.add(new StringField(TITLE_FIELD, title, Field.Store.YES));

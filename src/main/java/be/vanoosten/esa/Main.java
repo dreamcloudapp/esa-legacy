@@ -356,7 +356,7 @@ public class Main {
                     System.out.println("Created index at 'index/" + conceptDoc + "'.");
                 }
             } else if(nonEmpty(server)) {
-                Directory dir = FSDirectory.open(Paths.get("./index/" + termDoc));
+                Directory dir = FSDirectory.open(Paths.get("./index/" + "dream_termdoc"));
                 IndexReader docReader = DirectoryReader.open(dir);
                 IndexSearcher docSearcher = new IndexSearcher(docReader);
                 Analyzer analyzer = AnalyzerFactory.getDreamAnalyzer();

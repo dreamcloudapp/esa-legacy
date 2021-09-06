@@ -16,7 +16,8 @@ public class DocumentTermRelevance {
     }
 
     public float score(Term term) throws IOException {
-        Document document = this.getDocument();
+        //Why does the dream not always exist?!
+        getDocument();
         Query termQuery = new TermQuery(term);
         Query idQuery = new TermQuery(documentId);
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
@@ -26,7 +27,9 @@ public class DocumentTermRelevance {
         if (topDocs.scoreDocs.length > 0) {
             return topDocs.scoreDocs[0].score;
         } else {
-            throw new IOException("Unable to find term in document document when computing document term relevance.");
+            //word isn't important
+            return 0;
+            //throw new IOException("Unable to find term '" + term.text() + "' in document '" + documentId.text() + "' when computing document term relevance.");
         }
     }
 
@@ -37,7 +40,8 @@ public class DocumentTermRelevance {
             if (topDocs.scoreDocs.length > 0) {
                 document = searcher.doc(topDocs.scoreDocs[0].doc);
             } else {
-                throw new IOException("Unable to find document when computing document term relevance.");
+                System.out.println("Unable to find document '" + documentId.text() + "' when computing document term relevance.");
+                //throw new IOException("Unable to find document '" + documentId.text() + "' when computing document term relevance.");
             }
         }
         return document;
