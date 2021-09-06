@@ -8,6 +8,8 @@ import org.apache.lucene.search.IndexSearcher;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import static be.vanoosten.esa.WikiIndexer.TEXT_FIELD;
 
@@ -30,8 +32,19 @@ public class WeighedDocumentQueryBuilder {
         DocumentTermRelevance relevance = new DocumentTermRelevance(documentId, searcher);
         ArrayList<Term> terms = this.getTerms(documentText);
         StringBuilder queryTextBuilder = new StringBuilder();
+        Map<String, Integer> termOccurrences = new HashMap<>();
         for(Term term: terms) {
-            queryTextBuilder.append(term.text()).append("^").append(relevance.score(term)).append(" ");
+            if (!termOccurrences.containsKey(term.text())) {
+                termOccurrences.put(term.text(), 1);
+            } else {
+                int count = termOccurrences.get(term.text());
+                termOccurrences.put(term.text(), ++count);
+            }
+        }
+        for(Term term: terms) {
+            float score = relevance.score(term);
+            score = (float) Math.pow(score, 1.0 / termOccurrences.get(term.text()));
+            queryTextBuilder.append(term.text()).append("^").append(score).append(" ");
         }
         return queryTextBuilder.toString().trim();
     }

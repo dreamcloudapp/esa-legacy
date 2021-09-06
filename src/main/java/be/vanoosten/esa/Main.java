@@ -9,6 +9,8 @@ import java.text.DecimalFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Iterator;
+
+import be.vanoosten.esa.server.DreamVectorizationRequestBody;
 import be.vanoosten.esa.tools.*;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.CharArraySet;
@@ -24,8 +26,8 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.commons.cli.*;
-
 import io.javalin.Javalin;
+import com.google.gson.Gson;
 
 //Reading input files
 import java.nio.file.Files;
@@ -354,6 +356,11 @@ public class Main {
                     System.out.println("Created index at 'index/" + conceptDoc + "'.");
                 }
             } else if(nonEmpty(server)) {
+                Directory dir = FSDirectory.open(Paths.get("./index/" + termDoc));
+                IndexReader docReader = DirectoryReader.open(dir);
+                IndexSearcher docSearcher = new IndexSearcher(docReader);
+                Analyzer analyzer = AnalyzerFactory.getDreamAnalyzer();
+                WeighedDocumentQueryBuilder builder = new WeighedDocumentQueryBuilder(analyzer, docSearcher);
                 TextVectorizer textVectorizer = vectorizerFactory.getTextVectorizer();
                 int port = 1994;
                 try {
@@ -363,13 +370,17 @@ public class Main {
                 }
                 Javalin app = Javalin.create().start(port);
                 app.post("/vectorize", ctx -> {
-                    String text = ctx.body();
-                    if ("".equals(text)) {
-                        ctx.res.sendError(400, "Invalid input text.");
+                    Gson gson = new Gson();
+                    DreamVectorizationRequestBody requestBody = gson.fromJson(ctx.body(), DreamVectorizationRequestBody.class);
+
+                    if ("".equals(requestBody.dreamText) || "".equals(requestBody.dreamId)) {
+                        ctx.res.sendError(400, "Invalid input: dreamText and dreamId are required fields.");
                     } else {
-                        ConceptVector vector = textVectorizer.vectorize(text);
+                        Term idTerm = new Term(DreamIndexer.ID_FIELD, requestBody.dreamId);
+                        String weightedQuery = builder.weight(idTerm, requestBody.dreamText);
+                        ConceptVector vector = textVectorizer.vectorize(weightedQuery);
                         ctx.json(vector.getConceptWeights());
-                        System.out.println("Processed dream: " + text.substring(0, 16) + "...");
+                        System.out.println("Processed dream: " + weightedQuery.substring(0, 16) + "...");
                     }
                 });
             }
