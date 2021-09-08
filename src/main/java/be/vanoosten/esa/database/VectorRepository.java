@@ -1,5 +1,14 @@
 package be.vanoosten.esa.database;
 
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.fst.FST;
+
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.math.BigInteger;
+import java.nio.Buffer;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.ArrayList;
@@ -8,21 +17,16 @@ import java.util.Map;
 public class VectorRepository {
     Connection con;
 
-    public VectorRepository() throws SQLException {
-        Map<String, String> env = System.getenv();
-        if (!env.containsKey("ODBC_CONNECTION_STRING")) {
-            throw new SQLException("The connection string was empty.");
-        }
-        con = DriverManager.getConnection("jdbc:" + env.get("ODBC_CONNECTION_STRING"));
+    public VectorRepository(Connection con) throws SQLException {
+        this.con = con;
     }
 
     public void saveDocumentVector(DocumentVector vector) throws SQLException {
-        CallableStatement statement = con.prepareCall("insert into vector(:id, :concept, :weight)");
+        Statement statement = con.createStatement();
         for(ConceptWeight weight: vector.conceptWeights) {
-            statement.setBytes(":id", vector.id.getBytes(StandardCharsets.UTF_8));
-            statement.setString(":concept", weight.concept);
-            statement.setFloat(":weight", weight.weight);
-            statement.execute();
+            String sql = "insert into vector(`id`, `concept`, `weight`) VALUES(unhex('" + vector.id + "'), '" + weight.concept + "', " + weight.weight + ")";
+            System.out.println("sql: " + sql);
+            statement.execute(sql);
         }
     }
 

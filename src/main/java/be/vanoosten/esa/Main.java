@@ -5,6 +5,9 @@ import static be.vanoosten.esa.WikiIndexer.TITLE_FIELD;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -37,6 +40,7 @@ import com.google.gson.Gson;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  *
@@ -368,23 +372,32 @@ public class Main {
                 } catch (NumberFormatException e) {
 
                 }
+
+                //Connect to MySQL
+                Map<String, String> env = System.getenv();
+                if (!env.containsKey("ODBC_CONNECTION_STRING")) {
+                    throw new SQLException("The connection string was empty.");
+                }
+                Connection con = DriverManager.getConnection("jdbc:" + env.get("ODBC_CONNECTION_STRING"));
+
                 Gson gson = new Gson();
                 Javalin app = Javalin.create().start(port);
                 app.post("/vectorize", ctx -> {
                     DocumentVectorizationRequestBody requestBody = gson.fromJson(ctx.body(), DocumentVectorizationRequestBody.class);
 
-                    if ("".equals(requestBody.documentText) || "".equals(requestBody.documentId)) {
-                        ctx.res.sendError(400, "Invalid input: dreamText and dreamId are required fields.");
+                    if (!nonEmpty(requestBody.documentText) || !nonEmpty(requestBody.documentId)) {
+                        ctx.res.sendError(400, "Invalid input: documentText and documentId are required fields.");
                     } else {
                         Term idTerm = new Term(DreamIndexer.ID_FIELD, requestBody.documentId);
-                        String weightedQuery = builder.weight(idTerm, requestBody.documentId);
+                        String weightedQuery = builder.weight(idTerm, requestBody.documentText);
                         ConceptVector vector = textVectorizer.vectorize(weightedQuery);
                         DocumentVector documentVector = new DocumentVector(requestBody.documentId);
                         Map<String, Float> conceptWeights = vector.getConceptWeights();
                         for(String concept: conceptWeights.keySet()) {
                             documentVector.addConceptWeight(new ConceptWeight(concept, conceptWeights.get(concept)));
                         }
-                        VectorRepository repository = new VectorRepository();
+
+                        VectorRepository repository = new VectorRepository(con);
                         repository.saveDocumentVector(documentVector);
 
                         ctx.json(documentVector);
@@ -394,7 +407,7 @@ public class Main {
 
                 app.get("/related", ctx -> {
                     RelatedDocumentsRequestBody requestBody = gson.fromJson(ctx.body(), RelatedDocumentsRequestBody.class);
-                    VectorRepository repository = new VectorRepository();
+                    VectorRepository repository = new VectorRepository(con);
                     ctx.json(repository.getRelatedDocuments(requestBody.documentId, requestBody.limit));
                     System.out.println("Related dream: " + requestBody.documentId);
                 });
