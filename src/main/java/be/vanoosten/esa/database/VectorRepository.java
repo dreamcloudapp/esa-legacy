@@ -69,48 +69,44 @@ public class VectorRepository {
 
     public ArrayList<RelatedDocument> getRelatedDocuments(String id, int limit) throws SQLException {
         Statement statement = con.createStatement();
-        ResultSet resultSet = statement.executeQuery("""
-select
-    hex(v1.id) as dream,
-    hex(v2.id) as related,
-    sum(
-        case
-            when v1.concept = v2.concept then v1.weight * v2.weight
-            else 0
-        end
-    ) / (norm1.norm * norm2.norm) as cosine_similarity  
-from
-    vector v1
-inner join (
-    select
-        v.id as id,
-        sqrt(sum(v.weight * v.weight)) as norm
-    from
-        vector v
-    group by
-        v.id
-) as norm1 on norm1.id = v1.id
-inner join
-    vector v2 on v2.concept = v1.concept and  v2.id != v1.id
-inner join (
-    select
-        v.id as id,
-        sqrt(sum(v.weight * v.weight)) as norm
-    from
-        vector v
-    group by
-        v.id
-) as norm2 on norm2.id = v2.id
-where
-    v1.id = UNHEX('""" + id + """
-')
-group by
-    v1.id, v2.id
-order by
-    cosine_similarity desc
-limit
-    """ + limit + """
-""");
+        ResultSet resultSet = statement.executeQuery("select\n" +
+                "                hex(v1.id) as dream,\n" +
+                "                hex(v2.id) as related,\n" +
+                "                sum(\n" +
+                "        case\n" +
+                "                when v1.concept = v2.concept then v1.weight * v2.weight\n" +
+                "            else 0\n" +
+                "        end\n" +
+                "    ) / (norm1.norm * norm2.norm) as cosine_similarity\n" +
+                "        from\n" +
+                "        vector v1\n" +
+                "        inner join (\n" +
+                "                select\n" +
+                "        v.id as id,\n" +
+                "                sqrt(sum(v.weight * v.weight)) as norm\n" +
+                "        from\n" +
+                "        vector v\n" +
+                "        group by\n" +
+                "        v.id\n" +
+                ") as norm1 on norm1.id = v1.id\n" +
+                "        inner join\n" +
+                "        vector v2 on v2.concept = v1.concept and  v2.id != v1.id\n" +
+                "        inner join (\n" +
+                "                select\n" +
+                "        v.id as id,\n" +
+                "                sqrt(sum(v.weight * v.weight)) as norm\n" +
+                "        from\n" +
+                "        vector v\n" +
+                "        group by\n" +
+                "        v.id\n" +
+                ") as norm2 on norm2.id = v2.id\n" +
+                "        where\n" +
+                "        v1.id = UNHEX('" + id + "')\n" +
+                "        group by\n" +
+                "        v1.id, v2.id\n" +
+                "        order by\n" +
+                "        cosine_similarity desc\n" +
+                "    limit " + limit);
 
         ArrayList<RelatedDocument> relatedDocuments = new ArrayList<>();
         while(resultSet.next()) {
