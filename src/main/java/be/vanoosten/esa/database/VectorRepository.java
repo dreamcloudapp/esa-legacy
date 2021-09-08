@@ -15,18 +15,55 @@ import java.util.ArrayList;
 import java.util.Map;
 
 public class VectorRepository {
+    PreparedStatement  statement;
     Connection con;
 
     public VectorRepository(Connection con) throws SQLException {
         this.con = con;
     }
 
+    protected PreparedStatement  getStatement() throws SQLException {
+        if (statement == null) {
+            statement = con.prepareStatement("insert into vector(`id`, `concept`, `weight`) values(?, ?, ?)");
+        }
+        return statement;
+    }
+
+    protected byte hexToByte(String hexString) {
+        int firstDigit = toDigit(hexString.charAt(0));
+        int secondDigit = toDigit(hexString.charAt(1));
+        return (byte) ((firstDigit << 4) + secondDigit);
+    }
+
+    protected int toDigit(char hexChar) {
+        int digit = Character.digit(hexChar, 16);
+        if(digit == -1) {
+            throw new IllegalArgumentException(
+                    "Invalid Hexadecimal Character: "+ hexChar);
+        }
+        return digit;
+    }
+
+    protected byte[] decodeHexString(String hexString) {
+        if (hexString.length() % 2 == 1) {
+            throw new IllegalArgumentException(
+                    "Invalid hexadecimal String supplied.");
+        }
+
+        byte[] bytes = new byte[hexString.length() / 2];
+        for (int i = 0; i < hexString.length(); i += 2) {
+            bytes[i / 2] = hexToByte(hexString.substring(i, i + 2));
+        }
+        return bytes;
+    }
+
     public void saveDocumentVector(DocumentVector vector) throws SQLException {
-        Statement statement = con.createStatement();
+        PreparedStatement  statement = getStatement();
         for(ConceptWeight weight: vector.conceptWeights) {
-            String sql = "insert into vector(`id`, `concept`, `weight`) VALUES(unhex('" + vector.id + "'), '" + weight.concept + "', " + weight.weight + ")";
-            System.out.println("sql: " + sql);
-            statement.execute(sql);
+            statement.setBytes(1, decodeHexString(vector.id));
+            statement.setString(2, weight.concept);
+            statement.setFloat(3, weight.weight);
+            statement.executeUpdate();
         }
     }
 
@@ -41,7 +78,7 @@ select
             when v1.concept = v2.concept then v1.weight * v2.weight
             else 0
         end
-    ) / (norm1.norm * norm2.norm) as cosine_similarity
+    ) / (norm1.norm * norm2.norm) as cosine_similarity  
 from
     vector v1
 inner join (

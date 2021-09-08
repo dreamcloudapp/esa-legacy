@@ -379,6 +379,7 @@ public class Main {
                     throw new SQLException("The connection string was empty.");
                 }
                 Connection con = DriverManager.getConnection("jdbc:" + env.get("ODBC_CONNECTION_STRING"));
+                VectorRepository repository = new VectorRepository(con);
 
                 Gson gson = new Gson();
                 Javalin app = Javalin.create().start(port);
@@ -397,17 +398,14 @@ public class Main {
                             documentVector.addConceptWeight(new ConceptWeight(concept, conceptWeights.get(concept)));
                         }
 
-                        VectorRepository repository = new VectorRepository(con);
                         repository.saveDocumentVector(documentVector);
-
-                        ctx.json(documentVector);
+                        ctx.status(200);
                         System.out.println("Processed dream: " + weightedQuery.substring(0, 16) + "...");
                     }
                 });
 
                 app.get("/related", ctx -> {
                     RelatedDocumentsRequestBody requestBody = gson.fromJson(ctx.body(), RelatedDocumentsRequestBody.class);
-                    VectorRepository repository = new VectorRepository(con);
                     ctx.json(repository.getRelatedDocuments(requestBody.documentId, requestBody.limit));
                     System.out.println("Related dream: " + requestBody.documentId);
                 });
