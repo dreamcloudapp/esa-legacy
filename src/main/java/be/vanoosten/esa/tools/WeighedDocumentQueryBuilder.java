@@ -51,7 +51,6 @@ public class WeighedDocumentQueryBuilder {
         }
         System.out.println("==================================================");
         return queryTextBuilder.toString().trim();
-
     }
 
     private ArrayList<Term> getTerms(String documentText) throws IOException {
