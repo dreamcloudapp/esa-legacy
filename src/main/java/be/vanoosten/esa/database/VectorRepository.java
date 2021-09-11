@@ -110,8 +110,12 @@ public class VectorRepository {
 
         ArrayList<RelatedDocument> relatedDocuments = new ArrayList<>();
         while(resultSet.next()) {
-            relatedDocuments.add(new RelatedDocument(resultSet.getString(1), resultSet.getFloat(2)));
+            relatedDocuments.add(new RelatedDocument(resultSet.getString(2), resultSet.getFloat(3)));
         }
         return relatedDocuments;
+    }
+
+    public DocumentScore scoreDocuments(String documentId1, String documentId2) {
+
     }
 }

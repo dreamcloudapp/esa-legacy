@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 
 import be.vanoosten.esa.database.ConceptWeight;
@@ -387,7 +388,7 @@ public class Main {
                     DocumentVectorizationRequestBody requestBody = gson.fromJson(ctx.body(), DocumentVectorizationRequestBody.class);
 
                     if (!nonEmpty(requestBody.documentText) || !nonEmpty(requestBody.documentId)) {
-                        ctx.res.sendError(400, "Invalid input: documentText and documentId are required fields.");
+                        ctx.res.sendError(400, "Invalid request: documentText and documentId are required fields.");
                     } else {
                         Term idTerm = new Term(DreamIndexer.ID_FIELD, requestBody.documentId);
                         String weightedQuery = builder.weight(idTerm, requestBody.documentText);
@@ -404,10 +405,28 @@ public class Main {
                     }
                 });
 
+                //Gets top related documents
                 app.get("/related", ctx -> {
-                    RelatedDocumentsRequestBody requestBody = gson.fromJson(ctx.body(), RelatedDocumentsRequestBody.class);
-                    ctx.json(repository.getRelatedDocuments(requestBody.documentId, requestBody.limit));
-                    System.out.println("Related dream: " + requestBody.documentId);
+                    try {
+                        String documentId = ctx.queryParam("documentId");
+                        String limitParam = ctx.queryParam("limit");
+                        if (documentId == null || limitParam == null) {
+                            throw new Exception("Invalid request: document and limit are required fields.");
+                        }
+                        int relatedLimit = Integer.parseInt(limitParam);
+                        ctx.json(repository.getRelatedDocuments(documentId, relatedLimit));
+                        System.out.println("Related dream: " + documentId);
+                    } catch (Exception e) {
+                        System.out.println("Failed to relate dream: " + e.getMessage() + ": " + Arrays.toString(e.getStackTrace()));
+                        ctx.status(400);
+                    }
+                });
+
+                //Scores two documents relatedness
+                app.get("/quick-score", ctx -> {
+                    String documentId1 = ctx.queryParam("documentId1");
+                    String documentId2 = ctx.queryParam("documentId2");
+                    ctx.json(repository.scoreDocuments(documentId1, documentId2));
                 });
             }
             else {
