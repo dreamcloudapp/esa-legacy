@@ -18,7 +18,6 @@ import be.vanoosten.esa.database.ConceptWeight;
 import be.vanoosten.esa.database.DocumentVector;
 import be.vanoosten.esa.database.VectorRepository;
 import be.vanoosten.esa.server.DocumentVectorizationRequestBody;
-import be.vanoosten.esa.server.RelatedDocumentsRequestBody;
 import be.vanoosten.esa.tools.*;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.CharArraySet;
@@ -41,13 +40,13 @@ import com.google.gson.Gson;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  *
  * @author Philip van Oosten
  */
 public class Main {
+    static String ODBC_ENVIRONMENT_VARIABLE = "DC_ESA_ODBC_CONNECTION_STRING";
     static int THREAD_COUNT = 1;
     private Query query;
 
@@ -376,10 +375,10 @@ public class Main {
 
                 //Connect to MySQL
                 Map<String, String> env = System.getenv();
-                if (!env.containsKey("ODBC_CONNECTION_STRING")) {
-                    throw new SQLException("The connection string was empty.");
+                if (!env.containsKey(ODBC_ENVIRONMENT_VARIABLE)) {
+                    throw new SQLException("The ODBC connection string was empty: set the " + ODBC_ENVIRONMENT_VARIABLE + " and try again.");
                 }
-                Connection con = DriverManager.getConnection("jdbc:" + env.get("ODBC_CONNECTION_STRING"));
+                Connection con = DriverManager.getConnection("jdbc:" + env.get(ODBC_ENVIRONMENT_VARIABLE));
                 VectorRepository repository = new VectorRepository(con);
 
                 Gson gson = new Gson();

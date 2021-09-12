@@ -115,7 +115,29 @@ public class VectorRepository {
         return relatedDocuments;
     }
 
-    public DocumentScore scoreDocuments(String documentId1, String documentId2) {
-
+    public DocumentScore scoreDocuments(String documentId1, String documentId2) throws SQLException {
+        String sql = "SELECT\n" +
+                "    SUM(\n" +
+                "\t\tCASE\n" +
+                "\t\t\tWHEN v1.concept = v2.concept THEN v1.weight * v2.weight\n" +
+                "\t\t\tELSE 0\n" +
+                "\t\tEND\n" +
+                "    ) / (sqrt(SUM(v1.weight * v1.weight)) * sqrt(SUM(v2.weight * v2.weight))) AS cosine_similarity\n" +
+                "FROM\n" +
+                "    vector v1,\n" +
+                "    vector v2\n" +
+                "WHERE\n" +
+                "\tv1.id = unhex('" + documentId1 + "')\n" +
+                "    AND v2.id = unhex('" + documentId2 + "')\n" +
+                "GROUP BY\n" +
+                "\tv1.id";
+        Statement statement = con.createStatement();
+        ResultSet resultSet = statement.executeQuery(sql);
+        if (resultSet.next()) {
+            float score = resultSet.getFloat(1);
+            return new DocumentScore("success", score);
+        } else {
+         return new DocumentScore("error", 0);
+        }
     }
 }
