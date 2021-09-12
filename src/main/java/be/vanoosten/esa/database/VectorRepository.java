@@ -122,10 +122,23 @@ public class VectorRepository {
                 "\t\t\tWHEN v1.concept = v2.concept THEN v1.weight * v2.weight\n" +
                 "\t\t\tELSE 0\n" +
                 "\t\tEND\n" +
-                "    ) / (sqrt(SUM(v1.weight * v1.weight)) * sqrt(SUM(v2.weight * v2.weight))) AS cosine_similarity\n" +
+                "    ) / (norm1.norm * norm2.norm) AS cosine_similarity\n" +
                 "FROM\n" +
-                "    vector v1,\n" +
-                "    vector v2\n" +
+                "    vector v1\n" +
+                "CROSS JOIN\n" +
+                "\tvector v2\n" +
+                "INNER JOIN\n" +
+                "    (SELECT \n" +
+                "        v.id AS id, SQRT(SUM(v.weight * v.weight)) AS norm\n" +
+                "    FROM\n" +
+                "        vector v\n" +
+                "    GROUP BY v.id) AS norm1 ON norm1.id = v1.id\n" +
+                "INNER JOIN\n" +
+                "    (SELECT \n" +
+                "        v.id AS id, SQRT(SUM(v.weight * v.weight)) AS norm\n" +
+                "    FROM\n" +
+                "        vector v\n" +
+                "    GROUP BY v.id) AS norm2 ON norm2.id = v2.id\n" +
                 "WHERE\n" +
                 "\tv1.id = unhex('" + documentId1 + "')\n" +
                 "    AND v2.id = unhex('" + documentId2 + "')\n" +
