@@ -126,7 +126,7 @@ public class VectorRepository {
                 "FROM\n" +
                 "    vector v1\n" +
                 "CROSS JOIN\n" +
-                "\tvector v2\n" +
+                "\tvector v2 ON v2.concept = v1.concept\n" +
                 "INNER JOIN\n" +
                 "    (SELECT \n" +
                 "        v.id AS id, SQRT(SUM(v.weight * v.weight)) AS norm\n" +
