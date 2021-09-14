@@ -150,7 +150,7 @@ public class VectorRepository {
             float score = resultSet.getFloat(1);
             return new DocumentScore("success", score);
         } else {
-         return new DocumentScore("error", 0);
+         return new DocumentScore("success", 0);
         }
     }
 }
