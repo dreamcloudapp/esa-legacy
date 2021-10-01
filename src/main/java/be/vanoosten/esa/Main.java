@@ -421,8 +421,15 @@ public class Main {
                     }
                 });
 
-                //Scores two documents relatedness
+                //Scores two documents relatedness via their IDs
                 app.get("/quick-score", ctx -> {
+                    String documentId1 = ctx.queryParam("documentId1");
+                    String documentId2 = ctx.queryParam("documentId2");
+                    ctx.json(repository.scoreDocuments(documentId1, documentId2));
+                });
+
+                //Scores two documents relatedness via their IDs
+                app.post("/similarity", ctx -> {
                     String documentId1 = ctx.queryParam("documentId1");
                     String documentId2 = ctx.queryParam("documentId2");
                     ctx.json(repository.scoreDocuments(documentId1, documentId2));
