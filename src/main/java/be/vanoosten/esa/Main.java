@@ -17,8 +17,11 @@ import java.util.Iterator;
 import be.vanoosten.esa.database.ConceptWeight;
 import be.vanoosten.esa.database.DocumentVector;
 import be.vanoosten.esa.database.VectorRepository;
+import be.vanoosten.esa.server.DocumentSimilarityRequestBody;
+import be.vanoosten.esa.server.DocumentSimilarityScorer;
 import be.vanoosten.esa.server.DocumentVectorizationRequestBody;
 import be.vanoosten.esa.tools.*;
+import edu.stanford.nlp.ling.CoreLabel;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.TokenStream;
@@ -35,6 +38,11 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.commons.cli.*;
 import io.javalin.Javalin;
 import com.google.gson.Gson;
+
+//Stanford NLP
+import edu.stanford.nlp.io.*;
+import edu.stanford.nlp.pipeline.*;
+import java.util.*;
 
 //Reading input files
 import java.nio.file.Files;
@@ -160,7 +168,7 @@ public class Main {
             String termDoc = docType + "_" + "termdoc";
             String conceptDoc = docType + "_" + "conceptdoc";
             //Need to clean this up
-            WikiFactory.docType = docType;
+            WikiFactory.docType = DocumentType.valueOfLabel(docType);
 
             String limit = cmd.getOptionValue("l");
             int conceptLimit = 1000;
@@ -194,6 +202,7 @@ public class Main {
 
             //Get the unixtime
             long startTime = Instant.now().getEpochSecond();
+
 
             //Comparison of texts
             if (hasLength(compareTexts, 2) || hasLength(compareFiles, 2)) {
@@ -428,11 +437,11 @@ public class Main {
                     ctx.json(repository.scoreDocuments(documentId1, documentId2));
                 });
 
-                //Scores two documents relatedness via their IDs
+                //Scores two documents relatedness via their texts, supporting all options
                 app.post("/similarity", ctx -> {
-                    String documentId1 = ctx.queryParam("documentId1");
-                    String documentId2 = ctx.queryParam("documentId2");
-                    ctx.json(repository.scoreDocuments(documentId1, documentId2));
+                    DocumentSimilarityRequestBody requestBody = gson.fromJson(ctx.body(), DocumentSimilarityRequestBody.class);
+                    DocumentSimilarityScorer scorer = new DocumentSimilarityScorer();
+                    ctx.json(scorer.score(requestBody));
                 });
             }
             else {

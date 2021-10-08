@@ -7,18 +7,24 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.NumberFormat;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
+
+import edu.stanford.nlp.ling.CoreLabel;
+import edu.stanford.nlp.pipeline.CoreDocument;
+import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
-import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
@@ -45,6 +51,32 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
     public static final String ID_FIELD = "id";
     public static final String USER_FIELD = "user";
 
+    static StanfordCoreNLP stanfordPipeline;
+    static boolean useStanfordLemmas = true;
+
+    //takes a while
+    static StanfordCoreNLP getStanfordPipeline() {
+        if (stanfordPipeline == null) {
+            Properties props = new Properties();
+            // set the list of annotators to run
+            props.setProperty("annotators", "tokenize,ssplit,pos,lemma,ner,depparse");
+            // build pipeline
+            stanfordPipeline = new StanfordCoreNLP(props);
+        }
+        return stanfordPipeline;
+    }
+
+    String getStanfordLemmatizedDream(String dreamText) throws IOException {
+        //get stanford lemmas
+        StanfordCoreNLP pipeline = getStanfordPipeline();
+        CoreDocument document = pipeline.processToCoreDocument(dreamText);
+        StringBuilder lemmatizedText = new StringBuilder();
+        for (CoreLabel token: document.tokens()) {
+            lemmatizedText.append(token.lemma()).append(" ");
+        }
+        return lemmatizedText.toString();
+    }
+
     public DreamIndexer(Directory directory) {
         this.directory = directory;
         saxFactory = SAXParserFactory.newInstance();
@@ -58,7 +90,12 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
     }
 
     public void index(File file) throws IOException {
-        analyzer = AnalyzerFactory.getDreamAnalyzer();
+        if (useStanfordLemmas) {
+            analyzer = AnalyzerFactory.getDreamPostLemmaAnalyzer();
+        } else {
+            analyzer = AnalyzerFactory.getDreamAnalyzer();
+        }
+
         IndexWriterConfig indexWriterConfig = new IndexWriterConfig(analyzer);
         indexWriter = new IndexWriter(directory, indexWriterConfig);
 
@@ -128,6 +165,11 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
 
     void index(String id, String title, String text, String userId) throws IOException {
         Document doc = new Document();
+
+        if (useStanfordLemmas) {
+            text = getStanfordLemmatizedDream(text);
+        }
+
         doc.add(new StringField(ID_FIELD, id, Field.Store.YES));
         doc.add(new StringField(TITLE_FIELD, title, Field.Store.YES));
         FieldType fieldType = new FieldType();

@@ -20,8 +20,15 @@ public class VectorizerFactory {
         this.cohesion = cohesion;
     }
 
+    public VectorizerFactory(String type, int conceptLimit) {
+        this.analyzer = AnalyzerFactory.getVectorizingAnalyzer();
+        this.type = type == null ? "" : type;
+        this.conceptLimit = conceptLimit;
+        this.cohesion = 0;
+    }
+
     public TextVectorizer getTextVectorizer() throws IOException {
-        Vectorizer base = new Vectorizer(Paths.get("./index/" + WikiFactory.docType + "_termdoc"), analyzer);
+        Vectorizer base = new Vectorizer(Paths.get("./index/" + WikiFactory.docType.label + "_termdoc"), analyzer);
         base.setConceptCount(this.conceptLimit);
         switch(this.type) {
             case "narrative":
@@ -29,6 +36,7 @@ public class VectorizerFactory {
                 narrativeVectorizer.setCohesion(cohesion);
                 narrativeVectorizer.setDebug(true);
                 return narrativeVectorizer;
+            case"default":
             default:
                 return base;
         }

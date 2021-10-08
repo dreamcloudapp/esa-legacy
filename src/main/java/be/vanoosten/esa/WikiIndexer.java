@@ -16,6 +16,10 @@ import java.util.regex.Pattern;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
+
+import edu.stanford.nlp.ling.CoreLabel;
+import edu.stanford.nlp.pipeline.CoreDocument;
+import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
@@ -71,6 +75,49 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
 
     String[] indexTitles;
     MutableObjectIntMap<String> incomingLinkMap = ObjectIntMaps.mutable.empty();
+    static StanfordCoreNLP stanfordPipeline;
+    static Analyzer lemmaAnalyzer;
+    static boolean useStanfordLemmas = true;
+
+    //takes a while
+    static StanfordCoreNLP getStanfordPipeline() {
+        if (stanfordPipeline == null) {
+            Properties props = new Properties();
+            // set the list of annotators to run
+            props.setProperty("annotators", "tokenize,ssplit,pos,lemma,ner,depparse");
+            // build pipeline
+            stanfordPipeline = new StanfordCoreNLP(props);
+        }
+        return stanfordPipeline;
+    }
+
+    static Analyzer getLemmaAnalyzer() {
+        if (lemmaAnalyzer == null) {
+            lemmaAnalyzer = AnalyzerFactory.getLemmaAnalyzer();
+        }
+        return lemmaAnalyzer;
+    }
+
+    String getStanfordLemmatizedArticle(String articleText) throws IOException {
+        // get valid tokens for article
+        Analyzer analyzer = getLemmaAnalyzer();
+        StringBuilder analyzedText = new StringBuilder();
+        TokenStream tokenStream = analyzer.tokenStream(TEXT_FIELD, articleText);
+        CharTermAttribute termAttribute = tokenStream.addAttribute(CharTermAttribute.class);
+        tokenStream.reset();
+        while(tokenStream.incrementToken()) {
+            analyzedText.append(termAttribute.toString()).append(" ");
+        }
+
+        //get stanford lemmas
+        StanfordCoreNLP pipeline = getStanfordPipeline();
+        CoreDocument document = pipeline.processToCoreDocument(analyzedText.toString());
+        StringBuilder lemmatizedText = new StringBuilder();
+        for (CoreLabel token: document.tokens()) {
+            lemmatizedText.append(token.lemma()).append(" ");
+        }
+        return lemmatizedText.toString();
+    }
 
     public WikiIndexer(Directory directory) {
         this.directory = directory;
@@ -125,7 +172,12 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     public void index(File file) throws IOException {
         reset();
         executorService = Executors.newFixedThreadPool(THREAD_COUNT);
-        analyzer = AnalyzerFactory.getAnalyzer();
+        if (useStanfordLemmas) {
+            analyzer = AnalyzerFactory.getPostLemmaAnalyzer();
+        } else {
+            analyzer = AnalyzerFactory.getAnalyzer();
+        }
+
         IndexWriterConfig indexWriterConfig = new IndexWriterConfig(analyzer);
         indexWriter = new IndexWriter(directory, indexWriterConfig);
         mode = "index";
@@ -349,6 +401,10 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     }
 
     void indexDocument(String title, String wikiText) throws IOException {
+        if (useStanfordLemmas) {
+            wikiText = getStanfordLemmatizedArticle(wikiText);
+        }
+
         Document doc = new Document();
         doc.add(new StoredField(TITLE_FIELD, title));
         doc.add(new TextField(TEXT_FIELD, wikiText, Field.Store.NO));

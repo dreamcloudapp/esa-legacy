@@ -20,7 +20,7 @@ import org.apache.lucene.store.FSDirectory;
  * @author Philip van Oosten
  */
 public abstract class WikiFactory implements AutoCloseable {
-    public static String docType = "article";
+    public static DocumentType docType = DocumentType.ARTICLE;
     private Vectorizer vectorizer;
     private Analyzer analyzer;
     private RelatedTokensFinder relatedTokensFinder;
@@ -103,6 +103,6 @@ public abstract class WikiFactory implements AutoCloseable {
     }
 
     public final Path getConceptTermIndexDirectory() {
-        return Paths.get(getIndexRootPath().toString(), docType + "_conceptdoc");
+        return Paths.get(getIndexRootPath().toString(), docType.label + "_conceptdoc");
     }
 }
