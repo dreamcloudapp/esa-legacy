@@ -18,8 +18,6 @@ import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.CoreDocument;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
@@ -59,7 +57,7 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
         if (stanfordPipeline == null) {
             Properties props = new Properties();
             // set the list of annotators to run
-            props.setProperty("annotators", "tokenize,ssplit,pos,lemma,ner,depparse");
+            props.setProperty("annotators", "tokenize,ssplit,pos,lemma");
             // build pipeline
             stanfordPipeline = new StanfordCoreNLP(props);
         }
@@ -164,6 +162,7 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
     }
 
     void index(String id, String title, String text, String userId) throws IOException {
+        System.out.println("indexing dream: " + id);
         Document doc = new Document();
 
         if (useStanfordLemmas) {
@@ -177,6 +176,7 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
         fieldType.setStoreTermVectors(true);
         fieldType.setStoreTermVectorOffsets(true);
         fieldType.setStoreTermVectorPositions(true);
+        fieldType.setStoreTermVectorPayloads(true);
         fieldType.setStored(true); //@todo: only for debugging, shouldn't be stored normally
         fieldType.setTokenized(true);
         Field textField = new Field(TEXT_FIELD, text, fieldType);

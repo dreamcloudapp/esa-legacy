@@ -338,9 +338,20 @@ public class Main {
                 TermQuery query = new TermQuery(idTerm);
                 TopDocs topDocs = docSearcher.search(query, 1);
                 if (topDocs.scoreDocs.length > 0) {
-                    Document document = docSearcher.doc(topDocs.scoreDocs[0].doc);
-                    IndexableField field = document.getField(DreamIndexer.TEXT_FIELD);
-                    field.
+                    Terms terms = docReader.getTermVector(topDocs.scoreDocs[0].doc, DreamIndexer.TEXT_FIELD);
+                    TermsEnum termsEnum = terms.iterator();
+                    for (BytesRef bytesRef = termsEnum.term(); termsEnum.next() != null; ) {
+                        PostingsEnum pe = termsEnum.postings(null, PostingsEnum.PAYLOADS);
+                        pe.nextDoc();
+                        System.out.println("term: " + bytesRef.utf8ToString());
+                        System.out.println("payload top: " + pe.getPayload());
+                        int freq = pe.freq();
+                        for (int i = 0; i < freq; i++) {
+                            pe.nextPosition();
+                            System.out.println("payload bottom: " + pe.getPayload());
+                        }
+                    }
+
                 } else {
                     System.out.println("Unable to find document '" + bm25DocumentId + "' when analyzing BM25 scores");
                     //throw new IOException("Unable to find document '" + documentId.text() + "' when computing document term relevance.");
