@@ -48,7 +48,7 @@ import java.util.concurrent.Executors;
 public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexer {
     private final SAXParserFactory saxFactory;
     private ExecutorService executorService;
-    private static int THREAD_COUNT = 16;
+    private static int THREAD_COUNT = 1;
     private static int BATCH_SIZE = 100;
     private static int MAX_EXPECTED_ARTICLES = 32000000;
     WikipediaArticle[] fixedQueue = new WikipediaArticle[THREAD_COUNT * BATCH_SIZE];
@@ -108,6 +108,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
         while(tokenStream.incrementToken()) {
             analyzedText.append(termAttribute.toString()).append(" ");
         }
+        tokenStream.close();
 
         //get stanford lemmas
         StanfordCoreNLP pipeline = getStanfordPipeline();

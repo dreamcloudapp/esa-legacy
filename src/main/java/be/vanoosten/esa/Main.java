@@ -102,6 +102,10 @@ public class Main {
         weightOption.setRequired(false);
         options.addOption(weightOption);
 
+        Option bm25Option = new Option("bm25", "bm25", true, "docId / Gets BM25 scores for all terms within a document.");
+        bm25Option.setRequired(false);
+        options.addOption(bm25Option);
+
         Option relevanceOption = new Option("relevance", "relevance", true, "\"term docId\" / Computes the relevance of a term to a document id.");
         relevanceOption.setArgs(2);
         relevanceOption.setRequired(false);
@@ -194,6 +198,7 @@ public class Main {
             VectorizerFactory vectorizerFactory = new VectorizerFactory(vectorizer, conceptLimit, cohesionValue);
 
 
+            String bm25DocumentId = cmd.getOptionValue("bm25");
             String lookupTerm = cmd.getOptionValue("term");
             String server = cmd.getOptionValue("server");
             String debug = cmd.getOptionValue("d");
@@ -322,6 +327,24 @@ public class Main {
                 Term idTerm = new Term(DreamIndexer.ID_FIELD, documentId);
                 DocumentTermRelevance relevance = new DocumentTermRelevance(idTerm, docSearcher);
                 System.out.println("Relevance: " + relevance.score(term));
+            }
+
+            //Get BM25 terms
+            else if(nonEmpty(bm25DocumentId)) {
+                Directory dir = FSDirectory.open(Paths.get("./index/" + termDoc));
+                IndexReader docReader = DirectoryReader.open(dir);
+                IndexSearcher docSearcher = new IndexSearcher(docReader);
+                Term idTerm = new Term(DreamIndexer.ID_FIELD, bm25DocumentId);
+                TermQuery query = new TermQuery(idTerm);
+                TopDocs topDocs = docSearcher.search(query, 1);
+                if (topDocs.scoreDocs.length > 0) {
+                    Document document = docSearcher.doc(topDocs.scoreDocs[0].doc);
+                    IndexableField field = document.getField(DreamIndexer.TEXT_FIELD);
+                    field.
+                } else {
+                    System.out.println("Unable to find document '" + bm25DocumentId + "' when analyzing BM25 scores");
+                    //throw new IOException("Unable to find document '" + documentId.text() + "' when computing document term relevance.");
+                }
             }
 
             //Run unit tests

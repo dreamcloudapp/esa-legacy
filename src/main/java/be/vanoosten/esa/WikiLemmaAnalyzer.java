@@ -7,6 +7,7 @@ import org.apache.lucene.analysis.core.TypeTokenFilter;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.lucene.analysis.miscellaneous.ASCIIFoldingFilter;
 import org.apache.lucene.analysis.wikipedia.WikipediaTokenizer;
 
 public final class WikiLemmaAnalyzer extends Analyzer {
@@ -20,6 +21,7 @@ public final class WikiLemmaAnalyzer extends Analyzer {
         stopTypes.add(WikipediaTokenizer.SUB_HEADING);
         final Tokenizer source = new WikipediaTokenizer();
         TokenStream result = new TypeTokenFilter(source, stopTypes);
+        result = new ASCIIFoldingFilter(source);
         return new Analyzer.TokenStreamComponents(source, result);
     }
 }

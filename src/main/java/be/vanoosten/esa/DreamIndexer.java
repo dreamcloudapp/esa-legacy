@@ -177,7 +177,7 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
         fieldType.setStoreTermVectors(true);
         fieldType.setStoreTermVectorOffsets(true);
         fieldType.setStoreTermVectorPositions(true);
-        fieldType.setStored(false);
+        fieldType.setStored(true); //@todo: only for debugging, shouldn't be stored normally
         fieldType.setTokenized(true);
         Field textField = new Field(TEXT_FIELD, text, fieldType);
         doc.add(textField);
