@@ -55,7 +55,7 @@ Second, the full-text index is inverted, so that each concept is mapped to all t
 To find that index, the terms in the first index become a document in the second index.
 Lucene further handles the indexing.
 
-The class `be.vanoosten.esa.Main` contains an `indexing` method.
+The class `Main` contains an `indexing` method.
 Using that method, you can create a term to concept index (the first index).
 
 The same class also contains a `createConceptTermIndex()` method, which is a bit more involved.
@@ -65,20 +65,20 @@ That method can be used to create the second index, which maps Wikipedia article
 
 All kinds of tricks from Lucene can be used to tweak the indexing.
 Maybe you will want to use a different Lucene Analyzer.
-Taking a good look at Lucene documentation and the `be.vanoosten.esa.WikiAnalyzer` class can be a good starting point for that.
+Taking a good look at Lucene documentation and the `WikiAnalyzer` class can be a good starting point for that.
 
 ### Analyzing
 
 After indexing, you are ready to transform text to vectors.
-Creating a concept vector from a text can be done with a Vectorizer, implemented in the class `be.vanoosten.esa.tools.Vectorizer`.
+Creating a concept vector from a text can be done with a Vectorizer, implemented in the class `Vectorizer`.
 
-The vectorizer has a `vectorize(String text)` method, which transforms the text into a concept vector (`be.vanoosten.esa.tools.ConceptVector`).
+The vectorizer has a `vectorize(String text)` method, which transforms the text into a concept vector (`ConceptVector`).
 Basically, the text is tokenized and searched for in the term-to-concept index.
 The result is a list of Wikipedia articles, along with their numeric similarity to the vectorized text.
 Two concept vectors can be easily compared to each other, using the `dotProduct` method.
 The dot product of two concept vectors is a measure for the semantic similarity between the two texts those vectors are created from.
 
-Calculating the semantic similarity between two texts directly is exactly what the semantic similarity tool (`be.vanoosten.esa.tools.SemanticSimilarityTool`) does.
+Calculating the semantic similarity between two texts directly is exactly what the semantic similarity tool (`SemanticSimilarityTool`) does.
 
 ### Automatic brainstorming
 
