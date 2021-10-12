@@ -56,7 +56,6 @@ public class Main {
     }
 
     public static void main(String[] args) throws IOException, ParseException {
-        CharArraySet stopWords = EnwikiFactory.getExtendedStopWords();
         DecimalFormat decimalFormat = new DecimalFormat("#.000");
         Options options = new Options();
         Option compareTextOption = new Option("ct", "compare-texts", true, "\"string one\" \"string two\" / Compare two texts.");
@@ -86,10 +85,6 @@ public class Main {
         weightOption.setRequired(false);
         options.addOption(weightOption);
 
-        Option bm25Option = new Option("bm25", "bm25", true, "docId / Gets BM25 scores for all terms within a document.");
-        bm25Option.setRequired(false);
-        options.addOption(bm25Option);
-
         Option relevanceOption = new Option("relevance", "relevance", true, "\"term docId\" / Computes the relevance of a term to a document id.");
         relevanceOption.setArgs(2);
         relevanceOption.setRequired(false);
@@ -102,6 +97,10 @@ public class Main {
         Option limitOption = new Option("l", "limit", true, "int / The maximum number of concepts to query when comparing texts and finding top concepts.");
         limitOption.setRequired(false);
         options.addOption(limitOption);
+
+        Option stopWordsOption = new Option("stopwords", "stopwords", true, "[standard|narrative] / The vectorizing algorithm to use, defaulting to standard.");
+        stopWordsOption.setRequired(false);
+        options.addOption(stopWordsOption);
 
         Option vectorizerOption = new Option("vectorizer", "vectorizer", true, "[standard|narrative] / The vectorizing algorithm to use, defaulting to standard.");
         vectorizerOption.setRequired(false);
@@ -121,17 +120,9 @@ public class Main {
         indexOption.setRequired(false);
         options.addOption(indexOption);
 
-        Option mapOption = new Option("m", "map", false, "Maps terms to concepts. Must run the index first.");
-        mapOption.setRequired(false);
-        options.addOption(mapOption);
-
         Option testOption = new Option("t", "test", false, "Performs test comparisons on a set of dreams and news sources.");
         testOption.setRequired(false);
         options.addOption(testOption);
-
-        Option indexMapOption = new Option("im", "index-map", true, "Indexes and maps together.");
-        indexMapOption.setRequired(false);
-        options.addOption(indexMapOption);
 
         //Server stuff
         Option serverOption = new Option("server", "server", true, "port / Starts a vectorizing server using the specified port.");
@@ -150,13 +141,13 @@ public class Main {
             String[] relevanceArgs = cmd.getOptionValues("relevance");
             String[] weightArgs = cmd.getOptionValues("weight");
             String docType = cmd.getOptionValue("doctype");
+            String stopWords = cmd.getOptionValue("stopwords");
+
             if (!nonEmpty(docType)) {
                 docType = "article";
             }
             String termDoc = docType + "_" + "termdoc";
-            String conceptDoc = docType + "_" + "conceptdoc";
-            //Need to clean this up
-            WikiFactory.docType = DocumentType.valueOfLabel(docType);
+            String documentPath = "./index/" + termDoc;
 
             String limit = cmd.getOptionValue("l");
             int conceptLimit = 1000;
@@ -179,15 +170,23 @@ public class Main {
                 }
             }
 
-            VectorizerFactory vectorizerFactory = new VectorizerFactory(vectorizer, conceptLimit, cohesionValue);
+            StopWordRepository stopWordRepository;
+            if (nonEmpty(stopWords)) {
+                if (stopWords.equals("en")) {
+                    stopWords = "./src/data/en-stopwords.txt";
+                }
+                stopWordRepository = new StopWordRepository(stopWords);
+            } else {
+                stopWordRepository = new StopWordRepository();
+            }
+
+            AnalyzerFactory analyzerFactory = new AnalyzerFactory(stopWordRepository);
+            VectorizerFactory vectorizerFactory = new VectorizerFactory(analyzerFactory, documentPath, vectorizer, conceptLimit, cohesionValue);
 
 
-            String bm25DocumentId = cmd.getOptionValue("bm25");
-            String lookupTerm = cmd.getOptionValue("term");
             String server = cmd.getOptionValue("server");
             String debug = cmd.getOptionValue("d");
             String index = cmd.getOptionValue("i");
-            String indexMap = cmd.getOptionValue("im");
 
             //Get the unixtime
             long startTime = Instant.now().getEpochSecond();
@@ -249,7 +248,7 @@ public class Main {
                     sourceDesc += "...";
                 }
                 System.out.println("Debugging '" + sourceDesc + "':");
-                TokenStream ts = AnalyzerFactory.getVectorizingAnalyzer().tokenStream(WikiIndexer.TEXT_FIELD, sourceText);
+                TokenStream ts = analyzerFactory.getVectorizingAnalyzer().tokenStream(WikiIndexer.TEXT_FIELD, sourceText);
                 CharTermAttribute charTermAttribute = ts.addAttribute(CharTermAttribute.class);
                 TypeAttribute typeAttribute = ts.addAttribute(TypeAttribute.class);
 
@@ -264,34 +263,13 @@ public class Main {
                 }
             }
 
-            else if(nonEmpty(lookupTerm)) {
-                Directory conceptDocDirectory = FSDirectory.open(Paths.get("./index/" + conceptDoc));
-                IndexReader conceptDocReader = DirectoryReader.open(conceptDocDirectory);
-                IndexSearcher docSearcher = new IndexSearcher(conceptDocReader);
-                Term term = new Term(WikiIndexer.TEXT_FIELD, lookupTerm);
-                Query query = new TermQuery(term);
-                TopDocs topDocs = docSearcher.search(query, 1);
-                for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
-                    Document conceptDocument = conceptDocReader.document(scoreDoc.doc);
-                    IndexableField[] idFields = conceptDocument.getFields("ids");
-                    IndexableField[] titleFields = conceptDocument.getFields( "names");
-                    IndexableField[] weightFields = conceptDocument.getFields("weights");
-                    for (int i = 0; i<idFields.length; i++) {
-                        String id = idFields[i].stringValue();
-                        String title = titleFields[i].stringValue();
-                        Number weight = weightFields[i].numericValue();
-                        System.out.println(title + " : (" + id + ") : " + weight);
-                    }
-                }
-            }
-
             else if(hasLength(weightArgs, 2)) {
                 String documentId = weightArgs[0];
                 String documentText = weightArgs[1];
                 Directory dir = FSDirectory.open(Paths.get("./index/" + termDoc));
                 IndexReader docReader = DirectoryReader.open(dir);
                 IndexSearcher docSearcher = new IndexSearcher(docReader);
-                Analyzer analyzer = AnalyzerFactory.getDreamAnalyzer();
+                Analyzer analyzer = analyzerFactory.getDreamAnalyzer();
 
                 Term idTerm = new Term(DreamIndexer.ID_FIELD, documentId);
                 WeighedDocumentQueryBuilder builder = new WeighedDocumentQueryBuilder(analyzer, docSearcher);
@@ -338,12 +316,11 @@ public class Main {
                 }
             }
 
-            //Indexing and mapping
+            //Indexing
             else if(nonEmpty(index)) {
-                String fileName = nonEmpty(indexMap) ? indexMap : index;
-                System.out.println("Indexing " + fileName + "...");
-                File wikipediaDumpFile = new File(fileName);
-                indexing(Paths.get("./index/" + termDoc), wikipediaDumpFile, stopWords, docType);
+                System.out.println("Indexing " + index + "...");
+                File wikipediaDumpFile = new File(index);
+                indexing(Paths.get("./index/" + termDoc), wikipediaDumpFile, docType);
             } else if(nonEmpty(server)) {
                 Directory dir = FSDirectory.open(Paths.get("./index/" + "dream_termdoc"));
                 IndexReader docReader = DirectoryReader.open(dir);
@@ -443,7 +420,7 @@ public class Main {
      * @param stopWords The words that are not used in the semantic analysis
      * @throws IOException
      */
-    public static void indexing(Path termDocIndexDirectory, File wikipediaDumpFile, CharArraySet stopWords, String docType) throws IOException {
+    public static void indexing(Path termDocIndexDirectory, File wikipediaDumpFile, String docType) throws IOException {
         Directory directory = FSDirectory.open(termDocIndexDirectory);
         Indexer indexer;
         if ("article".equals(docType)) {

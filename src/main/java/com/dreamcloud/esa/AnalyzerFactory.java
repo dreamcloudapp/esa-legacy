@@ -3,43 +3,40 @@ package com.dreamcloud.esa;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.CharArraySet;
 
+import java.io.IOException;
+
 public class AnalyzerFactory {
-    public static Analyzer getAnalyzer() {
-        CharArraySet stopWords = EnwikiFactory.getExtendedStopWords();
-        return new WikiAnalyzer(stopWords);
+    StopWordRepository stopWordRepository;
+
+    public AnalyzerFactory(StopWordRepository stopWordRepository) {
+        this.stopWordRepository = stopWordRepository;
     }
 
-    public static Analyzer getVectorizingAnalyzer() {
-        CharArraySet stopWords = EnwikiFactory.getExtendedStopWords();
-        stopWords.add("dream");
-        return new WikiAnalyzer(stopWords);
+    public Analyzer getAnalyzer() throws IOException {
+        return new WikiAnalyzer(this.stopWordRepository.getStopWords());
     }
 
-    public static Analyzer getLinkAnalyzer() {
-        CharArraySet stopWords = EnwikiFactory.getExtendedStopWords();
-        return new WikiLinkAnalyzer(stopWords);
+    public Analyzer getVectorizingAnalyzer() throws IOException {
+        return new WikiAnalyzer(this.stopWordRepository.getStopWords());
     }
 
-    public static Analyzer getLemmaAnalyzer() {
+    public Analyzer getLinkAnalyzer() throws IOException {
+        return new WikiLinkAnalyzer(this.stopWordRepository.getStopWords());
+    }
+
+    public Analyzer getLemmaAnalyzer() {
         return new WikiLemmaAnalyzer();
     }
 
-    public static Analyzer getPostLemmaAnalyzer() {
-        CharArraySet stopWords = EnwikiFactory.getExtendedStopWords();
-        return new WikiPostLemmaAnalyzer(stopWords);
+    public Analyzer getPostLemmaAnalyzer() throws IOException {
+        return new WikiPostLemmaAnalyzer(this.stopWordRepository.getStopWords());
     }
 
-    public static Analyzer getDreamAnalyzer() {
-        CharArraySet stopWords = EnwikiFactory.getExtendedStopWords();
-        stopWords.add("dream");
-        return new DreamAnalyzer(stopWords);
+    public Analyzer getDreamAnalyzer() throws IOException {
+        return new DreamAnalyzer(this.stopWordRepository.getStopWords());
     }
 
-    public static Analyzer getDreamPostLemmaAnalyzer() {
-        CharArraySet stopWords = EnwikiFactory.getExtendedStopWords();
-        stopWords.add("dream");
-        return new DreamPostLemmaAnalyzer(stopWords);
+    public Analyzer getDreamPostLemmaAnalyzer() throws IOException {
+        return new DreamPostLemmaAnalyzer(this.stopWordRepository.getStopWords());
     }
-
-
 }

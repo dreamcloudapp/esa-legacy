@@ -9,31 +9,34 @@ import java.io.IOException;
 import java.nio.file.Paths;
 
 public class VectorizerFactory {
-    private final String type;
-    private final int conceptLimit;
-    private final double cohesion;
-    private final Analyzer analyzer;
+    private String type;
+    private int conceptLimit;
+    private double cohesion;
+    private AnalyzerFactory analyzerFactory;
+    String documentPath;
 
-    public VectorizerFactory(String type, int conceptLimit, double cohesion) {
-        this.analyzer = AnalyzerFactory.getDreamPostLemmaAnalyzer();
+    public VectorizerFactory(AnalyzerFactory analyzerFactory, String documentPath, String type, int conceptLimit, double cohesion) {
+        this.analyzerFactory = analyzerFactory;
+        this.documentPath = documentPath;
         this.type = type == null ? "" : type;
         this.conceptLimit = conceptLimit;
         this.cohesion = cohesion;
     }
 
-    public VectorizerFactory(String type, int conceptLimit) {
-        this.analyzer = AnalyzerFactory.getVectorizingAnalyzer();
+    public VectorizerFactory(AnalyzerFactory analyzerFactory, String documentPath, String type, int conceptLimit) {
+        this.documentPath = documentPath;
+        this.analyzerFactory = analyzerFactory;
         this.type = type == null ? "" : type;
         this.conceptLimit = conceptLimit;
         this.cohesion = 0;
     }
 
     public TextVectorizer getTextVectorizer() throws IOException {
-        Vectorizer base = new Vectorizer(Paths.get("./index/" + WikiFactory.docType.label + "_termdoc"), analyzer);
+        Vectorizer base = new Vectorizer(Paths.get(documentPath), analyzerFactory.getAnalyzer());
         base.setConceptCount(this.conceptLimit);
         switch(this.type) {
             case "narrative":
-                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(base, analyzer, conceptLimit);
+                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(base, analyzerFactory.getAnalyzer(), conceptLimit);
                 narrativeVectorizer.setCohesion(cohesion);
                 narrativeVectorizer.setDebug(true);
                 return narrativeVectorizer;
@@ -44,14 +47,14 @@ public class VectorizerFactory {
     }
 
     public TextVectorizer getLemmaVectorizer() throws IOException {
-        Vectorizer base = new Vectorizer(Paths.get("./index/" + WikiFactory.docType.label + "_termdoc"), analyzer);
+        Vectorizer base = new Vectorizer(Paths.get(documentPath), analyzerFactory.getAnalyzer());
         base.setConceptCount(this.conceptLimit);
 
         TextVectorizer vectorizer;
 
         switch(this.type) {
             case "narrative":
-                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(base, analyzer, conceptLimit);
+                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(base, analyzerFactory.getAnalyzer(), conceptLimit);
                 narrativeVectorizer.setCohesion(cohesion);
                 narrativeVectorizer.setDebug(true);
                 vectorizer = narrativeVectorizer;
