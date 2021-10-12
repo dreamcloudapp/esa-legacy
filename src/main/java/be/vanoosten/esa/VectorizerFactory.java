@@ -1,5 +1,6 @@
 package be.vanoosten.esa;
 
+import be.vanoosten.esa.tools.LemmaVectorizer;
 import be.vanoosten.esa.tools.NarrativeVectorizer;
 import be.vanoosten.esa.tools.TextVectorizer;
 import be.vanoosten.esa.tools.Vectorizer;
@@ -14,7 +15,7 @@ public class VectorizerFactory {
     private final Analyzer analyzer;
 
     public VectorizerFactory(String type, int conceptLimit, double cohesion) {
-        this.analyzer = AnalyzerFactory.getVectorizingAnalyzer();
+        this.analyzer = AnalyzerFactory.getDreamPostLemmaAnalyzer();
         this.type = type == null ? "" : type;
         this.conceptLimit = conceptLimit;
         this.cohesion = cohesion;
@@ -40,5 +41,26 @@ public class VectorizerFactory {
             default:
                 return base;
         }
+    }
+
+    public TextVectorizer getLemmaVectorizer() throws IOException {
+        Vectorizer base = new Vectorizer(Paths.get("./index/" + WikiFactory.docType.label + "_termdoc"), analyzer);
+        base.setConceptCount(this.conceptLimit);
+
+        TextVectorizer vectorizer;
+
+        switch(this.type) {
+            case "narrative":
+                NarrativeVectorizer narrativeVectorizer = new NarrativeVectorizer(base, analyzer, conceptLimit);
+                narrativeVectorizer.setCohesion(cohesion);
+                narrativeVectorizer.setDebug(true);
+                vectorizer = narrativeVectorizer;
+                break;
+            case"default":
+            default:
+                vectorizer = base;
+        }
+
+        return new LemmaVectorizer(vectorizer);
     }
 }

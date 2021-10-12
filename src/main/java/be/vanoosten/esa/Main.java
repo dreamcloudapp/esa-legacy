@@ -21,7 +21,6 @@ import be.vanoosten.esa.server.DocumentSimilarityRequestBody;
 import be.vanoosten.esa.server.DocumentSimilarityScorer;
 import be.vanoosten.esa.server.DocumentVectorizationRequestBody;
 import be.vanoosten.esa.tools.*;
-import edu.stanford.nlp.ling.CoreLabel;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.TokenStream;
@@ -39,11 +38,6 @@ import org.apache.commons.cli.*;
 import io.javalin.Javalin;
 import com.google.gson.Gson;
 
-//Stanford NLP
-import edu.stanford.nlp.io.*;
-import edu.stanford.nlp.pipeline.*;
-import java.util.*;
-
 //Reading input files
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -55,8 +49,6 @@ import java.util.Map;
  */
 public class Main {
     static String ODBC_ENVIRONMENT_VARIABLE = "DC_ESA_ODBC_CONNECTION_STRING";
-    static int THREAD_COUNT = 1;
-    private Query query;
 
     public static String readInputFile(String path, String encoding) throws IOException {
         byte[] encoded = Files.readAllBytes(Paths.get(path));
@@ -230,7 +222,7 @@ public class Main {
                     compareDesc += "...";
                 }
                System.out.println("Comparing '" + sourceDesc + "' to '" + compareDesc + "':");
-                TextVectorizer textVectorizer = vectorizerFactory.getTextVectorizer();
+                TextVectorizer textVectorizer = vectorizerFactory.getLemmaVectorizer();
                 SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
                 System.out.println("Vector relatedness: " + decimalFormat.format(similarityTool.findSemanticSimilarity(sourceText, compareText))
                 );
@@ -406,9 +398,9 @@ public class Main {
                 Directory dir = FSDirectory.open(Paths.get("./index/" + "dream_termdoc"));
                 IndexReader docReader = DirectoryReader.open(dir);
                 IndexSearcher docSearcher = new IndexSearcher(docReader);
-                Analyzer analyzer = AnalyzerFactory.getDreamAnalyzer();
+                Analyzer analyzer = AnalyzerFactory.getDreamPostLemmaAnalyzer();
                 WeighedDocumentQueryBuilder builder = new WeighedDocumentQueryBuilder(analyzer, docSearcher);
-                TextVectorizer textVectorizer = vectorizerFactory.getTextVectorizer();
+                TextVectorizer textVectorizer = vectorizerFactory.getLemmaVectorizer();
                 int port = 1994;
                 try {
                     port = Integer.parseInt(server);
