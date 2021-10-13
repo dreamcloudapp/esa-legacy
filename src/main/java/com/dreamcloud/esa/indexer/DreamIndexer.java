@@ -32,6 +32,11 @@ import org.xml.sax.helpers.DefaultHandler;
  * @author Philip van Oosten
  */
 public class DreamIndexer extends DefaultHandler implements AutoCloseable, Indexer {
+    public static final String TEXT_FIELD = "text";
+    public static final String TITLE_FIELD = "title";
+    public static final String ID_FIELD = "id";
+    public static final String USER_FIELD = "user";
+
     private final SAXParserFactory saxFactory;
     private StringBuilder content = new StringBuilder();
     private String dreamId = "";
@@ -41,62 +46,20 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
     private int numTotal = 0;
     private int numIndexed = 0;
 
-    private Directory directory;
-    private Analyzer analyzer;
     IndexWriter indexWriter;
+    IndexerOptions options;
 
-    public static final String TEXT_FIELD = "text";
-    public static final String TITLE_FIELD = "title";
-    public static final String ID_FIELD = "id";
-    public static final String USER_FIELD = "user";
-
-    static StanfordCoreNLP stanfordPipeline;
-    static boolean useStanfordLemmas = true;
-
-    //takes a while
-    static StanfordCoreNLP getStanfordPipeline() {
-        if (stanfordPipeline == null) {
-            Properties props = new Properties();
-            // set the list of annotators to run
-            props.setProperty("annotators", "tokenize,ssplit,pos,lemma");
-            // build pipeline
-            stanfordPipeline = new StanfordCoreNLP(props);
-        }
-        return stanfordPipeline;
-    }
-
-    String getStanfordLemmatizedDream(String dreamText) throws IOException {
-        //get stanford lemmas
-        StanfordCoreNLP pipeline = getStanfordPipeline();
-        CoreDocument document = pipeline.processToCoreDocument(dreamText);
-        StringBuilder lemmatizedText = new StringBuilder();
-        for (CoreLabel token: document.tokens()) {
-            lemmatizedText.append(token.lemma()).append(" ");
-        }
-        return lemmatizedText.toString();
-    }
-
-    public DreamIndexer(Directory directory) {
-        this.directory = directory;
+    public DreamIndexer(IndexerOptions options) {
+        this.options = options;
         saxFactory = SAXParserFactory.newInstance();
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);
         saxFactory.setXIncludeAware(true);
     }
 
-    public void analyze(File file) {
-        //nothing to do here
-    }
-
     public void index(File file) throws IOException {
-        if (useStanfordLemmas) {
-            analyzer = AnalyzerFactory.getDreamPostLemmaAnalyzer();
-        } else {
-            analyzer = AnalyzerFactory.getDreamAnalyzer();
-        }
-
-        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(analyzer);
-        indexWriter = new IndexWriter(directory, indexWriterConfig);
+        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(options.analyzer);
+        indexWriter = new IndexWriter(options.indexDirectory, indexWriterConfig);
 
         try {
             SAXParser saxParser = saxFactory.newSAXParser();
@@ -106,14 +69,11 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
             bufferedInputStream.close();
             dreamInputStream.close();
 
-        } catch (ParserConfigurationException | SAXException | FileNotFoundException ex) {
-            Logger.getLogger(DreamIndexer.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
+        } catch (ParserConfigurationException | SAXException | IOException ex) {
             Logger.getLogger(DreamIndexer.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         indexWriter.commit();
-        analyzer.close();
 
         //Show logs
         System.out.println("----------------------------------------");
@@ -147,7 +107,7 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
                     try {
                         index(dreamId, dreamTitle, dreamText, dreamUserId);
                         numIndexed++;
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                     } finally {
                         dreamId = dreamContent = dreamTitle = dreamUserId = "";
@@ -162,26 +122,15 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
         content.append(ch, start, length);
     }
 
-    void index(String id, String title, String text, String userId) throws IOException {
-        System.out.println("indexing dream: " + id);
-        Document doc = new Document();
-
-        if (useStanfordLemmas) {
-            text = getStanfordLemmatizedDream(text);
+    void index(String id, String title, String text, String userId) throws Exception {
+        if (options.preprocessor != null) {
+            text = options.preprocessor.process(text);
         }
 
+        Document doc = new Document();
         doc.add(new StringField(ID_FIELD, id, Field.Store.YES));
         doc.add(new StringField(TITLE_FIELD, title, Field.Store.YES));
-        FieldType fieldType = new FieldType();
-        fieldType.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS);
-        fieldType.setStoreTermVectors(true);
-        fieldType.setStoreTermVectorOffsets(true);
-        fieldType.setStoreTermVectorPositions(true);
-        fieldType.setStoreTermVectorPayloads(true);
-        fieldType.setStored(true); //@todo: only for debugging, shouldn't be stored normally
-        fieldType.setTokenized(true);
-        Field textField = new Field(TEXT_FIELD, text, fieldType);
-        doc.add(textField);
+        doc.add(new StoredField(TEXT_FIELD, text));
         doc.add(new StringField(USER_FIELD, userId, Field.Store.YES));
         indexWriter.addDocument(doc);
     }

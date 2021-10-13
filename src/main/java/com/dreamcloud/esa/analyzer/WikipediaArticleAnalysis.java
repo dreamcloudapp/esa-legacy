@@ -1,5 +1,7 @@
 package com.dreamcloud.esa.analyzer;
 
+import com.dreamcloud.esa.indexer.WikiIndexerOptions;
+
 import java.util.ArrayList;
 
 public class WikipediaArticleAnalysis {
@@ -7,13 +9,13 @@ public class WikipediaArticleAnalysis {
     public ArrayList<String> outgoingLinks;
     public int tokenCount;
 
-    WikipediaArticleAnalysis(String parsedTitle, ArrayList<String> outgoingLinks, int tokenCount) {
+    public WikipediaArticleAnalysis(String parsedTitle, ArrayList<String> outgoingLinks, int tokenCount) {
         this.parsedTitle = parsedTitle;
         this.outgoingLinks = outgoingLinks;
         this.tokenCount = tokenCount;
     }
 
-    public boolean canIndex() {
-        return this.outgoingLinks.size() > 0 && this.tokenCount > 9;
+    public boolean canIndex(WikiIndexerOptions options) {
+        return this.outgoingLinks.size() >= options.minimumOutgoingLinks && this.tokenCount > options.minimumTermCount;
     }
 }

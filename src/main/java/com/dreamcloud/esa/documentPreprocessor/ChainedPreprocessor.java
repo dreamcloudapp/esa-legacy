@@ -8,7 +8,7 @@ public class ChainedPreprocessor implements DocumentPreprocessor {
         this.preprocessors = preprocessors;
     }
 
-    public String process(String document) {
+    public String process(String document) throws Exception {
         for (DocumentPreprocessor preprocessor: preprocessors) {
             document = preprocessor.process(document);
         }

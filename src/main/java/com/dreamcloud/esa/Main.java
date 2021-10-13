@@ -125,6 +125,11 @@ public class Main {
         indexOption.setRequired(false);
         options.addOption(indexOption);
 
+        //Index path
+        Option indexPathOption = new Option("index-path", "index-path", true, "input directory / The path to the input directory (defaults to ./index/$doctype)");
+        indexPathOption.setRequired(false);
+        options.addOption(indexPathOption);
+
         //Server stuff
         Option serverOption = new Option("server", "server", true, "port / Starts a vectorizing server using the specified port.");
         serverOption.setRequired(false);
@@ -144,28 +149,54 @@ public class Main {
             String docType = cmd.getOptionValue("doctype");
             String stopWords = cmd.getOptionValue("stopwords");
             String dictionary = cmd.getOptionValue("dictionary");
+            String indexPath = cmd.getOptionValue("indexPath");
+
+            EsaOptions esaOptions = new EsaOptions();
 
             if (!nonEmpty(docType)) {
                 docType = "article";
             }
-            String termDoc = docType + "_" + "termdoc";
-            String documentPath = "./index/" + termDoc;
+            esaOptions.documentType = DocumentType.valueOfLabel(docType);
+            if ( esaOptions.documentType == null) {
+                throw new IllegalArgumentException("Document type " + docType + " is not recognized.");
+            }
+            esaOptions.indexPath = nonEmpty(indexPath) ? indexPath : "./index/" + docType + "_index";
+
 
             String limit = cmd.getOptionValue("l");
-            int conceptLimit = 1000;
+            int documentLimit = 100;
             if (nonEmpty(limit)) {
                 try {
-                    conceptLimit = Integer.parseInt(limit);
+                    documentLimit = Integer.parseInt(limit);
                 } catch (NumberFormatException e) {
 
                 }
+            }
+            esaOptions.documentLimit = documentLimit;
+
+            if (nonEmpty(stopWords)) {
+                if (stopWords.equals("en-default")) {
+                    stopWords = "./src/data/en-stopwords.txt";
+                }
+                esaOptions.stopWordRepository = new StopWordRepository(stopWords);
+            } else {
+                esaOptions.stopWordRepository = new StopWordRepository();
+            }
+
+            if (nonEmpty(dictionary)) {
+                if (dictionary.equals("en-default")) {
+                    dictionary = "./src/data/en-words.txt";
+                }
+                esaOptions.dictionaryRepository = new DictionaryRepository(dictionary);
+            } else {
+                esaOptions.dictionaryRepository = new DictionaryRepository();
             }
 
             String stanfordPosTags = cmd.getOptionValue("stanford-pos");
             boolean stanfordLemmasRequired = nonEmpty(stanfordPosTags);
             boolean stanfordLemmasFound = false;
 
-            DocumentPreprocessorFactory preprocessorFactory = new DocumentPreprocessorFactory();
+            DocumentPreprocessorFactory preprocessorFactory = new DocumentPreprocessorFactory(esaOptions);
             ArrayList<DocumentPreprocessor> preprocessors = new ArrayList<>();
             String[] preprocessorArguments = cmd.getOptionValues("preprocessor");
             for(String preprocessorArgument: preprocessorArguments) {
@@ -175,33 +206,13 @@ public class Main {
                 }
                preprocessors.add(preprocessorFactory.getPreprocessor(preprocessorArgument));
             }
-            ChainedPreprocessor preprocessor = new ChainedPreprocessor(preprocessors);
-
             if (stanfordLemmasRequired && !stanfordLemmasFound) {
                 throw new IllegalArgumentException("The --stanford-pos option requires the --preprocessor stanford-lemma option to be set.");
             }
+            esaOptions.preprocessor = new ChainedPreprocessor(preprocessors);;
 
-            StopWordRepository stopWordRepository;
-            if (nonEmpty(stopWords)) {
-                if (stopWords.equals("en-default")) {
-                    stopWords = "./src/data/en-stopwords.txt";
-                }
-                stopWordRepository = new StopWordRepository(stopWords);
-            } else {
-                stopWordRepository = new StopWordRepository();
-            }
 
-            DictionaryRepository dictionaryRepository;
-            if (nonEmpty(dictionary)) {
-                if (dictionary.equals("en-default")) {
-                    dictionary = "./src/data/en-words.txt";
-                }
-                dictionaryRepository = new DictionaryRepository(dictionary);
-            } else {
-                dictionaryRepository = new DictionaryRepository();
-            }
-
-            AnalyzerFactory analyzerFactory = new AnalyzerFactory(stopWordRepository);
+            AnalyzerFactory analyzerFactory = new AnalyzerFactory(esaOptions.documentType);
 
 
             String server = cmd.getOptionValue("server");

@@ -17,12 +17,9 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
-import com.dreamcloud.esa.analyzer.AnalyzerFactory;
+import com.dreamcloud.esa.analyzer.WikiLinkAnalyzer;
 import com.dreamcloud.esa.analyzer.WikipediaArticle;
 import com.dreamcloud.esa.analyzer.WikipediaArticleAnalysis;
-import edu.stanford.nlp.ling.CoreLabel;
-import edu.stanford.nlp.pipeline.CoreDocument;
-import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
@@ -34,7 +31,6 @@ import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.store.Directory;
 import org.eclipse.collections.api.map.primitive.MutableObjectIntMap;
 import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
 import org.xml.sax.Attributes;
@@ -48,12 +44,11 @@ import java.util.concurrent.Executors;
  * @author Philip van Oosten
  */
 public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexer {
+    private static String TEXT_FIELD = "text";
+    private static String TITLE_FIELD = "title";
     private final SAXParserFactory saxFactory;
     private ExecutorService executorService;
-    private static int THREAD_COUNT = 16;
-    private static int BATCH_SIZE = 100;
-    private static int MAX_EXPECTED_ARTICLES = 32000000;
-    WikipediaArticle[] fixedQueue = new WikipediaArticle[THREAD_COUNT * BATCH_SIZE];
+    WikipediaArticle[] fixedQueue;
     int queueSize = 0;
     private boolean inPage;
     private boolean inPageTitle;
@@ -66,64 +61,18 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     private int numIndexed = 0;
     private int numIndexable = 0;
 
-    private Directory directory;
-    private Analyzer analyzer;
     private String mode;
-
-    public static final String TEXT_FIELD = "text";
-    public static final String TITLE_FIELD = "title";
     Pattern pat;
     IndexWriter indexWriter;
+    Analyzer linkAnalyzer;
 
     String[] indexTitles;
     MutableObjectIntMap<String> incomingLinkMap = ObjectIntMaps.mutable.empty();
-    static StanfordCoreNLP stanfordPipeline;
-    static Analyzer lemmaAnalyzer;
-    static boolean useStanfordLemmas = true;
+    WikiIndexerOptions options;
 
-    //takes a while
-    static StanfordCoreNLP getStanfordPipeline() {
-        if (stanfordPipeline == null) {
-            Properties props = new Properties();
-            // set the list of annotators to run
-            props.setProperty("annotators", "tokenize,ssplit,pos,lemma");
-            // build pipeline
-            stanfordPipeline = new StanfordCoreNLP(props);
-        }
-        return stanfordPipeline;
-    }
-
-    static Analyzer getLemmaAnalyzer() {
-        if (lemmaAnalyzer == null) {
-            lemmaAnalyzer = AnalyzerFactory.getLemmaAnalyzer();
-        }
-        return lemmaAnalyzer;
-    }
-
-    String getStanfordLemmatizedArticle(String articleText) throws IOException {
-        // get valid tokens for article
-        Analyzer analyzer = getLemmaAnalyzer();
-        StringBuilder analyzedText = new StringBuilder();
-        TokenStream tokenStream = analyzer.tokenStream(TEXT_FIELD, articleText);
-        CharTermAttribute termAttribute = tokenStream.addAttribute(CharTermAttribute.class);
-        tokenStream.reset();
-        while(tokenStream.incrementToken()) {
-            analyzedText.append(termAttribute.toString()).append(" ");
-        }
-        tokenStream.close();
-
-        //get stanford lemmas
-        StanfordCoreNLP pipeline = getStanfordPipeline();
-        CoreDocument document = pipeline.processToCoreDocument(analyzedText.toString());
-        StringBuilder lemmatizedText = new StringBuilder();
-        for (CoreLabel token: document.tokens()) {
-            lemmatizedText.append(token.lemma()).append(" ");
-        }
-        return lemmatizedText.toString();
-    }
-
-    public WikiIndexer(Directory directory) {
-        this.directory = directory;
+    public WikiIndexer(WikiIndexerOptions options) {
+        this.options = options;
+        this.fixedQueue = new WikipediaArticle[options.threadCount * options.batchSize];
         saxFactory = SAXParserFactory.newInstance();
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);
@@ -143,46 +92,43 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     }
 
     public void analyze(File file) {
-        reset();
-        indexTitles = new String[MAX_EXPECTED_ARTICLES];
-        executorService = Executors.newFixedThreadPool(THREAD_COUNT);
-        analyzer = AnalyzerFactory.getLinkAnalyzer();
-        mode = "analyze";
-        parseXmlDump(file);
-        //There may be queue items left over
-        if (queueSize > 0) {
-            this.processQueue();
+        if (this.options.maximumTermCount > 0 || this.options.minimumTermCount > 0 || this.options.minimumIncomingLinks > 0 || this.options.minimumOutgoingLinks > 0) {
+            reset();
+            indexTitles = new String[options.maximumDocumentCount];
+            executorService = Executors.newFixedThreadPool(options.threadCount);
+
+           linkAnalyzer = new WikiLinkAnalyzer();
+
+            mode = "analyze";
+            parseXmlDump(file);
+            //There may be queue items left over
+            if (queueSize > 0) {
+                this.processQueue();
+            }
+
+            executorService.shutdown();
+            try {
+                executorService.awaitTermination(12, TimeUnit.HOURS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            System.gc();
+
+            numAnalyzed = numTotal;
+
+            System.out.println("----------------------------------------");
+            System.out.println("Articles Analyzed:\t" + numAnalyzed);
+            System.out.println("Articles Indexable:\t" + numIndexable);
+            System.out.println("----------------------------------------");
         }
-
-        analyzer.close();
-        executorService.shutdown();
-        try {
-            executorService.awaitTermination(12, TimeUnit.HOURS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        System.gc();
-
-        numAnalyzed = numTotal;
-
-        System.out.println("----------------------------------------");
-        System.out.println("Articles Analyzed:\t" + numAnalyzed);
-        System.out.println("Articles Indexable:\t" + numIndexable);
-        System.out.println("----------------------------------------");
     }
 
     public void index(File file) throws IOException {
         reset();
-        executorService = Executors.newFixedThreadPool(THREAD_COUNT);
-        if (useStanfordLemmas) {
-            analyzer = AnalyzerFactory.getPostLemmaAnalyzer();
-        } else {
-            analyzer = AnalyzerFactory.getAnalyzer();
-        }
-
-        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(analyzer);
-        indexWriter = new IndexWriter(directory, indexWriterConfig);
+        executorService = Executors.newFixedThreadPool(options.threadCount);
+        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(options.analyzer);
+        indexWriter = new IndexWriter(options.indexDirectory, indexWriterConfig);
         mode = "index";
         parseXmlDump(file);
         //There may be queue items left over
@@ -191,7 +137,6 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
         }
 
         indexWriter.commit();
-        analyzer.close();
         executorService.shutdown();
         try {
             executorService.awaitTermination(12, TimeUnit.HOURS);
@@ -259,7 +204,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
             }
 
             fixedQueue[queueSize++] = new WikipediaArticle(numTotal, wikiTitleCopy, wikiText);
-            if (queueSize == BATCH_SIZE * THREAD_COUNT) {
+            if (queueSize == options.batchSize * options.threadCount) {
                 this.processQueue();
                 queueSize = 0;
             }
@@ -274,15 +219,15 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     }
 
 
-    void processAnalysisQueue() {
+    void processAnalysisQueue(Analyzer analyzer) {
         //Spawn up THREAD_COUNT threads and give each BATCH_SIZE articles
         ArrayList<Callable<Vector<WikipediaArticle>>> processors = new ArrayList<>();
-        for (int i=0; i<THREAD_COUNT && (i * BATCH_SIZE) < queueSize; i++) {
-            final Vector<WikipediaArticle> articles = new Vector<>(BATCH_SIZE);
-            for (int j = i * BATCH_SIZE; j<(((i+1) * BATCH_SIZE)) && j<queueSize; j++) {
+        for (int i=0; i<options.threadCount && (i * options.batchSize) < queueSize; i++) {
+            final Vector<WikipediaArticle> articles = new Vector<>(options.batchSize);
+            for (int j = i * options.batchSize; j<(((i+1) * options.batchSize)) && j<queueSize; j++) {
                 articles.add(fixedQueue[j]);
             }
-            processors.add(() -> this.analyzeArticles(articles));
+            processors.add(() -> this.analyzeArticles(analyzer, articles));
         }
 
         //Wait on all threads and then processes the results
@@ -293,7 +238,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
                     Vector<WikipediaArticle> articles = future.get();
                     for (WikipediaArticle article: articles) {
                         //If the article is valid for indexing, map it's links
-                        if (article.canIndex()) {
+                        if (article.canIndex(options)) {
                             numIndexable++;
                             indexTitles[article.index] = article.analysis.parsedTitle;
                             for (String link: article.getOutgoingLinks()) {
@@ -314,7 +259,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
         }
     }
 
-    Vector<WikipediaArticle> analyzeArticles(Vector<WikipediaArticle> articles) throws IOException {
+    Vector<WikipediaArticle> analyzeArticles(Analyzer analyzer, Vector<WikipediaArticle> articles) throws IOException {
         for (WikipediaArticle article: articles) {
             TokenStream tokenStream = analyzer.tokenStream(TEXT_FIELD, "[[" + article.title + "]] " + article.text);
             CharTermAttribute termAttribute = tokenStream.addAttribute(CharTermAttribute.class);
@@ -345,11 +290,11 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
 
     void processQueue() {
         if ("analyze".equals(mode)) {
-            this.processAnalysisQueue();
+            this.processAnalysisQueue(linkAnalyzer);
         } else {
             this.processIndexQueue();
         }
-        for (int i=0; i<THREAD_COUNT * BATCH_SIZE; i++) {
+        for (int i=0; i<options.threadCount * options.batchSize; i++) {
             fixedQueue[i] = null;
         }
         queueSize = 0;
@@ -364,9 +309,9 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     void processIndexQueue() {
         //Spawn up THREAD_COUNT threads and give each BATCH_SIZE articles
         ArrayList<Callable<Integer>> processors = new ArrayList<>();
-        for (int i=0; i<THREAD_COUNT && (i * BATCH_SIZE) < queueSize; i++) {
-            Vector<WikipediaArticle> articles = new Vector<>(BATCH_SIZE);
-            for (int j = i * BATCH_SIZE; j<(((i+1) * BATCH_SIZE)) && j<queueSize; j++) {
+        for (int i=0; i<options.threadCount && (i * options.batchSize) < queueSize; i++) {
+            Vector<WikipediaArticle> articles = new Vector<>(options.batchSize);
+            for (int j = i * options.batchSize; j<(((i+1) * options.batchSize)) && j<queueSize; j++) {
                 articles.add(fixedQueue[j]);
             }
             processors.add(() -> this.indexArticles(articles));
@@ -387,7 +332,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
         }
     }
 
-    Integer indexArticles (Vector<WikipediaArticle> articles) throws IOException {
+    Integer indexArticles (Vector<WikipediaArticle> articles) throws Exception {
         int indexed = 0;
         for (WikipediaArticle article: articles) {
             //Get title
@@ -403,9 +348,9 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
         return indexed;
     }
 
-    void indexDocument(String title, String wikiText) throws IOException {
-        if (useStanfordLemmas) {
-            wikiText = getStanfordLemmatizedArticle(wikiText);
+    void indexDocument(String title, String wikiText) throws Exception {
+        if (options.preprocessor != null) {
+            wikiText = options.preprocessor.process(wikiText);
         }
 
         Document doc = new Document();
@@ -414,7 +359,6 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
         indexWriter.addDocument(doc);
     }
 
-    @Override
     public void close() throws IOException {
         indexWriter.close();
     }
