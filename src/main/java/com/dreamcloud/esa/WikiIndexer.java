@@ -17,6 +17,9 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import com.dreamcloud.esa.analyzer.AnalyzerFactory;
+import com.dreamcloud.esa.analyzer.WikipediaArticle;
+import com.dreamcloud.esa.analyzer.WikipediaArticleAnalysis;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.CoreDocument;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;

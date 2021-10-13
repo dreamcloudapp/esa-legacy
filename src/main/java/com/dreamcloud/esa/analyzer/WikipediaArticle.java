@@ -1,4 +1,4 @@
-package com.dreamcloud.esa;
+package com.dreamcloud.esa.analyzer;
 
 import java.util.ArrayList;
 

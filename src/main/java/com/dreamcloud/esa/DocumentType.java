@@ -2,7 +2,7 @@ package com.dreamcloud.esa;
 
 public enum DocumentType {
     DREAM("dream"),
-    ARTICLE("article");
+    WIKI("wiki");
 
     public final String label;
 

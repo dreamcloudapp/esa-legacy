@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import com.dreamcloud.esa.analyzer.AnalyzerFactory;
 import com.dreamcloud.esa.database.ConceptWeight;
 import com.dreamcloud.esa.database.DocumentVector;
 import com.dreamcloud.esa.database.VectorRepository;
@@ -23,11 +24,9 @@ import com.dreamcloud.esa.server.DocumentSimilarityScorer;
 import com.dreamcloud.esa.server.DocumentVectorizationRequestBody;
 import com.dreamcloud.esa.tools.*;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
-import org.apache.lucene.document.*;
 import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.search.*;
@@ -113,14 +112,6 @@ public class Main {
         stanfordPosOption.setRequired(false);
         options.addOption(stanfordPosOption);
 
-        Option vectorizerOption = new Option("vectorizer", "vectorizer", true, "[standard|narrative] / The vectorizing algorithm to use, defaulting to standard.");
-        vectorizerOption.setRequired(false);
-        options.addOption(vectorizerOption);
-
-        Option cohesionOption = new Option("cohesion", "cohesion", true, "float / The cohesion for grouping sentences into topics.");
-        cohesionOption.setRequired(false);
-        options.addOption(cohesionOption);
-
         //Debugging
         Option debugOption = new Option("d", "debug", true, "input.txt / Shows the tokens for a text.");
         debugOption.setRequired(false);
@@ -167,17 +158,6 @@ public class Main {
                 }
             }
 
-            String vectorizer = cmd.getOptionValue("vectorizer");
-            String cohesion = cmd.getOptionValue("cohesion");
-            double cohesionValue = 0.15;
-            if (nonEmpty(cohesion)) {
-                try {
-                    cohesionValue = Double.parseDouble(cohesion);
-                } catch (NumberFormatException e) {
-
-                }
-            }
-
             String stanfordPosTags = cmd.getOptionValue("stanford-pos");
             boolean stanfordLemmasRequired = nonEmpty(stanfordPosTags);
             boolean stanfordLemmasFound = false;
@@ -219,7 +199,6 @@ public class Main {
             }
 
             AnalyzerFactory analyzerFactory = new AnalyzerFactory(stopWordRepository);
-            VectorizerFactory vectorizerFactory = new VectorizerFactory(analyzerFactory, documentPath, vectorizer, conceptLimit, cohesionValue);
 
 
             String server = cmd.getOptionValue("server");
@@ -338,7 +317,7 @@ public class Main {
                 Directory dir = FSDirectory.open(Paths.get("./index/" + "dream_termdoc"));
                 IndexReader docReader = DirectoryReader.open(dir);
                 IndexSearcher docSearcher = new IndexSearcher(docReader);
-                Analyzer analyzer = AnalyzerFactory.getDreamPostLemmaAnalyzer();
+                Analyzer analyzer = analyzerFactory.getDreamPostLemmaAnalyzer();
                 WeighedDocumentQueryBuilder builder = new WeighedDocumentQueryBuilder(analyzer, docSearcher);
                 TextVectorizer textVectorizer = vectorizerFactory.getLemmaVectorizer();
                 int port = 1994;
@@ -430,7 +409,6 @@ public class Main {
      * Creates a term to concept index from a Wikipedia article dump.
      * @param termDocIndexDirectory The directory where the term to concept index must be created
      * @param wikipediaDumpFile The Wikipedia dump file that must be read to create the index
-     * @param stopWords The words that are not used in the semantic analysis
      * @throws IOException
      */
     public static void indexing(Path termDocIndexDirectory, File wikipediaDumpFile, String docType) throws IOException {

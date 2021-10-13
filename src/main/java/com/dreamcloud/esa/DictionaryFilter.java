@@ -1,21 +1,18 @@
 package com.dreamcloud.esa;
 
+import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.FilteringTokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.util.Version;
 import java.io.*;
-import java.util.HashSet;
 
 /**
  * Takes a dictionary of words (one per line) and uses it to filter
  * the input tokens ensuring that all are valid words.
  */
 public class DictionaryFilter extends FilteringTokenFilter {
-    File dictionary;
+    DictionaryRepository repository;
     Boolean ignoreCase;
-    static HashSet<String> words = new HashSet<String>();
-    static Boolean loaded = false;
     private final CharTermAttribute termAtt = this.addAttribute(CharTermAttribute.class);
 
     /**
@@ -25,9 +22,9 @@ public class DictionaryFilter extends FilteringTokenFilter {
      * @param input
      * @param ignoreCase
      */
-    public DictionaryFilter(TokenStream input, File dictionary, Boolean ignoreCase) {
+    public DictionaryFilter(TokenStream input, DictionaryRepository repository, Boolean ignoreCase) {
         super(input);
-        this.dictionary = dictionary;
+        this.repository = repository;
         this.ignoreCase = ignoreCase;
     }
 
@@ -37,38 +34,14 @@ public class DictionaryFilter extends FilteringTokenFilter {
      * @param dictionary
      * @param input
      */
-    public DictionaryFilter(TokenStream input, File dictionary) {
+    public DictionaryFilter(TokenStream input, DictionaryRepository repository) {
         super(input);
-        this.dictionary = dictionary;
+        this.repository = repository;
         this.ignoreCase = true;
     }
 
-    protected void loadDictionary() {
-        BufferedReader reader;
-        try {
-            reader = new BufferedReader(new FileReader(dictionary));
-            String line = reader.readLine();
-            while (line != null) {
-                if (!"".equals(line)) {
-                    if (ignoreCase) {
-                        line = line.toLowerCase();
-                    }
-                    words.add(line);
-                }
-                line = reader.readLine();
-            }
-            reader.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            loaded = true;
-        }
-    }
-
     protected boolean accept() throws IOException {
-        if (!loaded) {
-            this.loadDictionary();
-        }
+        CharArraySet words = repository.getDictionaryWords();
         //Why is reading from a char array so damn hard?
         char[] buffer = this.termAtt.buffer();
         StringBuilder sb = new StringBuilder(termAtt.length());
