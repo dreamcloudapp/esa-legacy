@@ -196,7 +196,7 @@ public class Main {
             boolean stanfordLemmasRequired = nonEmpty(stanfordPosTags);
             boolean stanfordLemmasFound = false;
 
-            DocumentPreprocessorFactory preprocessorFactory = new DocumentPreprocessorFactory(esaOptions);
+            DocumentPreprocessorFactory preprocessorFactory = new DocumentPreprocessorFactory();
             ArrayList<DocumentPreprocessor> preprocessors = new ArrayList<>();
             String[] preprocessorArguments = cmd.getOptionValues("preprocessor");
             for(String preprocessorArgument: preprocessorArguments) {

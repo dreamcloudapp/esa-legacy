@@ -3,11 +3,10 @@ package com.dreamcloud.esa.documentPreprocessor;
 import com.dreamcloud.esa.EsaOptions;
 
 public class DocumentPreprocessorFactory {
-    protected EsaOptions options;
     protected String stanfordPosTags;
 
-    public DocumentPreprocessorFactory(EsaOptions options) {
-        this.options = options;
+    public DocumentPreprocessorFactory() {
+
     }
 
     public DocumentPreprocessor getPreprocessor(String type) {
@@ -15,7 +14,7 @@ public class DocumentPreprocessorFactory {
             case "stanford-lemma":
                 return new StanfordLemmaPreprocessor(stanfordPosTags);
             case "wiki":
-                return new WikiPreprocessor(options);
+                return new WikiPreprocessor();
             case "default":
             default:
                 return new StandardPreprocessor();
