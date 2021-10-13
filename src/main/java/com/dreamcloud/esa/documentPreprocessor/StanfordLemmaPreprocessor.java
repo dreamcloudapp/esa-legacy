@@ -8,6 +8,13 @@ import java.util.Properties;
 
 public class StanfordLemmaPreprocessor implements DocumentPreprocessor {
     static StanfordCoreNLP stanfordPipeline;
+    String stanfordPosTags;
+
+    public StanfordLemmaPreprocessor() { }
+
+    public StanfordLemmaPreprocessor(String stanfordPosTags) {
+        this.stanfordPosTags = stanfordPosTags;
+    }
 
     static StanfordCoreNLP getStanfordPipeline() {
         if (stanfordPipeline == null) {
@@ -25,6 +32,7 @@ public class StanfordLemmaPreprocessor implements DocumentPreprocessor {
         CoreDocument document = pipeline.processToCoreDocument(text);
         StringBuilder lemmatizedText = new StringBuilder();
         for (CoreLabel token: document.tokens()) {
+            //todo: implement POS check
             lemmatizedText.append(token.lemma()).append(" ");
         }
         return lemmatizedText.toString();

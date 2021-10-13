@@ -109,6 +109,10 @@ public class Main {
         preprocessorOption.setRequired(false);
         options.addOption(preprocessorOption);
 
+        Option stanfordPosOption = new Option("stanford-pos", "stanford-pos", true, "pos [pos2 ...] / The parts of speech to include when using the Stanford Lemma preprocessor");
+        stanfordPosOption.setRequired(false);
+        options.addOption(stanfordPosOption);
+
         Option vectorizerOption = new Option("vectorizer", "vectorizer", true, "[standard|narrative] / The vectorizing algorithm to use, defaulting to standard.");
         vectorizerOption.setRequired(false);
         options.addOption(vectorizerOption);
@@ -174,13 +178,25 @@ public class Main {
                 }
             }
 
+            String stanfordPosTags = cmd.getOptionValue("stanford-pos");
+            boolean stanfordLemmasRequired = nonEmpty(stanfordPosTags);
+            boolean stanfordLemmasFound = false;
+
             DocumentPreprocessorFactory preprocessorFactory = new DocumentPreprocessorFactory();
             ArrayList<DocumentPreprocessor> preprocessors = new ArrayList<>();
             String[] preprocessorArguments = cmd.getOptionValues("preprocessor");
             for(String preprocessorArgument: preprocessorArguments) {
+                if ("lemma".equals(preprocessorArgument)) {
+                    stanfordLemmasFound = true;
+                    preprocessorFactory.setStanfordPosTags(stanfordPosTags);
+                }
                preprocessors.add(preprocessorFactory.getPreprocessor(preprocessorArgument));
             }
             ChainedPreprocessor preprocessor = new ChainedPreprocessor(preprocessors);
+
+            if (stanfordLemmasRequired && !stanfordLemmasFound) {
+                throw new IllegalArgumentException("The --stanford-pos option requires the --preprocessor stanford-lemma option to be set.");
+            }
 
             StopWordRepository stopWordRepository;
             if (nonEmpty(stopWords)) {
