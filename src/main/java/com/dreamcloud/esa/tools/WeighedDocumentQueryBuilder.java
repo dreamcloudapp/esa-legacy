@@ -54,12 +54,11 @@ public class WeighedDocumentQueryBuilder {
 
     private ArrayList<Term> getTerms(String documentText) throws IOException {
         ArrayList<Term> tokens = new ArrayList<>();
-        TokenStream tokenStream = analyzer.tokenStream(WikiIndexer.TEXT_FIELD, documentText);
+        TokenStream tokenStream = analyzer.tokenStream("text", documentText);
         CharTermAttribute termAttribute = tokenStream.addAttribute(CharTermAttribute.class);
         tokenStream.reset();
         while(tokenStream.incrementToken()) {
-            //System.out.println("dd-token: " + termAttribute.toString());
-            tokens.add(new Term(WikiIndexer.TEXT_FIELD, termAttribute.toString()));
+            tokens.add(new Term("text", termAttribute.toString()));
         }
         tokenStream.close();
         return tokens;

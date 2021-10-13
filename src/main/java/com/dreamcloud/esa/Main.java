@@ -446,7 +446,7 @@ public class Main {
                 //Scores two documents relatedness via their texts, supporting all options
                 app.post("/similarity", ctx -> {
                     DocumentSimilarityRequestBody requestBody = gson.fromJson(ctx.body(), DocumentSimilarityRequestBody.class);
-                    DocumentSimilarityScorer scorer = new DocumentSimilarityScorer();
+                    DocumentSimilarityScorer scorer = new DocumentSimilarityScorer(textVectorizer);
                     ctx.json(scorer.score(requestBody));
                 });
             }

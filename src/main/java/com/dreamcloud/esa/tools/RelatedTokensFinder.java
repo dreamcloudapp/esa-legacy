@@ -31,13 +31,13 @@ public class RelatedTokensFinder {
         this.relatedTermsIndexReader = relatedTermsIndexReader;
     }
 
-    public List<Map.Entry<String, Float>> findRelatedTerms(String queryText, int n) throws ParseException, IOException {
+    public List<Map.Entry<String, Float>> findRelatedTerms(String queryText, int n) throws Exception {
         ConceptVector vec = vectorizer.vectorize(queryText);
         Query relatedTermsQuery = vec.asQuery();
         TopDocs topTerms = relatedTermsSearcher.search(relatedTermsQuery, n);
         List<Map.Entry<String, Float>> tokens = new ArrayList<>(n);
         for (ScoreDoc sd : topTerms.scoreDocs) {
-            String term = relatedTermsIndexReader.document(sd.doc).get(WikiIndexer.TEXT_FIELD);
+            String term = relatedTermsIndexReader.document(sd.doc).get("text");
             tokens.add(new Pair(term, sd.score));
         }
         return tokens;

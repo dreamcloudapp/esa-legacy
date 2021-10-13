@@ -29,7 +29,7 @@ public class Vectorizer implements AutoCloseable, TextVectorizer {
 
     public Vectorizer(EsaOptions options) throws IOException {
         this.options = options;
-        termToConceptDirectory = FSDirectory.open(Paths.get(options.indexPath));
+        termToConceptDirectory = FSDirectory.open(options.indexPath);
         indexReader = DirectoryReader.open(termToConceptDirectory);
         searcher = new IndexSearcher(indexReader);
         queryParser = new QueryParser("text", options.analyzer);
