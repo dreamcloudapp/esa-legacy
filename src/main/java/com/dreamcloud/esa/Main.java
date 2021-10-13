@@ -138,6 +138,15 @@ public class Main {
         dictionaryOption.setRequired(false);
         options.addOption(dictionaryOption);
 
+        Option filterOption = new Option("filter", "filter", true, "string [string2 ...] / List of Lucene analysis filters (stemmer|classic|lower|ascii)");
+        filterOption.setRequired(false);
+        options.addOption(filterOption);
+
+        Option stemmerDepthOption = new Option("stemmer-depth", "stemmer-depth", true, "int / The number of times to apply the stemmer");
+        stemmerDepthOption.setRequired(false);
+        options.addOption(stemmerDepthOption);
+
+        //Preprocessor options
         Option preprocessorOption = new Option("preprocessor", "preprocessor", true, "preprocessor [preprocessor2 ...] / The preprocessors to apply to input and corpus texts.");
         preprocessorOption.setRequired(false);
         options.addOption(preprocessorOption);
@@ -243,8 +252,8 @@ public class Main {
             esaOptions.preprocessor = new ChainedPreprocessor(preprocessors);;
 
 
-            AnalyzerFactory analyzerFactory = new AnalyzerFactory(esaOptions.documentType);
-            esaOptions.analyzer = analyzerFactory.getAnalyzer();
+            AnalyzerFactory analyzerFactory = new AnalyzerFactory(esaOptions);
+            esaOptions.analyzer = analyzerFactory.getAnalyzer(cmd);
 
 
             //Load indexer options from command line and ESA options
