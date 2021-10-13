@@ -1,9 +1,9 @@
 package com.dreamcloud.esa.documentPreprocessor;
 
-import com.dreamcloud.esa.EsaOptions;
+import java.util.List;
 
 public class DocumentPreprocessorFactory {
-    protected String stanfordPosTags;
+    protected List<String> stanfordPosTags;
 
     public DocumentPreprocessorFactory() {
 
@@ -22,7 +22,7 @@ public class DocumentPreprocessorFactory {
         }
     }
 
-    public void setStanfordPosTags(String stanfordPosTags) {
+    public void setStanfordPosTags(List<String> stanfordPosTags) {
         this.stanfordPosTags = stanfordPosTags;
     }
 }

@@ -232,8 +232,8 @@ public class Main {
                 esaOptions.dictionaryRepository = new DictionaryRepository();
             }
 
-            String stanfordPosTags = cmd.getOptionValue("stanford-pos");
-            boolean stanfordLemmasRequired = nonEmpty(stanfordPosTags);
+            String[] stanfordPosTags = cmd.getOptionValues("stanford-pos");
+            boolean stanfordLemmasRequired = hasLength(stanfordPosTags, 1);
             boolean stanfordLemmasFound = false;
 
             DocumentPreprocessorFactory preprocessorFactory = new DocumentPreprocessorFactory();
@@ -242,7 +242,7 @@ public class Main {
             for(String preprocessorArgument: preprocessorArguments) {
                 if ("lemma".equals(preprocessorArgument)) {
                     stanfordLemmasFound = true;
-                    preprocessorFactory.setStanfordPosTags(stanfordPosTags);
+                    preprocessorFactory.setStanfordPosTags(Arrays.asList(stanfordPosTags));
                 }
                preprocessors.add(preprocessorFactory.getPreprocessor(preprocessorArgument));
             }
