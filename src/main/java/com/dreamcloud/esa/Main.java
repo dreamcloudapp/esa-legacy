@@ -15,6 +15,8 @@ import java.util.Iterator;
 import com.dreamcloud.esa.database.ConceptWeight;
 import com.dreamcloud.esa.database.DocumentVector;
 import com.dreamcloud.esa.database.VectorRepository;
+import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessor;
+import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessorFactory;
 import com.dreamcloud.esa.server.DocumentSimilarityRequestBody;
 import com.dreamcloud.esa.server.DocumentSimilarityScorer;
 import com.dreamcloud.esa.server.DocumentVectorizationRequestBody;
@@ -98,9 +100,14 @@ public class Main {
         limitOption.setRequired(false);
         options.addOption(limitOption);
 
-        Option stopWordsOption = new Option("stopwords", "stopwords", true, "[standard|narrative] / The vectorizing algorithm to use, defaulting to standard.");
+        Option stopWordsOption = new Option("stopwords", "stopwords", true, "stopwords file / A file containing stopwords each on their own line");
         stopWordsOption.setRequired(false);
+
         options.addOption(stopWordsOption);
+
+        Option preprocessorOption = new Option("preprocessor", "preprocessor", true, "preprocessor [preprocessor2 ...] / The preprocessors to apply to input and corpus texts.");
+        preprocessorOption.setRequired(false);
+        options.addOption(preprocessorOption);
 
         Option vectorizerOption = new Option("vectorizer", "vectorizer", true, "[standard|narrative] / The vectorizing algorithm to use, defaulting to standard.");
         vectorizerOption.setRequired(false);
@@ -116,13 +123,9 @@ public class Main {
         options.addOption(debugOption);
 
         //Indexing
-        Option indexOption = new Option("i", "index", true, "dump.bz2 / Indexes a Wikipedia XML dump file in bz2 format.");
+        Option indexOption = new Option("i", "index", true, "input file / Indexes a corpus of documents.");
         indexOption.setRequired(false);
         options.addOption(indexOption);
-
-        Option testOption = new Option("t", "test", false, "Performs test comparisons on a set of dreams and news sources.");
-        testOption.setRequired(false);
-        options.addOption(testOption);
 
         //Server stuff
         Option serverOption = new Option("server", "server", true, "port / Starts a vectorizing server using the specified port.");
@@ -168,6 +171,13 @@ public class Main {
                 } catch (NumberFormatException e) {
 
                 }
+            }
+
+            DocumentPreprocessorFactory preprocessorFactory = new DocumentPreprocessorFactory();
+            ArrayList<DocumentPreprocessor> preprocessors = new ArrayList<>();
+            String[] preprocessorArguments = cmd.getOptionValues("preprocessor");
+            for(String preprocessorArgument: preprocessorArguments) {
+               preprocessors.add(preprocessorFactory.getPreprocessor(preprocessorArgument));
             }
 
             StopWordRepository stopWordRepository;
@@ -289,31 +299,6 @@ public class Main {
                 Term idTerm = new Term(DreamIndexer.ID_FIELD, documentId);
                 DocumentTermRelevance relevance = new DocumentTermRelevance(idTerm, docSearcher);
                 System.out.println("Relevance: " + relevance.score(term));
-            }
-
-            //Run unit tests
-            else if(cmd.hasOption("t")) {
-                //Get test files
-                File dir = new File("./src/test/data");
-                File[] files = dir.listFiles();
-                ArrayList<ComparisonFile> comparisonFiles = new ArrayList<>();
-                for(File file: files) {
-                    comparisonFiles.add(new ComparisonFile(file.getName(), readInputFile(file.getPath(), "utf-8")));
-                }
-
-                //Setup
-                TextVectorizer textVectorizer = vectorizerFactory.getTextVectorizer();
-                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
-
-                System.out.println("Testing dream and news comparisons...");
-                System.out.println("----------------------------------------");
-                while(comparisonFiles.size() > 1) {
-                    ComparisonFile file = comparisonFiles.remove(0);
-                    for (ComparisonFile comparisonFile: comparisonFiles) {
-                        //Compare the two and show results
-                        System.out.println(file.name + "_" + comparisonFile.name + ": " + decimalFormat.format(similarityTool.findSemanticSimilarity(file.text, comparisonFile.text)));
-                    }
-                }
             }
 
             //Indexing
