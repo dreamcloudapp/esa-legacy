@@ -1,42 +1,44 @@
 package com.dreamcloud.esa;
 
 import org.apache.lucene.analysis.CharArraySet;
-import java.io.*;
 
-public class StopWordRepository {
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+
+public class DictionaryRepository {
     protected CharArraySet source;
     protected File sourceFile;
     protected String sourceFileName;
-    protected CharArraySet extendedStopWords;
+    protected CharArraySet extendedDictionary;
 
-    public StopWordRepository() {
+    public DictionaryRepository() {}
 
-    }
-
-    public StopWordRepository(CharArraySet source) {
+    public DictionaryRepository(CharArraySet source) {
         this.source = source;
     }
 
-    public StopWordRepository(File sourceFile) {
+    public DictionaryRepository(File sourceFile) {
         this.sourceFile = sourceFile;
     }
 
-    public StopWordRepository(String sourceFileName) {
+    public DictionaryRepository(String sourceFileName) {
         this.sourceFileName = sourceFileName;
     }
 
     /**
      * Adds additional stopwords beyond the source set (which can be empty).
      */
-    public void addExtendedStopWords(CharArraySet stopwords) {
-        this.extendedStopWords.addAll(stopwords);
+    public void addExtendedDictionaryWords(CharArraySet words) {
+        this.extendedDictionary.addAll(words);
     }
 
-    public CharArraySet readStopWordsFromFileName(String sourceFileName) throws IOException {
-        return this.readStopWordsFromFile(new File(sourceFileName));
+    public CharArraySet readDictionaryFromFileName(String sourceFileName) throws IOException {
+        return this.readDictionaryFromFile(new File(sourceFileName));
     }
 
-    public CharArraySet readStopWordsFromFile(File sourceFile) throws IOException {
+    public CharArraySet readDictionaryFromFile(File sourceFile) throws IOException {
         CharArraySet stopWords = new CharArraySet(1024, true);
         BufferedReader reader;
         reader = new BufferedReader(new FileReader(sourceFile));
@@ -51,18 +53,18 @@ public class StopWordRepository {
         return stopWords;
     }
 
-    public CharArraySet getStopWords() throws IOException {
+    public CharArraySet getDictionaryWords() throws IOException {
         //Load the stopwords once
         if (source == null) {
             if (this.sourceFile != null) {
-                source = this.readStopWordsFromFile(this.sourceFile);
+                source = this.readDictionaryFromFile(this.sourceFile);
             } else if(!"".equals(this.sourceFileName)) {
-                source = this.readStopWordsFromFileName(this.sourceFileName);
+                source = this.readDictionaryFromFileName(this.sourceFileName);
             } else {
                 source = new CharArraySet(256, true);
             }
             //Add extended stopwords
-            source.addAll(extendedStopWords);
+            source.addAll(extendedDictionary);
         }
         return source;
     }

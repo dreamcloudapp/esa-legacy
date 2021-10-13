@@ -79,10 +79,6 @@ public class Main {
         topFileOption.setRequired(false);
         options.addOption(topFileOption);
 
-        Option termLookupOption = new Option("term", "term", true, "\"string\" / Get the top concepts for a single term from the inverse mapping.");
-        termLookupOption.setRequired(false);
-        options.addOption(termLookupOption);
-
         Option weightOption = new Option("weight", "weight", true, "docId documentText / Gets the weights of terms within a document");
         weightOption.setArgs(2);
         weightOption.setRequired(false);
@@ -103,8 +99,11 @@ public class Main {
 
         Option stopWordsOption = new Option("stopwords", "stopwords", true, "stopwords file / A file containing stopwords each on their own line");
         stopWordsOption.setRequired(false);
-
         options.addOption(stopWordsOption);
+
+        Option dictionaryOption = new Option("dictionary", "dictionary", true, "dictionary file / A file containing a list of allowed words");
+        dictionaryOption.setRequired(false);
+        options.addOption(dictionaryOption);
 
         Option preprocessorOption = new Option("preprocessor", "preprocessor", true, "preprocessor [preprocessor2 ...] / The preprocessors to apply to input and corpus texts.");
         preprocessorOption.setRequired(false);
@@ -146,6 +145,7 @@ public class Main {
             String[] weightArgs = cmd.getOptionValues("weight");
             String docType = cmd.getOptionValue("doctype");
             String stopWords = cmd.getOptionValue("stopwords");
+            String dictionary = cmd.getOptionValue("dictionary");
 
             if (!nonEmpty(docType)) {
                 docType = "article";
@@ -184,12 +184,22 @@ public class Main {
 
             StopWordRepository stopWordRepository;
             if (nonEmpty(stopWords)) {
-                if (stopWords.equals("en")) {
+                if (stopWords.equals("en-default")) {
                     stopWords = "./src/data/en-stopwords.txt";
                 }
                 stopWordRepository = new StopWordRepository(stopWords);
             } else {
                 stopWordRepository = new StopWordRepository();
+            }
+
+            DictionaryRepository dictionaryRepository;
+            if (nonEmpty(dictionary)) {
+                if (dictionary.equals("en-default")) {
+                    dictionary = "./src/data/en-words.txt";
+                }
+                dictionaryRepository = new DictionaryRepository(dictionary);
+            } else {
+                dictionaryRepository = new DictionaryRepository();
             }
 
             AnalyzerFactory analyzerFactory = new AnalyzerFactory(stopWordRepository);
