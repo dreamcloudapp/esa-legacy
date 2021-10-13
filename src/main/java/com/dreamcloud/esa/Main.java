@@ -2,9 +2,6 @@ package com.dreamcloud.esa;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -12,9 +9,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 
 import com.dreamcloud.esa.analyzer.AnalyzerFactory;
-import com.dreamcloud.esa.database.ConceptWeight;
-import com.dreamcloud.esa.database.DocumentVector;
-import com.dreamcloud.esa.database.VectorRepository;
 import com.dreamcloud.esa.documentPreprocessor.ChainedPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessorFactory;
@@ -22,9 +16,7 @@ import com.dreamcloud.esa.indexer.DreamIndexer;
 import com.dreamcloud.esa.indexer.Indexer;
 import com.dreamcloud.esa.indexer.IndexerFactory;
 import com.dreamcloud.esa.indexer.WikiIndexerOptions;
-import com.dreamcloud.esa.server.DocumentSimilarityRequestBody;
-import com.dreamcloud.esa.server.DocumentSimilarityScorer;
-import com.dreamcloud.esa.server.DocumentVectorizationRequestBody;
+import com.dreamcloud.esa.server.EsaHttpServer;
 import com.dreamcloud.esa.tools.*;
 import com.dreamcloud.esa.vectorizer.ConceptVector;
 import com.dreamcloud.esa.vectorizer.TextVectorizer;
@@ -38,17 +30,12 @@ import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.commons.cli.*;
-import io.javalin.Javalin;
-import com.google.gson.Gson;
 
 //Reading input files
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Map;
 
 public class Main {
-    static String ODBC_ENVIRONMENT_VARIABLE = "DC_ESA_ODBC_CONNECTION_STRING";
-
     public static String readInputFile(String path, String encoding) throws IOException {
         byte[] encoded = Files.readAllBytes(Paths.get(path));
         return new String(encoded, encoding);
@@ -315,11 +302,12 @@ public class Main {
                 if (sourceText.length() > 16) {
                     sourceDesc += "...";
                 }
+                System.out.println("Getting top concepts for '" + sourceDesc + "':");
                 TextVectorizer textVectorizer = new Vectorizer(esaOptions);
                 ConceptVector vector = textVectorizer.vectorize(sourceText);
                 Iterator<String> topTenConcepts = vector.topConcepts();
-                for (Iterator<String> it = topTenConcepts; it.hasNext(); ) {
-                    String concept = it.next();
+                for (; topTenConcepts.hasNext(); ) {
+                    String concept = topTenConcepts.next();
                     System.out.println(concept + ": " + decimalFormat.format(vector.getConceptWeights().get(concept)));
                 }
             }
@@ -376,79 +364,8 @@ public class Main {
                 System.out.println("Indexing " + index + "...");
                 indexFile(esaOptions, indexerOptions);
             } else if(nonEmpty(server)) {
-                Directory dir = FSDirectory.open(Paths.get("./index/" + "dream_termdoc"));
-                IndexReader docReader = DirectoryReader.open(dir);
-                IndexSearcher docSearcher = new IndexSearcher(docReader);
-                WeighedDocumentQueryBuilder builder = new WeighedDocumentQueryBuilder(esaOptions.analyzer, docSearcher);
-                TextVectorizer textVectorizer = new Vectorizer(esaOptions);
-                int port = 1994;
-                try {
-                    port = Integer.parseInt(server);
-                } catch (NumberFormatException e) {
-
-                }
-
-                //Connect to MySQL
-                Map<String, String> env = System.getenv();
-                if (!env.containsKey(ODBC_ENVIRONMENT_VARIABLE)) {
-                    throw new SQLException("The ODBC connection string was empty: set the " + ODBC_ENVIRONMENT_VARIABLE + " and try again.");
-                }
-                Connection con = DriverManager.getConnection("jdbc:" + env.get(ODBC_ENVIRONMENT_VARIABLE));
-                VectorRepository repository = new VectorRepository(con);
-
-                Gson gson = new Gson();
-                Javalin app = Javalin.create().start(port);
-                app.post("/vectorize", ctx -> {
-                    DocumentVectorizationRequestBody requestBody = gson.fromJson(ctx.body(), DocumentVectorizationRequestBody.class);
-
-                    if (!nonEmpty(requestBody.documentText) || !nonEmpty(requestBody.documentId)) {
-                        ctx.res.sendError(400, "Invalid request: documentText and documentId are required fields.");
-                    } else {
-                        Term idTerm = new Term(DreamIndexer.ID_FIELD, requestBody.documentId);
-                        String weightedQuery = builder.weight(idTerm, requestBody.documentText);
-                        ConceptVector vector = textVectorizer.vectorize(weightedQuery);
-                        DocumentVector documentVector = new DocumentVector(requestBody.documentId);
-                        Map<String, Float> conceptWeights = vector.getConceptWeights();
-                        for(String concept: conceptWeights.keySet()) {
-                            documentVector.addConceptWeight(new ConceptWeight(concept, conceptWeights.get(concept)));
-                        }
-
-                        repository.saveDocumentVector(documentVector);
-                        ctx.status(200);
-                        System.out.println("Processed dream: " + weightedQuery.substring(0, 16) + "...");
-                    }
-                });
-
-                //Gets top related documents
-                app.get("/related", ctx -> {
-                    try {
-                        String documentId = ctx.queryParam("documentId");
-                        String limitParam = ctx.queryParam("limit");
-                        if (documentId == null || limitParam == null) {
-                            throw new Exception("Invalid request: document and limit are required fields.");
-                        }
-                        int relatedLimit = Integer.parseInt(limitParam);
-                        ctx.json(repository.getRelatedDocuments(documentId, relatedLimit));
-                        System.out.println("Related dream: " + documentId);
-                    } catch (Exception e) {
-                        System.out.println("Failed to relate dream: " + e.getMessage() + ": " + Arrays.toString(e.getStackTrace()));
-                        ctx.status(400);
-                    }
-                });
-
-                //Scores two documents relatedness via their IDs
-                app.get("/quick-score", ctx -> {
-                    String documentId1 = ctx.queryParam("documentId1");
-                    String documentId2 = ctx.queryParam("documentId2");
-                    ctx.json(repository.scoreDocuments(documentId1, documentId2));
-                });
-
-                //Scores two documents relatedness via their texts, supporting all options
-                app.post("/similarity", ctx -> {
-                    DocumentSimilarityRequestBody requestBody = gson.fromJson(ctx.body(), DocumentSimilarityRequestBody.class);
-                    DocumentSimilarityScorer scorer = new DocumentSimilarityScorer(textVectorizer);
-                    ctx.json(scorer.score(requestBody));
-                });
+                EsaHttpServer esaServer = new EsaHttpServer(esaOptions);
+                esaServer.start(Integer.parseInt(server));
             }
             else {
                 formatter.printHelp("wiki-esa", options);
