@@ -2,7 +2,6 @@ package com.dreamcloud.esa;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -21,12 +20,15 @@ import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessorFactory;
 import com.dreamcloud.esa.indexer.DreamIndexer;
 import com.dreamcloud.esa.indexer.Indexer;
-import com.dreamcloud.esa.indexer.WikiIndexer;
+import com.dreamcloud.esa.indexer.IndexerFactory;
+import com.dreamcloud.esa.indexer.WikiIndexerOptions;
 import com.dreamcloud.esa.server.DocumentSimilarityRequestBody;
 import com.dreamcloud.esa.server.DocumentSimilarityScorer;
 import com.dreamcloud.esa.server.DocumentVectorizationRequestBody;
 import com.dreamcloud.esa.tools.*;
-import org.apache.lucene.analysis.Analyzer;
+import com.dreamcloud.esa.vectorizer.ConceptVector;
+import com.dreamcloud.esa.vectorizer.TextVectorizer;
+import com.dreamcloud.esa.vectorizer.Vectorizer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
@@ -57,12 +59,19 @@ public class Main {
     }
 
     public static boolean hasLength(String[] a, int length) {
-        return a != null && a.length == length;
+        return a != null && a.length >= length;
     }
 
     public static void main(String[] args) throws IOException, ParseException {
         DecimalFormat decimalFormat = new DecimalFormat("#.000");
         Options options = new Options();
+
+        //Main options
+        Option docTypeOption = new Option("doctype", "doctype", true, "string / The document type (wiki|dream). Defaults to wiki.");
+        docTypeOption.setRequired(false);
+        options.addOption(docTypeOption);
+
+        //Main action options
         Option compareTextOption = new Option("ct", "compare-texts", true, "\"string one\" \"string two\" / Compare two texts.");
         compareTextOption.setRequired(false);
         compareTextOption.setArgs(2);
@@ -91,11 +100,46 @@ public class Main {
         relevanceOption.setRequired(false);
         options.addOption(relevanceOption);
 
-        Option docTypeOption = new Option("doctype", "doctype", true, "string / The document type (article|dream). Defaults to article.");
-        docTypeOption.setRequired(false);
-        options.addOption(docTypeOption);
+        //Indexing Options
+        Option minimumTermCountOption = new Option("min-terms", "min-terms", true, "int / (indexing)\tThe minimum number of terms allowed for a document.");
+        minimumTermCountOption.setRequired(false);
+        options.addOption(minimumTermCountOption);
 
-        Option limitOption = new Option("l", "limit", true, "int / The maximum number of concepts to query when comparing texts and finding top concepts.");
+        Option maximumTermCountOption = new Option("max-terms", "max-terms", true, "int / (indexing)\tThe maximum number of terms allowed for a document.");
+        maximumTermCountOption.setRequired(false);
+        options.addOption(maximumTermCountOption);
+
+        Option threadCountOption = new Option("threads", "threads", true, "int / (indexing)\tThe number of threads to use.");
+        threadCountOption.setRequired(false);
+        options.addOption(threadCountOption);
+
+        Option batchSizeOption = new Option("batch-size", "batch-size", true, "int / (indexing)\tThe number of documents to process at once, distributed across the threads.");
+        batchSizeOption.setRequired(false);
+        options.addOption(batchSizeOption);
+
+        Option maximumDocumentCountOption = new Option("max-docs", "max-docs", true, "int / (indexing)\tThe maximum number of documents we can process before throwing an error (defaults to 512,000).");
+        maximumDocumentCountOption.setRequired(false);
+        options.addOption(maximumDocumentCountOption);
+
+        //Wiki specific indexing options
+        Option minimumIncomingLinksOption = new Option("min-incoming-links", "min-incoming-links", true, "int / (indexing:wiki)\tThe minimum number of incoming links.");
+        minimumIncomingLinksOption.setRequired(false);
+        options.addOption(minimumIncomingLinksOption);
+
+        Option minimumOutgoingLinksOption = new Option("min-outgoing-links", "min-outgoing-links", true, "int / (indexing:wiki)\tThe minimum number of outgoing links.");
+        minimumOutgoingLinksOption.setRequired(false);
+        options.addOption(minimumOutgoingLinksOption);
+
+        Option titleExclusionRegExListOption = new Option("title-exclusion-regex", "title-exclusion-regex", true, "string [string2 ...] / (indexing:wiki)\tA list of regexes used to exclude Wiki article titles.");
+        titleExclusionRegExListOption.setRequired(false);
+        options.addOption(titleExclusionRegExListOption);
+
+        Option titleExclusionListOption = new Option("title-exclusion", "title-exclusion-regex", true, "string [string2 ...] / (indexing:wiki)\tA list of strings used to exclude Wiki article titles which contain them.");
+        titleExclusionListOption.setRequired(false);
+        options.addOption(titleExclusionListOption);
+
+        //Analyzer options
+        Option limitOption = new Option("vector-limit", "vector-limit", true, "int / The maximum number of entries in each document vector.");
         limitOption.setRequired(false);
         options.addOption(limitOption);
 
@@ -130,7 +174,7 @@ public class Main {
         indexPathOption.setRequired(false);
         options.addOption(indexPathOption);
 
-        //Server stuff
+        //Server options
         Option serverOption = new Option("server", "server", true, "port / Starts a vectorizing server using the specified port.");
         serverOption.setRequired(false);
         options.addOption(serverOption);
@@ -160,10 +204,10 @@ public class Main {
             if ( esaOptions.documentType == null) {
                 throw new IllegalArgumentException("Document type " + docType + " is not recognized.");
             }
-            esaOptions.indexPath = nonEmpty(indexPath) ? indexPath : "./index/" + docType + "_index";
+            esaOptions.indexPath = Paths.get(nonEmpty(indexPath) ? indexPath : "./index/" + docType + "_index");
 
 
-            String limit = cmd.getOptionValue("l");
+            String limit = cmd.getOptionValue("vector-limit");
             int documentLimit = 100;
             if (nonEmpty(limit)) {
                 try {
@@ -213,11 +257,20 @@ public class Main {
 
 
             AnalyzerFactory analyzerFactory = new AnalyzerFactory(esaOptions.documentType);
+            esaOptions.analyzer = analyzerFactory.getAnalyzer();
 
+
+            //Load indexer options from command line and ESA options
+            WikiIndexerOptions indexerOptions = new WikiIndexerOptions();
+            loadIndexerOptions(indexerOptions, esaOptions, cmd);
+            indexerOptions.preprocessor = esaOptions.preprocessor;
+            indexerOptions.analyzer = esaOptions.analyzer;
+            indexerOptions.indexDirectory = FSDirectory.open(esaOptions.indexPath);
 
             String server = cmd.getOptionValue("server");
             String debug = cmd.getOptionValue("d");
             String index = cmd.getOptionValue("i");
+            esaOptions.indexFile = index;
 
             //Get the unixtime
             long startTime = Instant.now().getEpochSecond();
@@ -244,7 +297,7 @@ public class Main {
                     compareDesc += "...";
                 }
                System.out.println("Comparing '" + sourceDesc + "' to '" + compareDesc + "':");
-                TextVectorizer textVectorizer = vectorizerFactory.getLemmaVectorizer();
+                TextVectorizer textVectorizer = new Vectorizer(esaOptions);
                 SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
                 System.out.println("Vector relatedness: " + decimalFormat.format(similarityTool.findSemanticSimilarity(sourceText, compareText))
                 );
@@ -262,7 +315,7 @@ public class Main {
                 if (sourceText.length() > 16) {
                     sourceDesc += "...";
                 }
-                TextVectorizer textVectorizer = vectorizerFactory.getTextVectorizer();
+                TextVectorizer textVectorizer = new Vectorizer(esaOptions);
                 ConceptVector vector = textVectorizer.vectorize(sourceText);
                 Iterator<String> topTenConcepts = vector.topConcepts();
                 for (Iterator<String> it = topTenConcepts; it.hasNext(); ) {
@@ -279,31 +332,27 @@ public class Main {
                     sourceDesc += "...";
                 }
                 System.out.println("Debugging '" + sourceDesc + "':");
-                TokenStream ts = analyzerFactory.getVectorizingAnalyzer().tokenStream(WikiIndexer.TEXT_FIELD, sourceText);
-                CharTermAttribute charTermAttribute = ts.addAttribute(CharTermAttribute.class);
-                TypeAttribute typeAttribute = ts.addAttribute(TypeAttribute.class);
-
-                try{
+                TokenStream ts = esaOptions.analyzer.tokenStream("text", sourceText);
+                try (ts) {
+                    CharTermAttribute charTermAttribute = ts.addAttribute(CharTermAttribute.class);
+                    TypeAttribute typeAttribute = ts.addAttribute(TypeAttribute.class);
                     ts.reset();
                     while (ts.incrementToken()) {
                         System.out.println(typeAttribute.type() + ": " + charTermAttribute);
                     }
                     ts.end();
-                } finally {
-                    ts.close();
                 }
             }
 
             else if(hasLength(weightArgs, 2)) {
                 String documentId = weightArgs[0];
                 String documentText = weightArgs[1];
-                Directory dir = FSDirectory.open(Paths.get("./index/" + termDoc));
+                Directory dir = FSDirectory.open(esaOptions.indexPath);
                 IndexReader docReader = DirectoryReader.open(dir);
                 IndexSearcher docSearcher = new IndexSearcher(docReader);
-                Analyzer analyzer = analyzerFactory.getDreamAnalyzer();
 
                 Term idTerm = new Term(DreamIndexer.ID_FIELD, documentId);
-                WeighedDocumentQueryBuilder builder = new WeighedDocumentQueryBuilder(analyzer, docSearcher);
+                WeighedDocumentQueryBuilder builder = new WeighedDocumentQueryBuilder(esaOptions.analyzer, docSearcher);
                 System.out.println("Weighted Query: " + builder.weight(idTerm, documentText));
             }
 
@@ -311,13 +360,13 @@ public class Main {
             else if(hasLength(relevanceArgs, 2)) {
                 String termString = relevanceArgs[0];
                 String documentId = relevanceArgs[1];
-                Directory dir = FSDirectory.open(Paths.get("./index/" + termDoc));
+                Directory dir = FSDirectory.open(esaOptions.indexPath);
                 IndexReader docReader = DirectoryReader.open(dir);
                 IndexSearcher docSearcher = new IndexSearcher(docReader);
 
                 //Must include the term
-                Term term = new Term(WikiIndexer.TEXT_FIELD, termString);
-                Term idTerm = new Term(DreamIndexer.ID_FIELD, documentId);
+                Term term = new Term("text", termString);
+                Term idTerm = new Term("id", documentId);
                 DocumentTermRelevance relevance = new DocumentTermRelevance(idTerm, docSearcher);
                 System.out.println("Relevance: " + relevance.score(term));
             }
@@ -325,15 +374,13 @@ public class Main {
             //Indexing
             else if(nonEmpty(index)) {
                 System.out.println("Indexing " + index + "...");
-                File wikipediaDumpFile = new File(index);
-                indexing(Paths.get("./index/" + termDoc), wikipediaDumpFile, docType);
+                indexFile(esaOptions, indexerOptions);
             } else if(nonEmpty(server)) {
                 Directory dir = FSDirectory.open(Paths.get("./index/" + "dream_termdoc"));
                 IndexReader docReader = DirectoryReader.open(dir);
                 IndexSearcher docSearcher = new IndexSearcher(docReader);
-                Analyzer analyzer = analyzerFactory.getDreamPostLemmaAnalyzer();
-                WeighedDocumentQueryBuilder builder = new WeighedDocumentQueryBuilder(analyzer, docSearcher);
-                TextVectorizer textVectorizer = vectorizerFactory.getLemmaVectorizer();
+                WeighedDocumentQueryBuilder builder = new WeighedDocumentQueryBuilder(esaOptions.analyzer, docSearcher);
+                TextVectorizer textVectorizer = new Vectorizer(esaOptions);
                 int port = 1994;
                 try {
                     port = Integer.parseInt(server);
@@ -419,30 +466,60 @@ public class Main {
         }
     }
 
-    /**
-     * Creates a term to concept index from a Wikipedia article dump.
-     * @param termDocIndexDirectory The directory where the term to concept index must be created
-     * @param wikipediaDumpFile The Wikipedia dump file that must be read to create the index
-     * @throws IOException
-     */
-    public static void indexing(Path termDocIndexDirectory, File wikipediaDumpFile, String docType) throws IOException {
-        Directory directory = FSDirectory.open(termDocIndexDirectory);
-        Indexer indexer;
-        if ("article".equals(docType)) {
-            System.out.println("indexing wikipedia");
-            indexer =  new WikiIndexer(directory);
-        } else {
-            System.out.println("indexing dreams");
-            indexer = new DreamIndexer(directory);
+    private static void loadIndexerOptions(WikiIndexerOptions indexerOptions, EsaOptions esaOptions, CommandLine cmd) {
+        //Indexer Options
+        String minimumTermCount = cmd.getOptionValue("min-terms");
+        if (nonEmpty(minimumTermCount)) {
+            indexerOptions.minimumTermCount = Integer.parseInt(minimumTermCount);
         }
-        try{
-            System.out.println("Analyzing the Wikipedia dump file to calculate token and link counts...");
-            indexer.analyze(wikipediaDumpFile);
-            System.out.println("Finished analysis.");
 
-            System.out.println("");
-            System.out.println("Writing the index...");
-            indexer.index(wikipediaDumpFile);
+        String maximumTermCount = cmd.getOptionValue("max-terms");
+        if (nonEmpty(maximumTermCount)) {
+            indexerOptions.maximumTermCount = Integer.parseInt(maximumTermCount);
+        }
+
+        String threadCount = cmd.getOptionValue("threads");
+        if (nonEmpty(threadCount)) {
+            indexerOptions.threadCount = Integer.parseInt(threadCount);
+        }
+
+        String batchSize = cmd.getOptionValue("batch-size");
+        if (nonEmpty(batchSize)) {
+            indexerOptions.batchSize = Integer.parseInt(batchSize);
+        }
+
+        String maximumDocumentCount = cmd.getOptionValue("max-docs");
+        if (nonEmpty(maximumDocumentCount)) {
+            indexerOptions.maximumDocumentCount = Integer.parseInt(maximumDocumentCount);
+        }
+
+        //Indexer Options (Wiki-specific)
+        String minimumIncomingLinks = cmd.getOptionValue("min-incoming-links");
+        if (nonEmpty(minimumIncomingLinks)) {
+            indexerOptions.minimumIncomingLinks = Integer.parseInt(minimumIncomingLinks);
+        }
+
+        String minimumOutgoingLinks = cmd.getOptionValue("min-outgoing-links");
+        if (nonEmpty(minimumOutgoingLinks)) {
+            indexerOptions.minimumOutgoingLinks = Integer.parseInt(minimumOutgoingLinks);
+        }
+
+        String[] titleExclusionRegExList = cmd.getOptionValues("title-exclusion-regex");
+        if (hasLength(titleExclusionRegExList, 1)) {
+            indexerOptions.titleExclusionRegExList.addAll(Arrays.asList(titleExclusionRegExList));
+        }
+
+        String[] titleExclusionList = cmd.getOptionValues("title-exclusion");
+        if (hasLength(titleExclusionList, 1)) {
+            indexerOptions.titleExclusionList.addAll(Arrays.asList(titleExclusionList));
+        }
+    }
+
+    public static void indexFile(EsaOptions options, WikiIndexerOptions wikiIndexerOptions) {
+        IndexerFactory indexerFactory = new IndexerFactory();
+        Indexer indexer = indexerFactory.getIndexer(options.documentType, wikiIndexerOptions);
+        try{
+            indexer.index(new File(options.indexFile));
         } catch (Exception e) {
             e.printStackTrace();
         }

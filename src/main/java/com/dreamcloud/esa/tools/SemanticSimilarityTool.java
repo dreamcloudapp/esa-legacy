@@ -1,5 +1,8 @@
 package com.dreamcloud.esa.tools;
 
+import com.dreamcloud.esa.vectorizer.ConceptVector;
+import com.dreamcloud.esa.vectorizer.TextVectorizer;
+
 /**
  * Calculates a numeric value for the semantic similarity between two texts.
  * @author Philip van Oosten

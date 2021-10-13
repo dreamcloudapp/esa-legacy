@@ -7,4 +7,9 @@ public class WikiIndexerOptions extends IndexerOptions {
     public int minimumOutgoingLinks = 0;
     public ArrayList<String> titleExclusionRegExList;
     public ArrayList<String> titleExclusionList;
+
+    public WikiIndexerOptions() {
+        this.titleExclusionRegExList = new ArrayList<>();
+        this.titleExclusionList = new ArrayList<>();
+    }
 }

@@ -1,7 +1,7 @@
 package com.dreamcloud.esa.analyzer;
 
 import com.dreamcloud.esa.DictionaryRepository;
-import org.apache.lucene.analysis.CharArraySet;
+import com.dreamcloud.esa.StopWordRepository;
 import org.apache.lucene.analysis.Tokenizer;
 
 import java.util.Set;
@@ -16,7 +16,7 @@ public class AnalyzerOptions {
     public boolean classicFilter = false;
     public boolean asciiFoldingFilter = false;
 
-    public CharArraySet stopWords;
+    public StopWordRepository stopWordsRepository;
     public DictionaryRepository dictionaryRepository;
     public Set<String> stopTokenTypes;
     public Tokenizer tokenizer;

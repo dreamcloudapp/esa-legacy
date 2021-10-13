@@ -15,9 +15,10 @@ public class DocumentPreprocessorFactory {
                 return new StanfordLemmaPreprocessor(stanfordPosTags);
             case "wiki":
                 return new WikiPreprocessor();
-            case "default":
-            default:
+            case "standard":
                 return new StandardPreprocessor();
+            default:
+                return new NullPreprocessor();
         }
     }
 

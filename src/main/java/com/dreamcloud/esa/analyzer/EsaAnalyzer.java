@@ -11,6 +11,8 @@ import org.apache.lucene.analysis.en.PorterStemFilter;
 import org.apache.lucene.analysis.miscellaneous.ASCIIFoldingFilter;
 import org.apache.lucene.analysis.standard.ClassicFilter;
 
+import java.io.IOException;
+
 public class EsaAnalyzer extends Analyzer {
     AnalyzerOptions options;
 
@@ -38,8 +40,12 @@ public class EsaAnalyzer extends Analyzer {
             result = new DictionaryFilter(result, options.dictionaryRepository);
         }
 
-        if (options.stopWords != null) {
-            result = new StopFilter(result, options.stopWords);
+        if (options.stopWordsRepository != null) {
+            try {
+                result = new StopFilter(result, options.stopWordsRepository.getStopWords());
+            } catch (IOException e) {
+                System.out.println("ESA warning: failed to load stop word dictionary; " + e.getMessage());
+            }
         }
 
         if (options.porterStemmerFilter) {

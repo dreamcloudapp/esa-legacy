@@ -1,11 +1,13 @@
 package com.dreamcloud.esa.tools;
 
+import com.dreamcloud.esa.vectorizer.ConceptVector;
+import com.dreamcloud.esa.vectorizer.TextVectorizer;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.CoreDocument;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import java.util.Properties;
 
-public class LemmaVectorizer implements TextVectorizer{
+public class LemmaVectorizer implements TextVectorizer {
     TextVectorizer vectorizer;
     static StanfordCoreNLP stanfordPipeline;
 

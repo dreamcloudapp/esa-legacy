@@ -1,6 +1,5 @@
-package com.dreamcloud.esa.tools;
+package com.dreamcloud.esa.vectorizer;
 
-import com.dreamcloud.esa.indexer.WikiIndexer;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,24 +10,15 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 
-/**
- *
- * @author Philip van Oosten
- */
 public class ConceptVector {
-
     Map<String, Float> conceptWeights;
 
     ConceptVector(TopDocs td, IndexReader indexReader) throws IOException {
         conceptWeights = new HashMap<>();
         for (ScoreDoc scoreDoc : td.scoreDocs) {
-            String concept = indexReader.document(scoreDoc.doc).get(WikiIndexer.TITLE_FIELD);
+            String concept = indexReader.document(scoreDoc.doc).get("text");
             conceptWeights.put(concept, scoreDoc.score);
         }
-    }
-
-    ConceptVector(Map<String, Float> conceptWeights) {
-        this.conceptWeights = conceptWeights;
     }
 
     public float dotProduct(ConceptVector other) {
