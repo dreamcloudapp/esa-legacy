@@ -15,6 +15,7 @@ import java.util.Iterator;
 import com.dreamcloud.esa.database.ConceptWeight;
 import com.dreamcloud.esa.database.DocumentVector;
 import com.dreamcloud.esa.database.VectorRepository;
+import com.dreamcloud.esa.documentPreprocessor.ChainedPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessorFactory;
 import com.dreamcloud.esa.server.DocumentSimilarityRequestBody;
@@ -179,6 +180,7 @@ public class Main {
             for(String preprocessorArgument: preprocessorArguments) {
                preprocessors.add(preprocessorFactory.getPreprocessor(preprocessorArgument));
             }
+            ChainedPreprocessor preprocessor = new ChainedPreprocessor(preprocessors);
 
             StopWordRepository stopWordRepository;
             if (nonEmpty(stopWords)) {
