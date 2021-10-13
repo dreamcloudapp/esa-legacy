@@ -1,6 +1,6 @@
 package com.dreamcloud.esa.tools;
 
-import com.dreamcloud.esa.WikiIndexer;
+import com.dreamcloud.esa.indexer.WikiIndexer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;

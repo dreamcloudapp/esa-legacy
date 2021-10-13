@@ -1,6 +1,6 @@
 package com.dreamcloud.esa.tools;
 
-import com.dreamcloud.esa.WikiIndexer;
+import com.dreamcloud.esa.indexer.WikiIndexer;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;

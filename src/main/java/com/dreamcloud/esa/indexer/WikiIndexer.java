@@ -1,4 +1,4 @@
-package com.dreamcloud.esa;
+package com.dreamcloud.esa.indexer;
 
 import java.io.BufferedInputStream;
 import java.io.File;

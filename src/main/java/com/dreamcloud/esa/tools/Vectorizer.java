@@ -1,6 +1,6 @@
 package com.dreamcloud.esa.tools;
 
-import static com.dreamcloud.esa.WikiIndexer.TEXT_FIELD;
+import static com.dreamcloud.esa.indexer.WikiIndexer.TEXT_FIELD;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.logging.Level;

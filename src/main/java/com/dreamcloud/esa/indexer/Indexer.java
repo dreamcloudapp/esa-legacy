@@ -1,4 +1,4 @@
-package com.dreamcloud.esa;
+package com.dreamcloud.esa.indexer;
 
 import org.apache.lucene.store.Directory;
 
