@@ -34,7 +34,14 @@ public class StanfordLemmaPreprocessor implements DocumentPreprocessor {
         StringBuilder lemmatizedText = new StringBuilder();
         for (CoreLabel token: document.tokens()) {
             if (stanfordPosTags.size() > 0) {
-                if (!stanfordPosTags.contains(token.tag())) {
+                boolean foundPos = false;
+                for(String stanfordPosTag: stanfordPosTags) {
+                    if (token.tag().startsWith(stanfordPosTag)) {
+                        foundPos = true;
+                        break;
+                    }
+                }
+                if (!foundPos) {
                     continue;
                 }
             }
