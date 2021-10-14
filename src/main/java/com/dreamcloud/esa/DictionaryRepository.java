@@ -31,6 +31,9 @@ public class DictionaryRepository {
      * Adds additional stopwords beyond the source set (which can be empty).
      */
     public void addExtendedDictionaryWords(CharArraySet words) {
+        if (this.extendedDictionary == null) {
+            this.extendedDictionary = new CharArraySet(256, true);
+        }
         this.extendedDictionary.addAll(words);
     }
 
@@ -58,13 +61,15 @@ public class DictionaryRepository {
         if (source == null) {
             if (this.sourceFile != null) {
                 source = this.readDictionaryFromFile(this.sourceFile);
-            } else if(!"".equals(this.sourceFileName)) {
+            } else if(this.sourceFileName != null) {
                 source = this.readDictionaryFromFileName(this.sourceFileName);
             } else {
                 source = new CharArraySet(256, true);
             }
             //Add extended stopwords
-            source.addAll(extendedDictionary);
+            if (extendedDictionary != null) {
+                source.addAll(extendedDictionary);
+            }
         }
         return source;
     }
