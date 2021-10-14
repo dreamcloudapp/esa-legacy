@@ -12,6 +12,7 @@ import com.dreamcloud.esa.analyzer.AnalyzerFactory;
 import com.dreamcloud.esa.documentPreprocessor.ChainedPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessorFactory;
+import com.dreamcloud.esa.documentPreprocessor.NullPreprocessor;
 import com.dreamcloud.esa.indexer.DreamIndexer;
 import com.dreamcloud.esa.indexer.Indexer;
 import com.dreamcloud.esa.indexer.IndexerFactory;
@@ -88,11 +89,11 @@ public class Main {
         options.addOption(relevanceOption);
 
         //Indexing Options
-        Option minimumTermCountOption = new Option("min-terms", "min-terms", true, "int / (indexing)\tThe minimum number of terms allowed for a document.");
+        Option minimumTermCountOption = new Option("", "min-terms", true, "int / (indexing)\tThe minimum number of terms allowed for a document.");
         minimumTermCountOption.setRequired(false);
         options.addOption(minimumTermCountOption);
 
-        Option maximumTermCountOption = new Option("max-terms", "max-terms", true, "int / (indexing)\tThe maximum number of terms allowed for a document.");
+        Option maximumTermCountOption = new Option("", "max-terms", true, "int / (indexing)\tThe maximum number of terms allowed for a document.");
         maximumTermCountOption.setRequired(false);
         options.addOption(maximumTermCountOption);
 
@@ -100,78 +101,83 @@ public class Main {
         threadCountOption.setRequired(false);
         options.addOption(threadCountOption);
 
-        Option batchSizeOption = new Option("batch-size", "batch-size", true, "int / (indexing)\tThe number of documents to process at once, distributed across the threads.");
+        Option batchSizeOption = new Option("", "batch-size", true, "int / (indexing)\tThe number of documents to process at once, distributed across the threads.");
         batchSizeOption.setRequired(false);
         options.addOption(batchSizeOption);
 
-        Option maximumDocumentCountOption = new Option("max-docs", "max-docs", true, "int / (indexing)\tThe maximum number of documents we can process before throwing an error (defaults to 512,000).");
+        Option maximumDocumentCountOption = new Option("", "max-docs", true, "int / (indexing)\tThe maximum number of documents we can process before throwing an error (defaults to 512,000).");
         maximumDocumentCountOption.setRequired(false);
         options.addOption(maximumDocumentCountOption);
 
         //Wiki specific indexing options
-        Option minimumIncomingLinksOption = new Option("min-incoming-links", "min-incoming-links", true, "int / (indexing:wiki)\tThe minimum number of incoming links.");
+        Option minimumIncomingLinksOption = new Option("", "min-incoming-links", true, "int / (indexing:wiki)\tThe minimum number of incoming links.");
         minimumIncomingLinksOption.setRequired(false);
         options.addOption(minimumIncomingLinksOption);
 
-        Option minimumOutgoingLinksOption = new Option("min-outgoing-links", "min-outgoing-links", true, "int / (indexing:wiki)\tThe minimum number of outgoing links.");
+        Option minimumOutgoingLinksOption = new Option("", "min-outgoing-links", true, "int / (indexing:wiki)\tThe minimum number of outgoing links.");
         minimumOutgoingLinksOption.setRequired(false);
         options.addOption(minimumOutgoingLinksOption);
 
-        Option titleExclusionRegExListOption = new Option("title-exclusion-regex", "title-exclusion-regex", true, "string [string2 ...] / (indexing:wiki)\tA list of regexes used to exclude Wiki article titles.");
+        Option titleExclusionRegExListOption = new Option("", "title-exclusion-regex", true, "string [string2 ...] / (indexing:wiki)\tA list of regexes used to exclude Wiki article titles.");
         titleExclusionRegExListOption.setRequired(false);
         options.addOption(titleExclusionRegExListOption);
 
-        Option titleExclusionListOption = new Option("title-exclusion", "title-exclusion-regex", true, "string [string2 ...] / (indexing:wiki)\tA list of strings used to exclude Wiki article titles which contain them.");
+        Option titleExclusionListOption = new Option("", "title-exclusion", true, "string [string2 ...] / (indexing:wiki)\tA list of strings used to exclude Wiki article titles which contain them.");
         titleExclusionListOption.setRequired(false);
         options.addOption(titleExclusionListOption);
 
         //Analyzer options
-        Option limitOption = new Option("vector-limit", "vector-limit", true, "int / The maximum number of entries in each document vector.");
+        Option limitOption = new Option("", "vector-limit", true, "int / The maximum number of entries in each document vector.");
         limitOption.setRequired(false);
         options.addOption(limitOption);
 
-        Option stopWordsOption = new Option("stopwords", "stopwords", true, "stopwords file / A file containing stopwords each on their own line");
+        Option stopWordsOption = new Option("", "stopwords", true, "stopwords file / A file containing stopwords each on their own line");
         stopWordsOption.setRequired(false);
         options.addOption(stopWordsOption);
 
-        Option dictionaryOption = new Option("dictionary", "dictionary", true, "dictionary file / A file containing a list of allowed words");
+        Option dictionaryOption = new Option("", "dictionary", true, "dictionary file / A file containing a list of allowed words");
         dictionaryOption.setRequired(false);
         options.addOption(dictionaryOption);
 
-        Option filterOption = new Option("filter", "filter", true, "string [string2 ...] / List of Lucene analysis filters (stemmer|classic|lower|ascii)");
+        Option filterOption = new Option("", "filter", true, "string [string2 ...] / List of Lucene analysis filters (stemmer|classic|lower|ascii)");
         filterOption.setRequired(false);
         options.addOption(filterOption);
 
-        Option stemmerDepthOption = new Option("stemmer-depth", "stemmer-depth", true, "int / The number of times to apply the stemmer");
+        Option stemmerDepthOption = new Option("", "stemmer-depth", true, "int / The number of times to apply the stemmer");
         stemmerDepthOption.setRequired(false);
         options.addOption(stemmerDepthOption);
 
         //Preprocessor options
-        Option preprocessorOption = new Option("preprocessor", "preprocessor", true, "preprocessor [preprocessor2 ...] / The preprocessors to apply to input and corpus texts.");
+        Option preprocessorOption = new Option("", "preprocessor", true, "preprocessor [preprocessor2 ...] / The preprocessors to apply to input and corpus texts.");
         preprocessorOption.setRequired(false);
         options.addOption(preprocessorOption);
 
-        Option stanfordPosOption = new Option("stanford-pos", "stanford-pos", true, "pos [pos2 ...] / The parts of speech to include when using the Stanford Lemma preprocessor");
+        Option stanfordPosOption = new Option("", "stanford-pos", true, "pos [pos2 ...] / The parts of speech to include when using the Stanford Lemma preprocessor");
         stanfordPosOption.setRequired(false);
         options.addOption(stanfordPosOption);
 
+        //Spearman correlations to get tool p-value
+        Option spearmanOption = new Option("", "spearman", false, "Calculates Spearman correlations to get the p-value of the tool");
+        spearmanOption.setRequired(false);
+        options.addOption(spearmanOption);
+
         //Debugging
-        Option debugOption = new Option("d", "debug", true, "input.txt / Shows the tokens for a text.");
+        Option debugOption = new Option("", "debug", true, "input.txt / Shows the tokens for a text.");
         debugOption.setRequired(false);
         options.addOption(debugOption);
 
         //Indexing
-        Option indexOption = new Option("i", "index", true, "input file / Indexes a corpus of documents.");
+        Option indexOption = new Option("", "index", true, "input file / Indexes a corpus of documents.");
         indexOption.setRequired(false);
         options.addOption(indexOption);
 
         //Index path
-        Option indexPathOption = new Option("index-path", "index-path", true, "input directory / The path to the input directory (defaults to ./index/$doctype)");
+        Option indexPathOption = new Option("", "index-path", true, "input directory / The path to the input directory (defaults to ./index/$doctype)");
         indexPathOption.setRequired(false);
         options.addOption(indexPathOption);
 
         //Server options
-        Option serverOption = new Option("server", "server", true, "port / Starts a vectorizing server using the specified port.");
+        Option serverOption = new Option("", "server", true, "port / Starts a vectorizing server using the specified port.");
         serverOption.setRequired(false);
         options.addOption(serverOption);
 
@@ -239,22 +245,24 @@ public class Main {
             DocumentPreprocessorFactory preprocessorFactory = new DocumentPreprocessorFactory();
             ArrayList<DocumentPreprocessor> preprocessors = new ArrayList<>();
             String[] preprocessorArguments = cmd.getOptionValues("preprocessor");
-            for(String preprocessorArgument: preprocessorArguments) {
-                if ("lemma".equals(preprocessorArgument)) {
-                    stanfordLemmasFound = true;
-                    preprocessorFactory.setStanfordPosTags(Arrays.asList(stanfordPosTags));
+            if (hasLength(preprocessorArguments, 1)) {
+                for(String preprocessorArgument: preprocessorArguments) {
+                    if ("lemma".equals(preprocessorArgument)) {
+                        stanfordLemmasFound = true;
+                        preprocessorFactory.setStanfordPosTags(Arrays.asList(stanfordPosTags));
+                    }
+                    preprocessors.add(preprocessorFactory.getPreprocessor(preprocessorArgument));
                 }
-               preprocessors.add(preprocessorFactory.getPreprocessor(preprocessorArgument));
+                if (stanfordLemmasRequired && !stanfordLemmasFound) {
+                    throw new IllegalArgumentException("The --stanford-pos option requires the --preprocessor stanford-lemma option to be set.");
+                }
+                esaOptions.preprocessor = new ChainedPreprocessor(preprocessors);;
+            } else {
+                esaOptions.preprocessor = new NullPreprocessor();
             }
-            if (stanfordLemmasRequired && !stanfordLemmasFound) {
-                throw new IllegalArgumentException("The --stanford-pos option requires the --preprocessor stanford-lemma option to be set.");
-            }
-            esaOptions.preprocessor = new ChainedPreprocessor(preprocessors);;
-
 
             AnalyzerFactory analyzerFactory = new AnalyzerFactory(esaOptions);
             esaOptions.analyzer = analyzerFactory.getAnalyzer(cmd);
-
 
             //Load indexer options from command line and ESA options
             WikiIndexerOptions indexerOptions = new WikiIndexerOptions();
@@ -270,7 +278,6 @@ public class Main {
 
             //Get the unixtime
             long startTime = Instant.now().getEpochSecond();
-
 
             //Comparison of texts
             if (hasLength(compareTexts, 2) || hasLength(compareFiles, 2)) {
@@ -319,6 +326,10 @@ public class Main {
                     String concept = topTenConcepts.next();
                     System.out.println(concept + ": " + decimalFormat.format(vector.getConceptWeights().get(concept)));
                 }
+            }
+
+            else if (nonEmpty("spearman")) {
+                System.out.println("calculating spearman stuff");
             }
 
             //Debug tokens

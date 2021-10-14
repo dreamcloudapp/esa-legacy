@@ -21,20 +21,22 @@ public class AnalyzerFactory {
         options.dictionaryRepository = esaOptions.dictionaryRepository;
 
         String[] filters = cmd.getOptionValues("filter");
-        for(String filter: filters) {
-            switch(filter) {
-                case "stemmer":
-                    options.porterStemmerFilter = true;
-                    break;
-                case "classic":
-                    options.classicFilter = true;
-                    break;
-                case "lower":
-                    options.lowerCaseFilter = true;
-                    break;
-                case "ascii":
-                    options.asciiFoldingFilter = true;
-                    break;
+        if (filters != null) {
+            for(String filter: filters) {
+                switch(filter) {
+                    case "stemmer":
+                        options.porterStemmerFilter = true;
+                        break;
+                    case "classic":
+                        options.classicFilter = true;
+                        break;
+                    case "lower":
+                        options.lowerCaseFilter = true;
+                        break;
+                    case "ascii":
+                        options.asciiFoldingFilter = true;
+                        break;
+                }
             }
         }
 
