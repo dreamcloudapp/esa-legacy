@@ -11,6 +11,11 @@ import java.util.Set;
 
 public class AnalyzerFactory {
     EsaOptions esaOptions;
+
+    public static boolean nonEmpty(String s) {
+        return s != null && !s.equals("");
+    }
+
     public AnalyzerFactory(EsaOptions esaOptions) {
         this.esaOptions = esaOptions;
     }
@@ -41,7 +46,7 @@ public class AnalyzerFactory {
         }
 
         String stemmerDepth = cmd.getOptionValue("stemmer-depth");
-        if (!"".equals(stemmerDepth)) {
+        if (nonEmpty(stemmerDepth)) {
             options.porterStemmerFilter = true;
             options.porterStemmerFilterDepth = Integer.parseInt(stemmerDepth);
         }

@@ -78,106 +78,111 @@ public class Main {
         topFileOption.setRequired(false);
         options.addOption(topFileOption);
 
-        Option weightOption = new Option("weight", "weight", true, "docId documentText / Gets the weights of terms within a document");
+        Option weightOption = new Option(null, "weight", true, "docId documentText / Gets the weights of terms within a document");
         weightOption.setArgs(2);
         weightOption.setRequired(false);
         options.addOption(weightOption);
 
-        Option relevanceOption = new Option("relevance", "relevance", true, "\"term docId\" / Computes the relevance of a term to a document id.");
+        Option relevanceOption = new Option(null, "relevance", true, "\"term docId\" / Computes the relevance of a term to a document id.");
         relevanceOption.setArgs(2);
         relevanceOption.setRequired(false);
         options.addOption(relevanceOption);
 
         //Indexing Options
-        Option minimumTermCountOption = new Option("", "min-terms", true, "int / (indexing)\tThe minimum number of terms allowed for a document.");
+        Option minimumTermCountOption = new Option(null, "min-terms", true, "int / (indexing)\tThe minimum number of terms allowed for a document.");
         minimumTermCountOption.setRequired(false);
         options.addOption(minimumTermCountOption);
 
-        Option maximumTermCountOption = new Option("", "max-terms", true, "int / (indexing)\tThe maximum number of terms allowed for a document.");
+        Option maximumTermCountOption = new Option(null, "max-terms", true, "int / (indexing)\tThe maximum number of terms allowed for a document.");
         maximumTermCountOption.setRequired(false);
         options.addOption(maximumTermCountOption);
 
-        Option threadCountOption = new Option("threads", "threads", true, "int / (indexing)\tThe number of threads to use.");
+        Option threadCountOption = new Option(null, "threads", true, "int / (indexing)\tThe number of threads to use.");
         threadCountOption.setRequired(false);
         options.addOption(threadCountOption);
 
-        Option batchSizeOption = new Option("", "batch-size", true, "int / (indexing)\tThe number of documents to process at once, distributed across the threads.");
+        Option batchSizeOption = new Option(null, "batch-size", true, "int / (indexing)\tThe number of documents to process at once, distributed across the threads.");
         batchSizeOption.setRequired(false);
         options.addOption(batchSizeOption);
 
-        Option maximumDocumentCountOption = new Option("", "max-docs", true, "int / (indexing)\tThe maximum number of documents we can process before throwing an error (defaults to 512,000).");
+        Option maximumDocumentCountOption = new Option(null, "max-docs", true, "int / (indexing)\tThe maximum number of documents we can process before throwing an error (defaults to 512,000).");
         maximumDocumentCountOption.setRequired(false);
         options.addOption(maximumDocumentCountOption);
 
         //Wiki specific indexing options
-        Option minimumIncomingLinksOption = new Option("", "min-incoming-links", true, "int / (indexing:wiki)\tThe minimum number of incoming links.");
+        Option minimumIncomingLinksOption = new Option(null, "min-incoming-links", true, "int / (indexing:wiki)\tThe minimum number of incoming links.");
         minimumIncomingLinksOption.setRequired(false);
         options.addOption(minimumIncomingLinksOption);
 
-        Option minimumOutgoingLinksOption = new Option("", "min-outgoing-links", true, "int / (indexing:wiki)\tThe minimum number of outgoing links.");
+        Option minimumOutgoingLinksOption = new Option(null, "min-outgoing-links", true, "int / (indexing:wiki)\tThe minimum number of outgoing links.");
         minimumOutgoingLinksOption.setRequired(false);
         options.addOption(minimumOutgoingLinksOption);
 
-        Option titleExclusionRegExListOption = new Option("", "title-exclusion-regex", true, "string [string2 ...] / (indexing:wiki)\tA list of regexes used to exclude Wiki article titles.");
+        Option titleExclusionRegExListOption = new Option(null, "title-exclusion-regex", true, "string [string2 ...] / (indexing:wiki)\tA list of regexes used to exclude Wiki article titles.");
+        titleExclusionRegExListOption.setArgs(Option.UNLIMITED_VALUES);
         titleExclusionRegExListOption.setRequired(false);
         options.addOption(titleExclusionRegExListOption);
 
-        Option titleExclusionListOption = new Option("", "title-exclusion", true, "string [string2 ...] / (indexing:wiki)\tA list of strings used to exclude Wiki article titles which contain them.");
+        Option titleExclusionListOption = new Option(null, "title-exclusion", true, "string [string2 ...] / (indexing:wiki)\tA list of strings used to exclude Wiki article titles which contain them.");
         titleExclusionListOption.setRequired(false);
+        titleExclusionListOption.setArgs(Option.UNLIMITED_VALUES);
         options.addOption(titleExclusionListOption);
 
         //Analyzer options
-        Option limitOption = new Option("", "vector-limit", true, "int / The maximum number of entries in each document vector.");
+        Option limitOption = new Option(null, "vector-limit", true, "int / The maximum number of entries in each document vector.");
         limitOption.setRequired(false);
         options.addOption(limitOption);
 
-        Option stopWordsOption = new Option("", "stopwords", true, "stopwords file / A file containing stopwords each on their own line");
+        Option stopWordsOption = new Option(null, "stopwords", true, "stopwords file / A file containing stopwords each on their own line");
         stopWordsOption.setRequired(false);
         options.addOption(stopWordsOption);
 
-        Option dictionaryOption = new Option("", "dictionary", true, "dictionary file / A file containing a list of allowed words");
+        Option dictionaryOption = new Option(null, "dictionary", true, "dictionary file / A file containing a list of allowed words");
         dictionaryOption.setRequired(false);
         options.addOption(dictionaryOption);
 
-        Option filterOption = new Option("", "filter", true, "string [string2 ...] / List of Lucene analysis filters (stemmer|classic|lower|ascii)");
+        Option filterOption = new Option(null, "filter", true, "string [string2 ...] / List of Lucene analysis filters (stemmer|classic|lower|ascii)");
         filterOption.setRequired(false);
+        filterOption.setArgs(Option.UNLIMITED_VALUES);
         options.addOption(filterOption);
 
-        Option stemmerDepthOption = new Option("", "stemmer-depth", true, "int / The number of times to apply the stemmer");
+        Option stemmerDepthOption = new Option(null, "stemmer-depth", true, "int / The number of times to apply the stemmer");
         stemmerDepthOption.setRequired(false);
         options.addOption(stemmerDepthOption);
 
         //Preprocessor options
-        Option preprocessorOption = new Option("", "preprocessor", true, "preprocessor [preprocessor2 ...] / The preprocessors to apply to input and corpus texts.");
+        Option preprocessorOption = new Option(null, "preprocessor", true, "preprocessor [preprocessor2 ...] / The preprocessors to apply to input and corpus texts.");
         preprocessorOption.setRequired(false);
+        preprocessorOption.setArgs(Option.UNLIMITED_VALUES);;
         options.addOption(preprocessorOption);
 
-        Option stanfordPosOption = new Option("", "stanford-pos", true, "pos [pos2 ...] / The parts of speech to include when using the Stanford Lemma preprocessor");
+        Option stanfordPosOption = new Option(null, "stanford-pos", true, "pos [pos2 ...] / The parts of speech to include when using the Stanford Lemma preprocessor");
         stanfordPosOption.setRequired(false);
+        stanfordPosOption.setArgs(Option.UNLIMITED_VALUES);
         options.addOption(stanfordPosOption);
 
         //Spearman correlations to get tool p-value
-        Option spearmanOption = new Option("", "spearman", false, "Calculates Spearman correlations to get the p-value of the tool");
+        Option spearmanOption = new Option(null, "spearman", false, "Calculates Spearman correlations to get the p-value of the tool");
         spearmanOption.setRequired(false);
         options.addOption(spearmanOption);
 
         //Debugging
-        Option debugOption = new Option("", "debug", true, "input.txt / Shows the tokens for a text.");
+        Option debugOption = new Option(null, "debug", true, "input.txt / Shows the tokens for a text.");
         debugOption.setRequired(false);
         options.addOption(debugOption);
 
         //Indexing
-        Option indexOption = new Option("", "index", true, "input file / Indexes a corpus of documents.");
+        Option indexOption = new Option(null, "index", true, "input file / Indexes a corpus of documents.");
         indexOption.setRequired(false);
         options.addOption(indexOption);
 
         //Index path
-        Option indexPathOption = new Option("", "index-path", true, "input directory / The path to the input directory (defaults to ./index/$doctype)");
+        Option indexPathOption = new Option(null, "index-path", true, "input directory / The path to the input directory (defaults to ./index/$doctype)");
         indexPathOption.setRequired(false);
         options.addOption(indexPathOption);
 
         //Server options
-        Option serverOption = new Option("", "server", true, "port / Starts a vectorizing server using the specified port.");
+        Option serverOption = new Option(null, "server", true, "port / Starts a vectorizing server using the specified port.");
         serverOption.setRequired(false);
         options.addOption(serverOption);
 
@@ -328,7 +333,7 @@ public class Main {
                 }
             }
 
-            else if (nonEmpty("spearman")) {
+            else if (cmd.hasOption("spearman")) {
                 System.out.println("calculating spearman stuff");
             }
 
