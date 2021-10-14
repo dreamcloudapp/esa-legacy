@@ -186,7 +186,7 @@ public class Main {
         serverOption.setRequired(false);
         options.addOption(serverOption);
 
-        CommandLineParser parser = new BasicParser();
+        CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
 
         try {
@@ -200,7 +200,7 @@ public class Main {
             String docType = cmd.getOptionValue("doctype");
             String stopWords = cmd.getOptionValue("stopwords");
             String dictionary = cmd.getOptionValue("dictionary");
-            String indexPath = cmd.getOptionValue("indexPath");
+            String indexPath = cmd.getOptionValue("index-path");
 
             EsaOptions esaOptions = new EsaOptions();
 
@@ -277,8 +277,8 @@ public class Main {
             indexerOptions.indexDirectory = FSDirectory.open(esaOptions.indexPath);
 
             String server = cmd.getOptionValue("server");
-            String debug = cmd.getOptionValue("d");
-            String index = cmd.getOptionValue("i");
+            String debug = cmd.getOptionValue("debug");
+            String index = cmd.getOptionValue("index");
             esaOptions.indexFile = index;
 
             //Get the unixtime
