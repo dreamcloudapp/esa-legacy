@@ -81,6 +81,10 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
         pat = Pattern.compile(regex);
     }
 
+    public boolean requiresAnalysis() {
+        return this.options.maximumTermCount > 0 || this.options.minimumTermCount > 0 || this.options.minimumIncomingLinks > 0 || this.options.minimumOutgoingLinks > 0;
+    }
+
     void reset() {
         numLastTotal = 0;
         numTotal = 0;
@@ -92,9 +96,9 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     }
 
     public void analyze(File file) {
-        if (this.options.maximumTermCount > 0 || this.options.minimumTermCount > 0 || this.options.minimumIncomingLinks > 0 || this.options.minimumOutgoingLinks > 0) {
+        if (this.requiresAnalysis()) {
+            this.indexTitles = new String[options.maximumDocumentCount];
             reset();
-            indexTitles = new String[options.maximumDocumentCount];
             executorService = Executors.newFixedThreadPool(options.threadCount);
 
            linkAnalyzer = new WikiLinkAnalyzer();
@@ -125,6 +129,10 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     }
 
     public void index(File file) throws IOException {
+        if (this.requiresAnalysis()) {
+            analyze(file);
+        }
+
         reset();
         executorService = Executors.newFixedThreadPool(options.threadCount);
         IndexWriterConfig indexWriterConfig = new IndexWriterConfig(options.analyzer);
@@ -238,18 +246,25 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
                     Vector<WikipediaArticle> articles = future.get();
                     for (WikipediaArticle article: articles) {
                         //If the article is valid for indexing, map it's links
-                        if (article.canIndex(options)) {
-                            numIndexable++;
-                            indexTitles[article.index] = article.analysis.parsedTitle;
-                            for (String link: article.getOutgoingLinks()) {
-                                if (incomingLinkMap.containsKey(link)) {
-                                    int count = incomingLinkMap.get(link);
-                                    incomingLinkMap.put(link, count + 1);
-                                } else {
-                                    incomingLinkMap.put(link, 1);
+                        if (this.requiresAnalysis() && !article.canIndex(options)) {
+                            continue;
+                        }
+                        if (this.requiresAnalysis()) {
+                            if (!article.canIndex(options)) {
+                                continue;
+                            } else if(options.minimumIncomingLinks > 0) {
+                                indexTitles[article.index] = article.analysis.parsedTitle;
+                                for (String link: article.getOutgoingLinks()) {
+                                    if (incomingLinkMap.containsKey(link)) {
+                                        int count = incomingLinkMap.get(link);
+                                        incomingLinkMap.put(link, count + 1);
+                                    } else {
+                                        incomingLinkMap.put(link, 1);
+                                    }
                                 }
                             }
                         }
+                        numIndexable++;
                     }
                 }
             }
@@ -335,15 +350,21 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     Integer indexArticles (Vector<WikipediaArticle> articles) throws Exception {
         int indexed = 0;
         for (WikipediaArticle article: articles) {
-            //Get title
-            String indexTitle = indexTitles[article.index];
-            if (indexTitle != null) {
-                //Check incoming links
-                if (incomingLinkMap.containsKey(indexTitle) && incomingLinkMap.get(indexTitle) > 0) {
-                    indexDocument(article.title, article.text);
-                    indexed++;
+            if (this.requiresAnalysis()) {
+                String indexTitle = indexTitles[article.index];
+                if (indexTitle == null) {
+                    continue;
+                }
+
+                if (options.minimumIncomingLinks > 0) {
+                    if ((!incomingLinkMap.containsKey(indexTitle) || incomingLinkMap.get(indexTitle) <= options.minimumIncomingLinks)) {
+                        continue;
+                    }
                 }
             }
+
+            indexDocument(article.title, article.text);
+            indexed++;
         }
         return indexed;
     }
