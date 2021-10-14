@@ -29,6 +29,9 @@ public class StopWordRepository {
      * Adds additional stopwords beyond the source set (which can be empty).
      */
     public void addExtendedStopWords(CharArraySet stopwords) {
+        if (this.extendedStopWords == null) {
+            this.extendedStopWords = new CharArraySet(256, true);
+        }
         this.extendedStopWords.addAll(stopwords);
     }
 
@@ -56,13 +59,15 @@ public class StopWordRepository {
         if (source == null) {
             if (this.sourceFile != null) {
                 source = this.readStopWordsFromFile(this.sourceFile);
-            } else if(!"".equals(this.sourceFileName)) {
+            } else if(this.sourceFileName != null) {
                 source = this.readStopWordsFromFileName(this.sourceFileName);
             } else {
                 source = new CharArraySet(256, true);
             }
             //Add extended stopwords
-            source.addAll(extendedStopWords);
+            if (this.extendedStopWords != null) {
+                source.addAll(extendedStopWords);
+            }
         }
         return source;
     }
