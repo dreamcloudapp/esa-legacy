@@ -230,8 +230,6 @@ public class Main {
                     stopWords = "./src/data/en-stopwords.txt";
                 }
                 esaOptions.stopWordRepository = new StopWordRepository(stopWords);
-            } else {
-                esaOptions.stopWordRepository = new StopWordRepository();
             }
 
             if (nonEmpty(dictionary)) {
@@ -239,8 +237,6 @@ public class Main {
                     dictionary = "./src/data/en-words.txt";
                 }
                 esaOptions.dictionaryRepository = new DictionaryRepository(dictionary);
-            } else {
-                esaOptions.dictionaryRepository = new DictionaryRepository();
             }
 
             String[] stanfordPosTags = cmd.getOptionValues("stanford-pos");
@@ -355,6 +351,7 @@ public class Main {
                     }
                     ts.end();
                 }
+                ts.close();
             }
 
             else if(hasLength(weightArgs, 2)) {
