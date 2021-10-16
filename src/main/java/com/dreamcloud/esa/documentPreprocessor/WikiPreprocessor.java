@@ -1,9 +1,6 @@
 package com.dreamcloud.esa.documentPreprocessor;
 
-import com.dreamcloud.esa.EsaOptions;
-import com.dreamcloud.esa.analyzer.EsaAnalyzer;
 import com.dreamcloud.esa.analyzer.WikiAnalyzer;
-import com.dreamcloud.esa.analyzer.WikiLinkAnalyzer;
 import com.dreamcloud.esa.indexer.DreamIndexer;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;

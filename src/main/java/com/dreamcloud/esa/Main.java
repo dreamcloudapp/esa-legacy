@@ -22,6 +22,7 @@ import com.dreamcloud.esa.tools.*;
 import com.dreamcloud.esa.vectorizer.ConceptVector;
 import com.dreamcloud.esa.vectorizer.TextVectorizer;
 import com.dreamcloud.esa.vectorizer.Vectorizer;
+import org.apache.commons.math.stat.correlation.SpearmansCorrelation;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
@@ -333,7 +334,13 @@ public class Main {
             }
 
             else if (cmd.hasOption("spearman")) {
-                System.out.println("calculating spearman stuff");
+                TextVectorizer textVectorizer = new Vectorizer(esaOptions);
+                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
+                PValueCalculator calculator = new PValueCalculator();
+                System.out.println("Calculating P-value using Spearman correlation...");
+                System.out.println("-----------------------------.");
+                System.out.println("p-value:\t" + calculator.getSpearmanCorrelation(similarityTool));
+                System.out.println("-----------------------------.");
             }
 
             //Debug tokens
