@@ -363,7 +363,6 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
 
     Integer indexArticles (Vector<WikipediaArticle> articles) throws Exception {
         int indexed = 0;
-        System.out.println("first article: " + articles.firstElement().title);
         for (WikipediaArticle article: articles) {
             if (this.requiresAnalysis()) {
                 String indexTitle = indexTitles[article.index];

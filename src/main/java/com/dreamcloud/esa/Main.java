@@ -248,7 +248,7 @@ public class Main {
             String[] preprocessorArguments = cmd.getOptionValues("preprocessor");
             if (hasLength(preprocessorArguments, 1)) {
                 for(String preprocessorArgument: preprocessorArguments) {
-                    if ("lemma".equals(preprocessorArgument)) {
+                    if ("stanford-lemma".equals(preprocessorArgument)) {
                         stanfordLemmasFound = true;
                         preprocessorFactory.setStanfordPosTags(Arrays.asList(stanfordPosTags));
                     }

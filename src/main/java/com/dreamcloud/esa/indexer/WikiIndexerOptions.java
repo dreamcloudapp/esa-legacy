@@ -12,4 +12,14 @@ public class WikiIndexerOptions extends IndexerOptions {
         this.titleExclusionRegExList = new ArrayList<>();
         this.titleExclusionList = new ArrayList<>();
     }
+
+    public void displayInfo() {
+        super.displayInfo();
+
+        System.out.println("Wiki-specific indexing options:");
+        System.out.println("---------------------------------------");
+        System.out.println("Excluded Titles\t" + String.join(", ", titleExclusionRegExList));
+        System.out.println("Excluded Title Patterns\t" + String.join(", ", titleExclusionRegExList));
+        System.out.println("---------------------------------------");
+    }
 }
