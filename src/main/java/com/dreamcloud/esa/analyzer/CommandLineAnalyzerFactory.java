@@ -3,11 +3,13 @@ package com.dreamcloud.esa.analyzer;
 import com.dreamcloud.esa.*;
 import org.apache.commons.cli.CommandLine;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.analysis.wikipedia.WikipediaTokenizer;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 public class CommandLineAnalyzerFactory implements AnalyzerFactory {
     EsaOptions esaOptions;
@@ -57,7 +59,11 @@ public class CommandLineAnalyzerFactory implements AnalyzerFactory {
         switch(esaOptions.documentType) {
             case WIKI:
                 //You don't get to customize these if you are coming from command line
-                options.tokenizer = new WikipediaTokenizer();
+                options.tokenizerFactory = new TokenizerFactory() {
+                    public Tokenizer getTokenizer() {
+                        return new WikipediaTokenizer();
+                    }
+                };
                 Set<String> stopTokenTypes = new HashSet<>();
                 stopTokenTypes.add(WikipediaTokenizer.EXTERNAL_LINK_URL);
                 stopTokenTypes.add(WikipediaTokenizer.EXTERNAL_LINK);
@@ -65,7 +71,11 @@ public class CommandLineAnalyzerFactory implements AnalyzerFactory {
                 options.stopTokenTypes = stopTokenTypes;
                 break;
             case DREAM:
-                options.tokenizer = new StandardTokenizer();
+                options.tokenizerFactory = new TokenizerFactory() {
+                    public Tokenizer getTokenizer() {
+                        return new StandardTokenizer();
+                    }
+                };
                 break;
         }
         return options;

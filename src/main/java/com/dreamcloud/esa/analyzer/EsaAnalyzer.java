@@ -21,7 +21,7 @@ public class EsaAnalyzer extends Analyzer {
     }
 
     protected Analyzer.TokenStreamComponents createComponents(String fieldName) {
-        Tokenizer source = options.tokenizer;
+        Tokenizer source = options.tokenizerFactory.getTokenizer();
         TokenStream result = source;
 
         if (options.stopTokenTypes != null) {
