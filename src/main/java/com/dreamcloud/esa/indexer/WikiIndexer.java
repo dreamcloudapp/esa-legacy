@@ -57,9 +57,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     private String wikiTitle;
     private int numTotal = 0;
     private int numLastTotal = 0;
-    private int numAnalyzed = 0;
     private int numIndexed = 0;
-    private int numIndexable = 0;
 
     private String mode;
     ArrayList<Pattern> titleExclusionPatterns;
@@ -92,7 +90,6 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
 
     void reset() {
         numLastTotal = 0;
-        numTotal = 0;
         inPage = false;
         inPageTitle = false;
         inPageText = false;
@@ -125,11 +122,9 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
 
             System.gc();
             analyzer.close();
-            numAnalyzed = numTotal;
 
             System.out.println("----------------------------------------");
-            System.out.println("Articles Analyzed:\t" + numAnalyzed);
-            System.out.println("Articles Indexable:\t" + numIndexable);
+            System.out.println("Articles Analyzed:\t" + numTotal);
             System.out.println("----------------------------------------");
         }
     }
@@ -160,13 +155,12 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
 
         //Show logs
         System.out.println("----------------------------------------");
-        System.out.println("Articles Analyzed:\t" + numAnalyzed);
-        System.out.println("Articles Indexable:\t" + numIndexable);
+        System.out.println("Articles Analyzed:\t" + numTotal);
         System.out.println("Articles Indexed:\t" + numIndexed);
-        System.out.println("Articles Skipped:\t" + (numAnalyzed - numIndexed));
+        System.out.println("Articles Skipped:\t" + (numTotal - numIndexed));
         NumberFormat format = NumberFormat.getPercentInstance();
         format.setMinimumFractionDigits(1);
-        System.out.println("Acceptance Rate:\t" + format.format(((double) numIndexed) / ((double) numAnalyzed)));
+        System.out.println("Acceptance Rate:\t" + format.format(((double) numIndexed) / ((double) numTotal)));
         System.out.println("----------------------------------------");
     }
 
@@ -266,18 +260,20 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
                         //If the article is valid for indexing, map it's links
                         if (!article.canIndex(options)) {
                             continue;
-                        } else if(options.minimumIncomingLinks > 0) {
+                        } else {
                             indexTitles[article.index] = article.analysis.parsedTitle;
-                            for (String link: article.getOutgoingLinks()) {
-                                if (incomingLinkMap.containsKey(link)) {
-                                    int count = incomingLinkMap.get(link);
-                                    incomingLinkMap.put(link, count + 1);
-                                } else {
-                                    incomingLinkMap.put(link, 1);
+
+                            if (options.minimumIncomingLinks > 0) {
+                                for (String link: article.getOutgoingLinks()) {
+                                    if (incomingLinkMap.containsKey(link)) {
+                                        int count = incomingLinkMap.get(link);
+                                        incomingLinkMap.put(link, count + 1);
+                                    } else {
+                                        incomingLinkMap.put(link, 1);
+                                    }
                                 }
                             }
                         }
-                        numIndexable++;
                     }
                 }
             }
@@ -329,7 +325,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
         if ("analyze".equals(mode)) {
             System.out.println("Analyzed articles\t[" + numLastTotal + " - " + numTotal + "]");
         } else {
-            System.out.println("Indexed articles\t[" + numTotal + " / " + numAnalyzed + "]");
+            System.out.println("Indexed articles\t[" + numTotal + " / " + numTotal + "]");
         }
         numLastTotal = numTotal;
     }
@@ -370,7 +366,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
                 }
 
                 if (options.minimumIncomingLinks > 0) {
-                    if ((!incomingLinkMap.containsKey(indexTitle) || incomingLinkMap.get(indexTitle) <= options.minimumIncomingLinks)) {
+                    if ((!incomingLinkMap.containsKey(indexTitle) || incomingLinkMap.get(indexTitle) < options.minimumIncomingLinks)) {
                         continue;
                     }
                 }

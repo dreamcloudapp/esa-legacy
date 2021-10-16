@@ -16,6 +16,6 @@ public class WikipediaArticleAnalysis {
     }
 
     public boolean canIndex(WikiIndexerOptions options) {
-        return this.outgoingLinks.size() >= options.minimumOutgoingLinks && this.tokenCount > options.minimumTermCount;
+        return this.outgoingLinks.size() >= options.minimumOutgoingLinks && this.tokenCount >= options.minimumTermCount;
     }
 }
