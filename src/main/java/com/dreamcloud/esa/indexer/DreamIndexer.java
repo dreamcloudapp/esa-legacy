@@ -121,7 +121,7 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
         Document doc = new Document();
         doc.add(new StringField(ID_FIELD, id, Field.Store.YES));
         doc.add(new StringField(TITLE_FIELD, title, Field.Store.YES));
-        doc.add(new StoredField(TEXT_FIELD, text));
+        doc.add(new TextField(TEXT_FIELD, text, Field.Store.NO));
         doc.add(new StringField(USER_FIELD, userId, Field.Store.YES));
         indexWriter.addDocument(doc);
     }

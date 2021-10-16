@@ -4,6 +4,7 @@ import com.dreamcloud.esa.*;
 import org.apache.commons.cli.CommandLine;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.en.EnglishMinimalStemFilter;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.analysis.wikipedia.WikipediaTokenizer;
 
@@ -43,6 +44,8 @@ public class CommandLineAnalyzerFactory implements AnalyzerFactory {
                     case "lower":
                         options.lowerCaseFilter = true;
                         break;
+                    case "singular":
+                        options.singularCaseFilter = true;
                     case "ascii":
                         options.asciiFoldingFilter = true;
                         break;

@@ -62,7 +62,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     private int numIndexable = 0;
 
     private String mode;
-    Pattern pat;
+    ArrayList<Pattern> titleExclusionPatterns;
     IndexWriter indexWriter;
     Analyzer analyzer;
 
@@ -77,8 +77,13 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);
         saxFactory.setXIncludeAware(true);
-        String regex = "^[a-zA-z]+:.*";
-        pat = Pattern.compile(regex);
+
+        this.titleExclusionPatterns = new ArrayList<>();
+        if (options.titleExclusionRegExList != null) {
+            for(String titleExclusionRegEx: options.titleExclusionList) {
+                this.titleExclusionPatterns.add(Pattern.compile(titleExclusionRegEx));
+            }
+        }
     }
 
     public boolean requiresAnalysis() {
@@ -207,9 +212,21 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
             String wikiTitleCopy = wikiTitle;
             String wikiText = content.toString();
 
-            Matcher matcher = pat.matcher(wikiTitle);
-            if (matcher.find() || wikiTitle.startsWith("List of ") || wikiTitle.contains("discography")) {
-                return;
+            //Exclude specific titles ("List of" or "discography") for example
+            if (options.titleExclusionList != null) {
+                for(String titleExclusion: options.titleExclusionList) {
+                    if (wikiTitle.contains(titleExclusion)) {
+                        return;
+                    }
+                }
+            }
+
+            //Exclude titles by regex
+            for (Pattern pattern: this.titleExclusionPatterns) {
+                Matcher matcher = pattern.matcher(wikiTitle);
+                if (matcher.find()) {
+                    return;
+                }
             }
 
             fixedQueue[queueSize++] = new WikipediaArticle(numTotal, wikiTitleCopy, wikiText);
@@ -346,6 +363,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
 
     Integer indexArticles (Vector<WikipediaArticle> articles) throws Exception {
         int indexed = 0;
+        System.out.println("first article: " + articles.firstElement().title);
         for (WikipediaArticle article: articles) {
             if (this.requiresAnalysis()) {
                 String indexTitle = indexTitles[article.index];

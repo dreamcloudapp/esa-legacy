@@ -15,6 +15,8 @@ public class AnalyzerOptions {
     public boolean lowerCaseFilter = false;
     public boolean classicFilter = false;
     public boolean asciiFoldingFilter = false;
+    public boolean singularCaseFilter = false;
+
 
     public StopWordRepository stopWordsRepository;
     public DictionaryRepository dictionaryRepository;
