@@ -100,7 +100,6 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     }
 
     protected void analyze(File file) {
-        System.out.println("analysis required: " + (this.requiresAnalysis() ? "true" : "false"));
         if (this.requiresAnalysis()) {
             this.indexTitles = new String[options.maximumDocumentCount];
             reset();
