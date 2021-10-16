@@ -80,7 +80,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
 
         this.titleExclusionPatterns = new ArrayList<>();
         if (options.titleExclusionRegExList != null) {
-            for(String titleExclusionRegEx: options.titleExclusionList) {
+            for(String titleExclusionRegEx: options.titleExclusionRegExList) {
                 this.titleExclusionPatterns.add(Pattern.compile(titleExclusionRegEx));
             }
         }
@@ -212,7 +212,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
             String wikiTitleCopy = wikiTitle;
             String wikiText = content.toString();
 
-            //Exclude specific titles ("List of" or "discography") for example
+            //Exclude specific titles ("List of" or "discography" for example)
             if (options.titleExclusionList != null) {
                 for(String titleExclusion: options.titleExclusionList) {
                     if (wikiTitle.contains(titleExclusion)) {
