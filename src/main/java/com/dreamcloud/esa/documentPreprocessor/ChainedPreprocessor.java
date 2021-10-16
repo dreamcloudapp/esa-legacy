@@ -18,7 +18,7 @@ public class ChainedPreprocessor implements DocumentPreprocessor {
     public String getInfo() {
         ArrayList<String> preprocessorNames = new ArrayList<>();
         for (DocumentPreprocessor preprocessor: preprocessors) {
-            preprocessorNames.add(preprocessor.getClass().getSimpleName());
+            preprocessorNames.add(preprocessor.getInfo());
         }
         return String.join(", ", preprocessorNames);
     }
