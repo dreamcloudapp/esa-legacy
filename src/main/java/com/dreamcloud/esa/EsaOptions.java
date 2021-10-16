@@ -19,13 +19,13 @@ public class EsaOptions {
     public void displayInfo() throws IOException {
         System.out.println("ESA options:");
         System.out.println("---------------------------------------");
-        System.out.println("Document Type\t" + documentType.label);
-        System.out.println("Analyzer Class\t" + analyzer.getClass().getSimpleName());
-        System.out.println("Stop Words\t" + (stopWordRepository == null ? "(no source)" : stopWordRepository.getStopWords().size()));
-        System.out.println("Dictionary Words\t" + (dictionaryRepository == null ? "(no source)" : dictionaryRepository.getDictionaryWords().size()));
-        System.out.println("Index Path\t" + indexPath.toString());
-        System.out.println("Index File\t" + indexFile);
-        System.out.println("Document Limit\t" + documentLimit);
+        System.out.println("Document Type:\t\t" + documentType.label);
+        System.out.println("Analyzer Class:\t\t" + analyzer.getClass().getSimpleName());
+        System.out.println("Stop Words:\t\t" + (stopWordRepository == null ? "(no source)" : stopWordRepository.getStopWords().size()));
+        System.out.println("Dictionary Words:\t" + (dictionaryRepository == null ? "(no source)" : dictionaryRepository.getDictionaryWords().size()));
+        System.out.println("Index Path:\t\t" + indexPath.toString());
+        System.out.println("Index File:\t\t" + indexFile);
+        System.out.println("Document Limit:\t\t" + documentLimit);
         System.out.println("---------------------------------------");
     }
 }

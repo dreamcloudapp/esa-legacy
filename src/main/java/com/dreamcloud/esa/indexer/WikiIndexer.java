@@ -55,8 +55,9 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     private boolean inPageText;
     private StringBuilder content = new StringBuilder();
     private String wikiTitle;
-    private int numTotal = 0;
-    private int numLastTotal = 0;
+    private int numCurrent = 0;
+    private int numLastCurrent = 0;
+    private int numAnalyzed = 0;
     private int numIndexed = 0;
 
     private String mode;
@@ -89,7 +90,8 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     }
 
     void reset() {
-        numLastTotal = 0;
+        numCurrent = 0;
+        numLastCurrent = 0;
         inPage = false;
         inPageTitle = false;
         inPageText = false;
@@ -124,7 +126,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
             analyzer.close();
 
             System.out.println("----------------------------------------");
-            System.out.println("Articles Analyzed:\t" + numTotal);
+            System.out.println("Articles Analyzed:\t" + numAnalyzed);
             System.out.println("----------------------------------------");
         }
     }
@@ -155,12 +157,12 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
 
         //Show logs
         System.out.println("----------------------------------------");
-        System.out.println("Articles Analyzed:\t" + numTotal);
+        System.out.println("Articles Analyzed:\t" + numAnalyzed);
         System.out.println("Articles Indexed:\t" + numIndexed);
-        System.out.println("Articles Skipped:\t" + (numTotal - numIndexed));
+        System.out.println("Articles Skipped:\t" + (numAnalyzed - numIndexed));
         NumberFormat format = NumberFormat.getPercentInstance();
         format.setMinimumFractionDigits(1);
-        System.out.println("Acceptance Rate:\t" + format.format(((double) numIndexed) / ((double) numTotal)));
+        System.out.println("Acceptance Rate:\t" + format.format(((double) numIndexed) / ((double) numAnalyzed)));
         System.out.println("----------------------------------------");
     }
 
@@ -201,7 +203,8 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
             inPageTitle = false;
             wikiTitle = content.toString();
         } else if (inPage && inPageText && "text".equals(localName)) {
-            numTotal++;
+            numAnalyzed++;
+            numCurrent++;
             inPageText = false;
             String wikiTitleCopy = wikiTitle;
             String wikiText = content.toString();
@@ -223,7 +226,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
                 }
             }
 
-            fixedQueue[queueSize++] = new WikipediaArticle(numTotal, wikiTitleCopy, wikiText);
+            fixedQueue[queueSize++] = new WikipediaArticle(numCurrent, wikiTitleCopy, wikiText);
             if (queueSize == options.batchSize * options.threadCount) {
                 this.processQueue();
                 queueSize = 0;
@@ -323,11 +326,11 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
         }
         queueSize = 0;
         if ("analyze".equals(mode)) {
-            System.out.println("Analyzed articles\t[" + numLastTotal + " - " + numTotal + "]");
+            System.out.println("Analyzed articles\t[" + numLastCurrent + " - " + numCurrent + "]");
         } else {
-            System.out.println("Indexed articles\t[" + numTotal + " / " + numTotal + "]");
+            System.out.println("Indexed articles\t[" + numCurrent + " / " + numAnalyzed + "]");
         }
-        numLastTotal = numTotal;
+        numLastCurrent = numCurrent;
     }
 
     void processIndexQueue() {

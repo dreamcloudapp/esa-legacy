@@ -18,12 +18,12 @@ public class IndexerOptions {
         System.out.println("Indexing options:");
         System.out.println("---------------------------------------");
         System.out.println("Index Directory:\t" + indexDirectory.toString());
-        System.out.println("Minimum Terms:\t" + minimumTermCount);
-        System.out.println("Maximum Terms:\t" + maximumTermCount);
-        System.out.println("Preprocessors:\t[" + (preprocessor != null ? preprocessor.getInfo() : "") + "]");
-        System.out.println("Thread Count:\t" + threadCount);
-        System.out.println("Batch Size:\t" + batchSize);
-        System.out.println("Max Documents:\t" + maximumDocumentCount);
+        System.out.println("Minimum Terms:\t\t" + minimumTermCount);
+        System.out.println("Maximum Terms:\t\t" + maximumTermCount);
+        System.out.println("Preprocessors:\t\t[" + (preprocessor != null ? preprocessor.getInfo() : "") + "]");
+        System.out.println("Thread Count:\t\t" + threadCount);
+        System.out.println("Batch Size:\t\t" + batchSize);
+        System.out.println("Max Documents:\t\t" + maximumDocumentCount);
         System.out.println("---------------------------------------");
     }
 }
