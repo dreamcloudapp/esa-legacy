@@ -18,7 +18,7 @@ public class WikiIndexerOptions extends IndexerOptions {
 
         System.out.println("Wiki-specific indexing options:");
         System.out.println("---------------------------------------");
-        System.out.println("Excluded Titles\t" + String.join(", ", titleExclusionRegExList));
+        System.out.println("Excluded Titles\t" + String.join(", ", titleExclusionList));
         System.out.println("Excluded Title Patterns\t" + String.join(", ", titleExclusionRegExList));
         System.out.println("---------------------------------------");
     }
