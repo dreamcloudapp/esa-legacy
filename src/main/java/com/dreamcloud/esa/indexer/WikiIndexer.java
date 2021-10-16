@@ -202,7 +202,10 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
             inPageTitle = false;
             wikiTitle = content.toString();
         } else if (inPage && inPageText && "text".equals(localName)) {
-            numAnalyzed++;
+            if ("analyze".equals(mode)) {
+                numAnalyzed++;
+            }
+
             numCurrent++;
             inPageText = false;
             String wikiTitleCopy = wikiTitle;
