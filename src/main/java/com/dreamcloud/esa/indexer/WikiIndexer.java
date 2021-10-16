@@ -288,7 +288,6 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     }
 
     Vector<WikipediaArticle> analyzeArticles(Vector<WikipediaArticle> articles) throws IOException {
-        System.out.println("analyzing articles...");
         for (WikipediaArticle article: articles) {
             TokenStream tokenStream = analyzer.tokenStream(TEXT_FIELD, "[[" + article.title + "]] " + article.text);
             CharTermAttribute termAttribute = tokenStream.addAttribute(CharTermAttribute.class);
