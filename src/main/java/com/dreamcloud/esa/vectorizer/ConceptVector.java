@@ -16,7 +16,7 @@ public class ConceptVector {
     ConceptVector(TopDocs td, IndexReader indexReader) throws IOException {
         conceptWeights = new HashMap<>();
         for (ScoreDoc scoreDoc : td.scoreDocs) {
-            String concept = indexReader.document(scoreDoc.doc).get("text");
+            String concept = indexReader.document(scoreDoc.doc).get("title");
             conceptWeights.put(concept, scoreDoc.score);
         }
     }
@@ -55,16 +55,5 @@ public class ConceptVector {
 
     public Map<String, Float> getConceptWeights() {
         return conceptWeights;
-    }
-
-    public Query asQuery() {
-        BooleanQuery.Builder builder = new BooleanQuery.Builder();
-        for (Map.Entry<String, Float> entry : conceptWeights.entrySet()) {
-            String concept = entry.getKey();
-            TermQuery conceptAsTermQuery = new TermQuery(new Term("concept", concept));
-            BoostQuery boostQuery = new BoostQuery(conceptAsTermQuery, entry.getValue());
-            builder.add(boostQuery, BooleanClause.Occur.SHOULD);
-        }
-        return builder.build();
     }
 }
