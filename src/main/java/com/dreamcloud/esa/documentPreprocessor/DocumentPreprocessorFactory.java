@@ -1,12 +1,12 @@
 package com.dreamcloud.esa.documentPreprocessor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class DocumentPreprocessorFactory {
     protected List<String> stanfordPosTags;
 
     public DocumentPreprocessorFactory() {
-
     }
 
     public DocumentPreprocessor getPreprocessor(String type) {

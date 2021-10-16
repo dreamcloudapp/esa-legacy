@@ -43,7 +43,7 @@ public class PValueCalculator {
                 WordSimilarity wordSim = new WordSimilarity();
                 wordSim.word1 = wordSimParts[0];
                 wordSim.word2 = wordSimParts[1];
-                wordSim.similarity = Double.parseDouble(wordSimParts[2]);
+                wordSim.similarity = Double.parseDouble(wordSimParts[2]) / 10.0;
                 humanSimilarityList.add(wordSim);
             }
             line = reader.readLine();

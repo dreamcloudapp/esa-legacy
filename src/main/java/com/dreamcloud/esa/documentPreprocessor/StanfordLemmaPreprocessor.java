@@ -53,6 +53,6 @@ public class StanfordLemmaPreprocessor implements DocumentPreprocessor {
     }
 
     public String getInfo() {
-        return this.getClass().getSimpleName() + " (" + String.join("-", stanfordPosTags) + ")";
+        return this.getClass().getSimpleName() + (stanfordPosTags != null ? " (" + String.join("-", stanfordPosTags) + ")" : "");
     }
 }

@@ -251,7 +251,9 @@ public class Main {
                 for(String preprocessorArgument: preprocessorArguments) {
                     if ("stanford-lemma".equals(preprocessorArgument)) {
                         stanfordLemmasFound = true;
-                        preprocessorFactory.setStanfordPosTags(Arrays.asList(stanfordPosTags));
+                        if (stanfordPosTags != null) {
+                            preprocessorFactory.setStanfordPosTags(Arrays.asList(stanfordPosTags));
+                        }
                     }
                     preprocessors.add(preprocessorFactory.getPreprocessor(preprocessorArgument));
                 }
@@ -338,9 +340,9 @@ public class Main {
                 SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
                 PValueCalculator calculator = new PValueCalculator();
                 System.out.println("Calculating P-value using Spearman correlation...");
-                System.out.println("-----------------------------.");
+                System.out.println("------------------------------");
                 System.out.println("p-value:\t" + calculator.getSpearmanCorrelation(similarityTool));
-                System.out.println("-----------------------------.");
+                System.out.println("------------------------------");
             }
 
             //Debug tokens

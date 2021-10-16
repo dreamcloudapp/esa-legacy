@@ -46,7 +46,7 @@ public class StopWordRepository {
         String line = reader.readLine();
         while (line != null) {
             if (!"".equals(line)) {
-                stopWords.add(line);
+                stopWords.add(line.toLowerCase());
             }
             line = reader.readLine();
         }
