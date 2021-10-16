@@ -3,27 +3,18 @@ package com.dreamcloud.esa.indexer;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.NumberFormat;
-import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
-import com.dreamcloud.esa.analyzer.AnalyzerFactory;
-import edu.stanford.nlp.ling.CoreLabel;
-import edu.stanford.nlp.pipeline.CoreDocument;
-import edu.stanford.nlp.pipeline.StanfordCoreNLP;
-import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.*;
-import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.store.Directory;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
@@ -58,7 +49,7 @@ public class DreamIndexer extends DefaultHandler implements AutoCloseable, Index
     }
 
     public void index(File file) throws IOException {
-        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(options.analyzer);
+        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(options.analyzerFactory.getAnalyzer());
         indexWriter = new IndexWriter(options.indexDirectory, indexWriterConfig);
 
         try {

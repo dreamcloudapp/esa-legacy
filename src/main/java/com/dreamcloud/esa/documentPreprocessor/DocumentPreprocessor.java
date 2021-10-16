@@ -6,4 +6,5 @@ import java.io.IOException;
 
 public interface DocumentPreprocessor {
     String process(String document) throws Exception;
+    String getInfo();
 }

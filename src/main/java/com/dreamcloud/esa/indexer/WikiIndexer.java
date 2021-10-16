@@ -64,7 +64,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     private String mode;
     Pattern pat;
     IndexWriter indexWriter;
-    Analyzer linkAnalyzer;
+    Analyzer analyzer;
 
     String[] indexTitles;
     MutableObjectIntMap<String> incomingLinkMap = ObjectIntMaps.mutable.empty();
@@ -95,13 +95,14 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
         wikiTitle = null;
     }
 
-    public void analyze(File file) {
+    protected void analyze(File file) {
+        System.out.println("analysis required: " + (this.requiresAnalysis() ? "true" : "false"));
         if (this.requiresAnalysis()) {
             this.indexTitles = new String[options.maximumDocumentCount];
             reset();
             executorService = Executors.newFixedThreadPool(options.threadCount);
 
-           linkAnalyzer = new WikiLinkAnalyzer();
+           analyzer = new WikiLinkAnalyzer();
 
             mode = "analyze";
             parseXmlDump(file);
@@ -118,7 +119,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
             }
 
             System.gc();
-
+            analyzer.close();
             numAnalyzed = numTotal;
 
             System.out.println("----------------------------------------");
@@ -135,7 +136,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
 
         reset();
         executorService = Executors.newFixedThreadPool(options.threadCount);
-        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(options.analyzer);
+        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(options.analyzerFactory.getAnalyzer());
         indexWriter = new IndexWriter(options.indexDirectory, indexWriterConfig);
         mode = "index";
         parseXmlDump(file);
@@ -227,7 +228,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     }
 
 
-    void processAnalysisQueue(Analyzer analyzer) {
+    void processAnalysisQueue() {
         //Spawn up THREAD_COUNT threads and give each BATCH_SIZE articles
         ArrayList<Callable<Vector<WikipediaArticle>>> processors = new ArrayList<>();
         for (int i=0; i<options.threadCount && (i * options.batchSize) < queueSize; i++) {
@@ -235,7 +236,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
             for (int j = i * options.batchSize; j<(((i+1) * options.batchSize)) && j<queueSize; j++) {
                 articles.add(fixedQueue[j]);
             }
-            processors.add(() -> this.analyzeArticles(analyzer, articles));
+            processors.add(() -> this.analyzeArticles(articles));
         }
 
         //Wait on all threads and then processes the results
@@ -246,21 +247,16 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
                     Vector<WikipediaArticle> articles = future.get();
                     for (WikipediaArticle article: articles) {
                         //If the article is valid for indexing, map it's links
-                        if (this.requiresAnalysis() && !article.canIndex(options)) {
+                        if (!article.canIndex(options)) {
                             continue;
-                        }
-                        if (this.requiresAnalysis()) {
-                            if (!article.canIndex(options)) {
-                                continue;
-                            } else if(options.minimumIncomingLinks > 0) {
-                                indexTitles[article.index] = article.analysis.parsedTitle;
-                                for (String link: article.getOutgoingLinks()) {
-                                    if (incomingLinkMap.containsKey(link)) {
-                                        int count = incomingLinkMap.get(link);
-                                        incomingLinkMap.put(link, count + 1);
-                                    } else {
-                                        incomingLinkMap.put(link, 1);
-                                    }
+                        } else if(options.minimumIncomingLinks > 0) {
+                            indexTitles[article.index] = article.analysis.parsedTitle;
+                            for (String link: article.getOutgoingLinks()) {
+                                if (incomingLinkMap.containsKey(link)) {
+                                    int count = incomingLinkMap.get(link);
+                                    incomingLinkMap.put(link, count + 1);
+                                } else {
+                                    incomingLinkMap.put(link, 1);
                                 }
                             }
                         }
@@ -274,7 +270,8 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
         }
     }
 
-    Vector<WikipediaArticle> analyzeArticles(Analyzer analyzer, Vector<WikipediaArticle> articles) throws IOException {
+    Vector<WikipediaArticle> analyzeArticles(Vector<WikipediaArticle> articles) throws IOException {
+        System.out.println("analyzing articles...");
         for (WikipediaArticle article: articles) {
             TokenStream tokenStream = analyzer.tokenStream(TEXT_FIELD, "[[" + article.title + "]] " + article.text);
             CharTermAttribute termAttribute = tokenStream.addAttribute(CharTermAttribute.class);
@@ -305,7 +302,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
 
     void processQueue() {
         if ("analyze".equals(mode)) {
-            this.processAnalysisQueue(linkAnalyzer);
+            this.processAnalysisQueue();
         } else {
             this.processIndexQueue();
         }
@@ -383,5 +380,4 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     public void close() throws IOException {
         indexWriter.close();
     }
-
 }

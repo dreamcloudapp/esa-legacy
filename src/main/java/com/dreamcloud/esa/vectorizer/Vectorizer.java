@@ -40,9 +40,13 @@ public class Vectorizer implements AutoCloseable, TextVectorizer {
             text = options.preprocessor.process(text);
         }
 
+        System.out.println("vectorizing text: " + text);
+
         Query query = queryParser.parse(text);
         TopDocs td = searcher.search(query, options.documentLimit);
-        return new ConceptVector(td, indexReader);
+        ConceptVector vector = new ConceptVector(td, indexReader);
+        System.out.println("found " + vector.getConceptWeights().size() + " concepts");
+        return vector;
     }
 
     public void close() {

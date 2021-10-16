@@ -49,4 +49,8 @@ public class StanfordLemmaPreprocessor implements DocumentPreprocessor {
         }
         return lemmatizedText.toString();
     }
+
+    public String getInfo() {
+        return this.getClass().getSimpleName() + " (" + String.join("-", stanfordPosTags) + ")";
+    }
 }

@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import com.dreamcloud.esa.analyzer.AnalyzerFactory;
+import com.dreamcloud.esa.analyzer.CommandLineAnalyzerFactory;
 import com.dreamcloud.esa.documentPreprocessor.ChainedPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessorFactory;
@@ -205,7 +205,7 @@ public class Main {
             EsaOptions esaOptions = new EsaOptions();
 
             if (!nonEmpty(docType)) {
-                docType = "article";
+                docType = "wiki";
             }
             esaOptions.documentType = DocumentType.valueOfLabel(docType);
             if ( esaOptions.documentType == null) {
@@ -262,20 +262,23 @@ public class Main {
                 esaOptions.preprocessor = new NullPreprocessor();
             }
 
-            AnalyzerFactory analyzerFactory = new AnalyzerFactory(esaOptions);
-            esaOptions.analyzer = analyzerFactory.getAnalyzer(cmd);
+            CommandLineAnalyzerFactory analyzerFactory = new CommandLineAnalyzerFactory(cmd, esaOptions);
+            esaOptions.analyzer = analyzerFactory.getAnalyzer();
 
             //Load indexer options from command line and ESA options
             WikiIndexerOptions indexerOptions = new WikiIndexerOptions();
             loadIndexerOptions(indexerOptions, esaOptions, cmd);
             indexerOptions.preprocessor = esaOptions.preprocessor;
-            indexerOptions.analyzer = esaOptions.analyzer;
+            indexerOptions.analyzerFactory = analyzerFactory;
             indexerOptions.indexDirectory = FSDirectory.open(esaOptions.indexPath);
+            indexerOptions.displayInfo();
 
             String server = cmd.getOptionValue("server");
             String debug = cmd.getOptionValue("debug");
             String index = cmd.getOptionValue("index");
             esaOptions.indexFile = index;
+
+            esaOptions.displayInfo();
 
             //Get the unixtime
             long startTime = Instant.now().getEpochSecond();

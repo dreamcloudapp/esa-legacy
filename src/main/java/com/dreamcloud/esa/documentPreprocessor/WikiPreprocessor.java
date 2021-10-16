@@ -29,4 +29,8 @@ public class WikiPreprocessor implements DocumentPreprocessor {
         tokenStream.close();
         return analyzedText.toString();
     }
+
+    public String getInfo() {
+        return this.getClass().getSimpleName();
+    }
 }
