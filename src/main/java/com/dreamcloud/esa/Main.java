@@ -22,7 +22,6 @@ import com.dreamcloud.esa.tools.*;
 import com.dreamcloud.esa.vectorizer.ConceptVector;
 import com.dreamcloud.esa.vectorizer.TextVectorizer;
 import com.dreamcloud.esa.vectorizer.Vectorizer;
-import org.apache.commons.math.stat.correlation.SpearmansCorrelation;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
@@ -167,7 +166,7 @@ public class Main {
         options.addOption(stanfordPosOption);
 
         //Spearman correlations to get tool p-value
-        Option spearmanOption = new Option(null, "spearman", false, "Calculates Spearman correlations to get the p-value of the tool");
+        Option spearmanOption = new Option(null, "spearman", true, "correlation file / Calculates Spearman correlations to get the p-value of the tool");
         spearmanOption.setRequired(false);
         options.addOption(spearmanOption);
 
@@ -340,9 +339,13 @@ public class Main {
             }
 
             else if (cmd.hasOption("spearman")) {
+                String spearman = cmd.getOptionValue("spearman");
+                if ("en-wordsim353".equals(spearman)) {
+                    spearman = "./src/data/en-wordsim353.txt";
+                }
                 TextVectorizer textVectorizer = new Vectorizer(esaOptions);
                 SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
-                PValueCalculator calculator = new PValueCalculator();
+                PValueCalculator calculator = new PValueCalculator(spearman);
                 System.out.println("Calculating P-value using Spearman correlation...");
                 System.out.println("------------------------------");
                 System.out.println("p-value:\t" + calculator.getSpearmanCorrelation(similarityTool));
