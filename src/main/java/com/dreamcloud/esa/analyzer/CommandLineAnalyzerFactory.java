@@ -59,6 +59,11 @@ public class CommandLineAnalyzerFactory implements AnalyzerFactory {
             options.porterStemmerFilterDepth = Integer.parseInt(stemmerDepth);
         }
 
+        String minimumWordLength = cmd.getOptionValue("min-word-length");
+        if (nonEmpty(minimumWordLength)) {
+            options.minimumWordLength = Integer.parseInt(minimumWordLength);
+        }
+
         switch(esaOptions.documentType) {
             case WIKI:
                 //You don't get to customize these if you are coming from command line

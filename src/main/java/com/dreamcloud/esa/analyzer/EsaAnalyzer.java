@@ -10,6 +10,7 @@ import org.apache.lucene.analysis.core.TypeTokenFilter;
 import org.apache.lucene.analysis.en.EnglishMinimalStemFilter;
 import org.apache.lucene.analysis.en.PorterStemFilter;
 import org.apache.lucene.analysis.miscellaneous.ASCIIFoldingFilter;
+import org.apache.lucene.analysis.miscellaneous.LengthFilter;
 import org.apache.lucene.analysis.standard.ClassicFilter;
 
 import java.io.IOException;
@@ -39,6 +40,9 @@ public class EsaAnalyzer extends Analyzer {
         }
         if (options.singularCaseFilter) {
             result = new EnglishMinimalStemFilter(result);
+        }
+        if (options.minimumWordLength > 0) {
+            result = new LengthFilter(result, options.minimumWordLength, 1000);
         }
         if (options.dictionaryRepository != null) {
             result = new DictionaryFilter(result, options.dictionaryRepository);

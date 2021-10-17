@@ -12,6 +12,7 @@ import java.util.Set;
 public class AnalyzerOptions {
     public boolean porterStemmerFilter = false;
     public int porterStemmerFilterDepth = 1;
+    public int minimumWordLength = 0;
     public boolean lowerCaseFilter = false;
     public boolean classicFilter = false;
     public boolean asciiFoldingFilter = false;

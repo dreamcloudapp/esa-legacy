@@ -151,6 +151,10 @@ public class Main {
         stemmerDepthOption.setRequired(false);
         options.addOption(stemmerDepthOption);
 
+        Option minWordLengthOption = new Option(null, "min-word-length", true, "int / The minimum number of characters for a word to be indexed");
+        minWordLengthOption.setRequired(false);
+        options.addOption(minWordLengthOption);
+
         //Preprocessor options
         Option preprocessorOption = new Option(null, "preprocessor", true, "preprocessor [preprocessor2 ...] / The preprocessors to apply to input and corpus texts.");
         preprocessorOption.setRequired(false);
