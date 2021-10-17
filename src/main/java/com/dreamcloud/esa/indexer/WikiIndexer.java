@@ -1,11 +1,7 @@
 package com.dreamcloud.esa.indexer;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
 import java.util.*;
 import java.util.concurrent.*;
@@ -34,6 +30,7 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.eclipse.collections.api.map.primitive.MutableObjectIntMap;
 import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
 import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 import java.util.concurrent.ExecutorService;
@@ -171,7 +168,10 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
             InputStream wikiInputStream = new FileInputStream(file);
             InputStream bufferedInputStream = new BufferedInputStream(wikiInputStream);
             InputStream bzipInputStream = new BZip2CompressorInputStream(bufferedInputStream, true);
-            saxParser.parse(bzipInputStream, this);
+            Reader reader = new InputStreamReader(bzipInputStream, StandardCharsets.UTF_8);
+            InputSource is = new InputSource(reader);
+            is.setEncoding("UTF-8");
+            saxParser.parse(is, this);
             bzipInputStream.close();
             bufferedInputStream.close();
             wikiInputStream.close();
