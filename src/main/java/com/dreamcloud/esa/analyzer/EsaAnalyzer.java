@@ -1,6 +1,6 @@
 package com.dreamcloud.esa.analyzer;
 
-import com.dreamcloud.esa.DictionaryFilter;
+import com.dreamcloud.esa.analyzer.filter.DictionaryFilter;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.LowerCaseFilter;
 import org.apache.lucene.analysis.core.StopFilter;

@@ -64,6 +64,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
 
     String[] indexTitles;
     MutableObjectIntMap<String> incomingLinkMap = ObjectIntMaps.mutable.empty();
+    MutableObjectIntMap<String> rareWordsMap = ObjectIntMaps.mutable.empty();
     WikiIndexerOptions options;
 
     public WikiIndexer(WikiIndexerOptions options) {
@@ -83,7 +84,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     }
 
     public boolean requiresAnalysis() {
-        return this.options.maximumTermCount > 0 || this.options.minimumTermCount > 0 || this.options.minimumIncomingLinks > 0 || this.options.minimumOutgoingLinks > 0;
+        return this.options.maximumTermCount > 0 || this.options.minimumTermCount > 0 || this.options.minimumIncomingLinks > 0 || this.options.minimumOutgoingLinks > 0 || this.options.rareWordThreshold > 0;
     }
 
     void reset() {
@@ -101,7 +102,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
             this.indexTitles = new String[options.maximumDocumentCount];
             reset();
             executorService = Executors.newFixedThreadPool(options.threadCount);
-
+            options.analyzerFactory.getAnalyzerOptions();
            analyzer = new WikiLinkAnalyzer();
 
             mode = "analyze";

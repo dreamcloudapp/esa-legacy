@@ -1,10 +1,12 @@
-package com.dreamcloud.esa;
+package com.dreamcloud.esa.analyzer.filter;
 
+import com.dreamcloud.esa.DictionaryRepository;
 import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.FilteringTokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import java.io.*;
+import java.util.Locale;
 
 /**
  * Takes a dictionary of words (one per line) and uses it to filter
@@ -12,32 +14,10 @@ import java.io.*;
  */
 public class DictionaryFilter extends FilteringTokenFilter {
     DictionaryRepository repository;
-    Boolean ignoreCase;
     private final CharTermAttribute termAtt = this.addAttribute(CharTermAttribute.class);
-
-    /**
-     * Construct a token stream filtering the given input.
-     *
-     * @param dictionary
-     * @param input
-     * @param ignoreCase
-     */
-    public DictionaryFilter(TokenStream input, DictionaryRepository repository, Boolean ignoreCase) {
-        super(input);
-        this.repository = repository;
-        this.ignoreCase = ignoreCase;
-    }
-
-    /**
-     * Construct a token stream filtering the given input.
-     *
-     * @param dictionary
-     * @param input
-     */
     public DictionaryFilter(TokenStream input, DictionaryRepository repository) {
         super(input);
         this.repository = repository;
-        this.ignoreCase = true;
     }
 
     protected boolean accept() throws IOException {
@@ -48,10 +28,7 @@ public class DictionaryFilter extends FilteringTokenFilter {
         for (int i=0; i<termAtt.length(); i++) {
             sb.append(buffer[i]);
         }
-        String word = sb.toString();
-        if (ignoreCase) {
-            word = word.toLowerCase();
-        }
+        String word = sb.toString().toLowerCase();
         return words.contains(word);
     }
 }

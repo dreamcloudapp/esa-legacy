@@ -109,6 +109,10 @@ public class Main {
         maximumDocumentCountOption.setRequired(false);
         options.addOption(maximumDocumentCountOption);
 
+        Option rareWordThresholdOption = new Option(null, "rare-word-threshold", true, "int / (indexing)\tThe occurrence threshold at which words will be excluded because they are too rare.");
+        rareWordThresholdOption.setRequired(false);
+        options.addOption(rareWordThresholdOption);
+
         //Wiki specific indexing options
         Option minimumIncomingLinksOption = new Option(null, "min-incoming-links", true, "int / (indexing:wiki)\tThe minimum number of incoming links.");
         minimumIncomingLinksOption.setRequired(false);
@@ -273,7 +277,7 @@ public class Main {
 
             //Load indexer options from command line and ESA options
             WikiIndexerOptions indexerOptions = new WikiIndexerOptions();
-            loadIndexerOptions(indexerOptions, esaOptions, cmd);
+            loadIndexerOptions(indexerOptions, cmd);
             indexerOptions.preprocessor = esaOptions.preprocessor;
             indexerOptions.analyzerFactory = analyzerFactory;
             indexerOptions.indexDirectory = FSDirectory.open(esaOptions.indexPath);
@@ -424,7 +428,7 @@ public class Main {
         }
     }
 
-    private static void loadIndexerOptions(WikiIndexerOptions indexerOptions, EsaOptions esaOptions, CommandLine cmd) {
+    private static void loadIndexerOptions(WikiIndexerOptions indexerOptions, CommandLine cmd) {
         //Indexer Options
         String minimumTermCount = cmd.getOptionValue("min-terms");
         if (nonEmpty(minimumTermCount)) {
@@ -449,6 +453,11 @@ public class Main {
         String maximumDocumentCount = cmd.getOptionValue("max-docs");
         if (nonEmpty(maximumDocumentCount)) {
             indexerOptions.maximumDocumentCount = Integer.parseInt(maximumDocumentCount);
+        }
+
+        String rareWordThreshold = cmd.getOptionValue("rare-word-threshold");
+        if (nonEmpty(rareWordThreshold)) {
+            indexerOptions.rareWordThreshold = Integer.parseInt(rareWordThreshold);
         }
 
         //Indexer Options (Wiki-specific)

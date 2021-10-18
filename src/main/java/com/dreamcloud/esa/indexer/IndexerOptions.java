@@ -8,6 +8,7 @@ public class IndexerOptions {
     public Directory indexDirectory;
     public int minimumTermCount = 0;
     public int maximumTermCount = 0;
+    public int rareWordThreshold;
     public CommandLineAnalyzerFactory analyzerFactory;
     public DocumentPreprocessor preprocessor;
     public int threadCount = 1;
@@ -20,6 +21,7 @@ public class IndexerOptions {
         System.out.println("Index Directory:\t" + indexDirectory.toString());
         System.out.println("Minimum Terms:\t\t" + minimumTermCount);
         System.out.println("Maximum Terms:\t\t" + maximumTermCount);
+        System.out.println("Rare Word Threshold:\t" + rareWordThreshold);
         System.out.println("Preprocessors:\t\t[" + (preprocessor != null ? preprocessor.getInfo() : "") + "]");
         System.out.println("Thread Count:\t\t" + threadCount);
         System.out.println("Batch Size:\t\t" + batchSize);
