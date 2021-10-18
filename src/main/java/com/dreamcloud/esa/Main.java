@@ -347,9 +347,9 @@ public class Main {
                 SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
                 PValueCalculator calculator = new PValueCalculator(spearman);
                 System.out.println("Calculating P-value using Spearman correlation...");
-                System.out.println("------------------------------");
+                System.out.println("----------------------------------------");
                 System.out.println("p-value:\t" + calculator.getSpearmanCorrelation(similarityTool));
-                System.out.println("------------------------------");
+                System.out.println("----------------------------------------");
             }
 
             //Debug tokens
