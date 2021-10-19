@@ -13,6 +13,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import com.dreamcloud.esa.analyzer.AnalyzerOptions;
 import com.dreamcloud.esa.analyzer.WikiLinkAnalyzer;
 import com.dreamcloud.esa.analyzer.WikipediaArticle;
 import com.dreamcloud.esa.analyzer.WikipediaArticleAnalysis;
@@ -102,7 +103,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
             reset();
             executorService = Executors.newFixedThreadPool(options.threadCount);
 
-           analyzer = new WikiLinkAnalyzer();
+           analyzer = new WikiLinkAnalyzer(new AnalyzerOptions());
 
             mode = "analyze";
             parseXmlDump(file);
@@ -171,6 +172,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
             Reader reader = new InputStreamReader(bzipInputStream, StandardCharsets.UTF_8);
             InputSource is = new InputSource(reader);
             is.setEncoding("UTF-8");
+            reader.close();
             saxParser.parse(is, this);
             bzipInputStream.close();
             bufferedInputStream.close();

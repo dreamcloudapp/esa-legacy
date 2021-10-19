@@ -9,9 +9,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 
 import com.dreamcloud.esa.analyzer.CommandLineAnalyzerFactory;
-import com.dreamcloud.esa.annoatation.StripperOptions;
-import com.dreamcloud.esa.annoatation.WikiStripper;
-import com.dreamcloud.esa.annoatation.WikiTitleMapper;
+import com.dreamcloud.esa.annoatation.*;
 import com.dreamcloud.esa.debug.ArticleFinder;
 import com.dreamcloud.esa.debug.DebugArticle;
 import com.dreamcloud.esa.documentPreprocessor.ChainedPreprocessor;
@@ -196,6 +194,11 @@ public class Main {
         titleMapOption.setArgs(2);
         options.addOption(titleMapOption);
 
+        Option annotationOption = new Option(null, "annotate", true, "wikiInputFile titleMapFile outputFile / Creates an annotated XML file (link and token count info)");
+        annotationOption.setRequired(false);
+        annotationOption.setArgs(3);
+        options.addOption(annotationOption);
+
         //Indexing
         Option indexOption = new Option(null, "index", true, "input file / Indexes a corpus of documents.");
         indexOption.setRequired(false);
@@ -225,6 +228,7 @@ public class Main {
             String[] stripArgs = cmd.getOptionValues("strip");
             String[] titleMapArgs = cmd.getOptionValues("map-titles");
             String[] findArticleArgs = cmd.getOptionValues("find-article");
+            String[] annotateArgs = cmd.getOptionValues("annotate");
             String docType = cmd.getOptionValue("doctype");
             String stopWords = cmd.getOptionValue("stopwords");
             String dictionary = cmd.getOptionValue("dictionary");
@@ -458,6 +462,19 @@ public class Main {
                 File outputFile = new File(titleMapArgs[1]);
                 WikiTitleMapper titleMapper = new WikiTitleMapper(inputFile);
                 titleMapper.mapToXml(outputFile);
+            }
+
+            else if (hasLength(annotateArgs, 3)) {
+                File strippedFile = new File(annotateArgs[0]);
+                File titleMapFile = new File(annotateArgs[1]);
+                File outputFile = new File(annotateArgs[2]);
+                AnnotatorOptions annotatorOptions = new AnnotatorOptions();
+                annotatorOptions.minimumIncomingLinks = indexerOptions.minimumIncomingLinks;
+                annotatorOptions.minimumOutgoingLinks = indexerOptions.minimumOutgoingLinks;
+                annotatorOptions.minimumTermCount = indexerOptions.minimumTermCount;
+                annotatorOptions.stopWordRepository = esaOptions.stopWordRepository;
+                WikiAnnotator annotator = new WikiAnnotator(annotatorOptions);
+                annotator.annotate(strippedFile, titleMapFile, outputFile);
             }
 
             //Indexing

@@ -1,6 +1,6 @@
 package com.dreamcloud.esa.indexer;
 
-import com.dreamcloud.esa.analyzer.CommandLineAnalyzerFactory;
+import com.dreamcloud.esa.analyzer.AnalyzerFactory;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessor;
 import org.apache.lucene.store.Directory;
 
@@ -8,7 +8,7 @@ public class IndexerOptions {
     public Directory indexDirectory;
     public int minimumTermCount = 0;
     public int maximumTermCount = 0;
-    public CommandLineAnalyzerFactory analyzerFactory;
+    public AnalyzerFactory analyzerFactory;
     public DocumentPreprocessor preprocessor;
     public int threadCount = 1;
     public int batchSize = 1;
