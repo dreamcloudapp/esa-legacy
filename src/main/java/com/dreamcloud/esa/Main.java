@@ -11,6 +11,9 @@ import java.util.Iterator;
 import com.dreamcloud.esa.analyzer.CommandLineAnalyzerFactory;
 import com.dreamcloud.esa.annoatation.StripperOptions;
 import com.dreamcloud.esa.annoatation.WikiStripper;
+import com.dreamcloud.esa.annoatation.WikiTitleMapper;
+import com.dreamcloud.esa.debug.ArticleFinder;
+import com.dreamcloud.esa.debug.DebugArticle;
 import com.dreamcloud.esa.documentPreprocessor.ChainedPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessorFactory;
@@ -173,6 +176,11 @@ public class Main {
         options.addOption(spearmanOption);
 
         //Debugging
+        Option findArticleOption = new Option(null, "find-article", true, "inputFile articleTitle|index / Displays info about an article searched for via title or numeric index");
+        findArticleOption.setRequired(false);
+        findArticleOption.setArgs(2);
+        options.addOption(findArticleOption);
+
         Option debugOption = new Option(null, "debug", true, "input.txt / Shows the tokens for a text.");
         debugOption.setRequired(false);
         options.addOption(debugOption);
@@ -182,6 +190,11 @@ public class Main {
         stripOption.setRequired(false);
         stripOption.setArgs(2);
         options.addOption(stripOption);
+
+        Option titleMapOption = new Option(null, "map-titles", true, "inputFile outputFile / Creates a mapping of titles mapped to their redirects.");
+        titleMapOption.setRequired(false);
+        titleMapOption.setArgs(2);
+        options.addOption(titleMapOption);
 
         //Indexing
         Option indexOption = new Option(null, "index", true, "input file / Indexes a corpus of documents.");
@@ -210,6 +223,8 @@ public class Main {
             String[] relevanceArgs = cmd.getOptionValues("relevance");
             String[] weightArgs = cmd.getOptionValues("weight");
             String[] stripArgs = cmd.getOptionValues("strip");
+            String[] titleMapArgs = cmd.getOptionValues("map-titles");
+            String[] findArticleArgs = cmd.getOptionValues("find-article");
             String docType = cmd.getOptionValue("doctype");
             String stopWords = cmd.getOptionValue("stopwords");
             String dictionary = cmd.getOptionValue("dictionary");
@@ -361,6 +376,25 @@ public class Main {
                 System.out.println("----------------------------------------");
             }
 
+            //Debugging
+
+            //Display article text
+            else if(hasLength(findArticleArgs, 2)) {
+                ArticleFinder af = new ArticleFinder(new File(findArticleArgs[0]));
+                System.out.println("Article");
+                System.out.println("----------------------------------------");
+                DebugArticle article = af.find(findArticleArgs[1]);
+                if (article != null) {
+                    System.out.println("index:\t" + article.index);
+                    System.out.println("title:\t" + article.title);
+                    System.out.println("string(" + article.text.length() + ")");
+                    System.out.println(article.text);
+                } else {
+                    System.out.println("article not found");
+                }
+                System.out.println("----------------------------------------");
+            }
+
             //Debug tokens
             else if(nonEmpty(debug)) {
                 String sourceText = readInputFile(debug, "utf-8");
@@ -410,13 +444,20 @@ public class Main {
             }
 
             //Annotating
-            if(hasLength(stripArgs, 2)) {
+            else if(hasLength(stripArgs, 2)) {
                 File inputFile = new File(stripArgs[0]);
                 File outputFile = new File(stripArgs[1]);
                 StripperOptions stripperOptions = new StripperOptions();
                 stripperOptions.titleExclusionRegExList = indexerOptions.titleExclusionRegExList;;
                 WikiStripper stripper = new WikiStripper(stripperOptions);
                 stripper.strip(inputFile, outputFile);
+            }
+
+            else if(hasLength(titleMapArgs, 2)) {
+                File inputFile = new File(titleMapArgs[0]);
+                File outputFile = new File(titleMapArgs[1]);
+                WikiTitleMapper titleMapper = new WikiTitleMapper(inputFile);
+                titleMapper.mapToXml(outputFile);
             }
 
             //Indexing

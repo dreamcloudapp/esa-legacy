@@ -16,26 +16,25 @@ import javax.xml.stream.XMLStreamWriter;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
-import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+//#REDIRECT [[Cat]]
 /**
- * Takes a Wikimedia dump file and strips out all of the extra information.
- * It also applies basic title exclusions to reduce the file size.
- * Wikipedia redirect articles are further removed.
- *
- * Output structure is:
+ * Takes a Wikimedia dump file, and generates a mapping of normalized titles.
+ * This mapping will be written to an XML file in the following format:
  * <docs>
  *     <doc>
- *         <title>Cat</title>
- *         <text>Cats are small, furry, and cute mammals.</text>
+ *         <title>United States of America</title>
+ *         <redirect>United States</redirect>
  *     </doc>
  * </docs>
  */
-public class WikiStripper extends DefaultHandler {
-    protected String redirectRegex = "^#REDIRECT \\[\\[(.+)]]$";
-    protected Pattern redirectPattern;
+public class WikiTitleMapper extends DefaultHandler {
+    protected String redirectPattern = "^#REDIRECT \\[\\[(.+)]]$";
+    protected Pattern pattern;
+    protected File inputFile;
+
     protected final SAXParserFactory saxFactory;
     protected boolean inPage;
     protected boolean inPageTitle;
@@ -43,38 +42,41 @@ public class WikiStripper extends DefaultHandler {
     protected StringBuilder content = new StringBuilder();
     protected String title;
     protected int numRead = 0;
-    protected int numStripped = 0;
+    protected int numRedirects = 0;
     protected XMLStreamWriter xmlWriter;
-    ArrayList<Pattern> titleExclusionPatterns;
 
-    public WikiStripper(StripperOptions options) {
+    public WikiTitleMapper(File inputFile) {
+        this.inputFile = inputFile;
         saxFactory = SAXParserFactory.newInstance();
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);
         saxFactory.setXIncludeAware(true);
-
-        this.titleExclusionPatterns = new ArrayList<>();
-        if (options.titleExclusionRegExList != null) {
-            for(String titleExclusionRegEx: options.titleExclusionRegExList) {
-                this.titleExclusionPatterns.add(Pattern.compile(titleExclusionRegEx));
-            }
-        }
-        redirectPattern = Pattern.compile(redirectRegex);
+        pattern = Pattern.compile(redirectPattern);
     }
 
-    protected void reset() {
-        numRead = 0;
-    }
-
-    public void strip(File inputFile, File outputFile) throws IOException, ParserConfigurationException, SAXException, XMLStreamException {
-        reset();
-
-        //Prepare to write bzipped XML
+    public void mapToXml(File outputFile) throws IOException, XMLStreamException, ParserConfigurationException, SAXException {
         OutputStream outputStream = new FileOutputStream(outputFile);
         outputStream = new BufferedOutputStream(outputStream, 4096 * 4);
         outputStream = new BZip2CompressorOutputStream(outputStream);
         this.xmlWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(outputStream, "UTF-8");
 
+        this.writeDocumentBegin();
+        this.parse();
+        this.writeDocumentEnd();
+
+        xmlWriter.close();
+        outputStream.close();
+
+        System.out.println("----------------------------------------");
+        System.out.println("Articles Read:\t" + numRead);
+        System.out.println("Articles Redirected:\t" + numRedirects);
+        NumberFormat format = NumberFormat.getPercentInstance();
+        format.setMinimumFractionDigits(1);
+        System.out.println("Redirection Rate:\t" + format.format(((double) numRedirects) / ((double) numRead)));
+        System.out.println("----------------------------------------");
+    }
+
+    protected void parse() throws ParserConfigurationException, SAXException, IOException {
         SAXParser saxParser = saxFactory.newSAXParser();
         InputStream inputStream = new FileInputStream(inputFile);
         inputStream = new BufferedInputStream(inputStream);
@@ -82,25 +84,8 @@ public class WikiStripper extends DefaultHandler {
         Reader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
         InputSource is = new InputSource(reader);
         is.setEncoding("UTF-8");
-
-        //Begin the XML document
-        this.writeDocumentBegin();
-
         saxParser.parse(is, this);
         inputStream.close();
-
-        //End document
-        this.writeDocumentEnd();
-        outputStream.close();
-
-        //Show logs
-        System.out.println("----------------------------------------");
-        System.out.println("Articles Read:\t" + numRead);
-        System.out.println("Articles Stripped:\t" + numStripped);
-        NumberFormat format = NumberFormat.getPercentInstance();
-        format.setMinimumFractionDigits(1);
-        System.out.println("Strip Rate:\t" + format.format(((double) numStripped) / ((double) numRead)));
-        System.out.println("----------------------------------------");
     }
 
     public void startElement(String uri, String localName, String qName, Attributes attributes) {
@@ -123,34 +108,26 @@ public class WikiStripper extends DefaultHandler {
             numRead++;
 
             if (numRead % 1000 == 0) {
-                System.out.println("processed article\t[" + numStripped + " / " + numRead + "]");
+                System.out.println("processed article\t[" + numRedirects + " / " + numRead + "]");
             }
 
             inPageText = false;
 
-            //Exclude titles by regex
-            for (Pattern pattern: this.titleExclusionPatterns) {
-                Matcher matcher = pattern.matcher(title);
-                if (matcher.find()) {
-                    this.numStripped++;
-                    return;
-                }
-            }
-
-            //Exclude redirects
-            String text = content.toString();
-            Matcher matcher = redirectPattern.matcher(text);
+            String articleText = content.toString();
+            //Check to see if it's a redirection article
+            Matcher matcher = pattern.matcher(articleText);
             if (matcher.matches()) {
-                this.numStripped++;
-                return;
-            }
-
-            //Write to the file
-            try {
-                this.writeDocument(title, text);
-            } catch (XMLStreamException e) {
-                e.printStackTrace();
-                System.exit(1);
+                numRedirects++;
+                String redirectTitle = matcher.group(1);
+                if (redirectTitle != null) {
+                    //Write XML
+                    try {
+                        this.writeDocument(title, redirectTitle);
+                    } catch (XMLStreamException e) {
+                        e.printStackTrace();
+                        System.exit(1);
+                    }
+                }
             }
         } else if (inPage && "page".equals(localName)) {
             inPage = false;
@@ -161,25 +138,25 @@ public class WikiStripper extends DefaultHandler {
         content.append(ch, start, length);
     }
 
-    public void writeDocumentBegin() throws XMLStreamException {
+    protected void writeDocumentBegin() throws XMLStreamException {
         this.xmlWriter.writeStartDocument();
         xmlWriter.writeStartElement("docs");
     }
 
-    public void writeDocumentEnd() throws XMLStreamException {
+    protected void writeDocumentEnd() throws XMLStreamException {
         xmlWriter.writeEndElement();
         xmlWriter.writeEndDocument();
     }
 
-    public void writeDocument(String title, String text) throws XMLStreamException {
+    protected void writeDocument(String title, String redirect) throws XMLStreamException {
         xmlWriter.writeStartElement("doc");
 
         xmlWriter.writeStartElement("title");
         xmlWriter.writeCharacters(title);
         xmlWriter.writeEndElement();
 
-        xmlWriter.writeStartElement("text");
-        xmlWriter.writeCharacters(text);
+        xmlWriter.writeStartElement("redirect");
+        xmlWriter.writeCharacters(redirect);
         xmlWriter.writeEndElement();
 
         xmlWriter.writeEndElement();
