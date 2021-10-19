@@ -89,7 +89,7 @@ public class WikiStripper extends DefaultHandler {
 
         //Prepare to write bzipped XML
         OutputStream outputStream = new FileOutputStream(outputFile);
-        outputStream = new BufferedOutputStream(outputStream);
+        outputStream = new BufferedOutputStream(outputStream, 4096 * 4);
         outputStream = new BZip2CompressorOutputStream(outputStream);
         this.xmlWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(outputStream, "UTF-8");
 
@@ -109,6 +109,7 @@ public class WikiStripper extends DefaultHandler {
 
         //End document
         this.writeDocumentEnd();
+        outputStream.close();
 
         //Show logs
         System.out.println("----------------------------------------");

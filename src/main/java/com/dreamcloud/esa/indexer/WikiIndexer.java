@@ -185,7 +185,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
 
     @Override
     public void startElement(String uri, String localName, String qName, Attributes attributes) {
-        if ("page".equals(localName)) {
+        if ("doc".equals(localName)) {
             inPage = true;
         } else if (inPage && "title".equals(localName)) {
             inPageTitle = true;
