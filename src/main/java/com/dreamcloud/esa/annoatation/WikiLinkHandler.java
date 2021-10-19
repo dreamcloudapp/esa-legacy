@@ -28,6 +28,8 @@ public class WikiLinkHandler extends DefaultHandler {
     protected boolean inDocText;
     protected StringBuilder content = new StringBuilder();
     protected String title;
+    protected int numRead = 0;
+    protected int linksSkipped = 0;
 
     public WikiLinkHandler(Map<String, String> titleMap, Map<String, WikiAnnotation> annotations, Analyzer analyzer) {
         this.titleMap = titleMap;
@@ -50,8 +52,13 @@ public class WikiLinkHandler extends DefaultHandler {
     public void endElement(String uri, String localName, String qName) {
         if (inDoc && inDocTitle && "title".equals(localName)) {
             inDocTitle = false;
-            title = content.toString();
+            title = content.toString().replaceAll("[+\\-&|!(){}\\[\\]^\"~*?:;,/\\\\]+", " ").toLowerCase();
         } else if (inDoc && inDocText && "text".equals(localName)) {
+            numRead++;
+            if (numRead % 1000 == 0) {
+                System.out.println("annotated article\t[" + numRead + "]\t\"" + title + "\"");
+            }
+
             inDocText = false;
             String text = content.toString();
             Set<String> articleOutgoingLinks = new HashSet<>();
@@ -69,19 +76,26 @@ public class WikiLinkHandler extends DefaultHandler {
                     }
                     tokenCount++;
                     if (WikipediaTokenizer.INTERNAL_LINK.equals(typeAttribute.type())) {
-                        articleOutgoingLinks.add(getRedirectedTitle(termAttribute.toString()));
+                        String articleTitle = termAttribute.toString().toLowerCase();
+                        String redirectedTitle = getRedirectedTitle(articleTitle);
+                        if (redirectedTitle != null) {
+                            articleOutgoingLinks.add(redirectedTitle);
+                        } else {
+                            linksSkipped++;
+                            System.out.println("link skipped\t" + linksSkipped + "\t" + articleTitle);
+                        }
                     }
                 }
                 tokenStream.close();
 
                 //Handle outgoing links and token count
-                if (!annotations.containsKey(articleTitleToken)) {
+                if (!annotations.containsKey(title)) {
                     WikiAnnotation annotation = new WikiAnnotation();
                     annotation.tokens = tokenCount;
                     annotation.outgoingLinks = articleOutgoingLinks.size();
-                    annotations.put(articleTitleToken, annotation);
+                    annotations.put(title, annotation);
                 } else {
-                    WikiAnnotation annotation = annotations.get(articleTitleToken);
+                    WikiAnnotation annotation = annotations.get(title);
                     annotation.tokens = tokenCount;
                     annotation.outgoingLinks = articleOutgoingLinks.size();
                 }
@@ -107,7 +121,8 @@ public class WikiLinkHandler extends DefaultHandler {
     }
 
     protected String getRedirectedTitle(String title) {
-        return titleMap.getOrDefault(title, title);
+        title = title.replaceAll("[+\\-&|!(){}\\[\\]^\"~*?:;,/\\\\]+", " ").toLowerCase();
+        return titleMap.getOrDefault(title, null);
     }
 
     public void characters(char[] ch, int start, int length) {

@@ -103,7 +103,7 @@ public class WikiTitleMapper extends DefaultHandler {
     public void endElement(String uri, String localName, String qName) {
         if (inPage && inPageTitle && "title".equals(localName)) {
             inPageTitle = false;
-            title = content.toString();
+            title = content.toString().replaceAll("[+\\-&|!(){}\\[\\]^\"~*?:;,/\\\\]+", " ").toLowerCase();
         } else if (inPage && inPageText && "text".equals(localName)) {
             numRead++;
 
@@ -118,15 +118,19 @@ public class WikiTitleMapper extends DefaultHandler {
             Matcher matcher = pattern.matcher(articleText);
             if (matcher.matches()) {
                 numRedirects++;
-                String redirectTitle = matcher.group(1);
-                if (redirectTitle != null) {
-                    //Write XML
-                    try {
-                        this.writeDocument(title, redirectTitle);
-                    } catch (XMLStreamException e) {
-                        e.printStackTrace();
-                        System.exit(1);
-                    }
+                //Write XML
+                try {
+                    this.writeDocument(title, matcher.group(1).replaceAll("[+\\-&|!(){}\\[\\]^\"~*?:;,/\\\\]+", " ").toLowerCase());
+                } catch (XMLStreamException e) {
+                    e.printStackTrace();
+                    System.exit(1);
+                }
+            } else {
+                try {
+                    this.writeDocument(title, title);
+                } catch (XMLStreamException e) {
+                    e.printStackTrace();
+                    System.exit(1);
                 }
             }
         } else if (inPage && "page".equals(localName)) {
