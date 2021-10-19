@@ -9,6 +9,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 
 import com.dreamcloud.esa.analyzer.CommandLineAnalyzerFactory;
+import com.dreamcloud.esa.annoatation.StripperOptions;
+import com.dreamcloud.esa.annoatation.WikiStripper;
 import com.dreamcloud.esa.documentPreprocessor.ChainedPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessorFactory;
@@ -175,6 +177,12 @@ public class Main {
         debugOption.setRequired(false);
         options.addOption(debugOption);
 
+        //Annotating
+        Option stripOption = new Option(null, "strip", true, "inputFile outputFile / Creates a stripped-down version of a Wikimedia dump file");
+        stripOption.setRequired(false);
+        stripOption.setArgs(2);
+        options.addOption(stripOption);
+
         //Indexing
         Option indexOption = new Option(null, "index", true, "input file / Indexes a corpus of documents.");
         indexOption.setRequired(false);
@@ -201,6 +209,7 @@ public class Main {
             String[] topFile = cmd.getOptionValues("tf");
             String[] relevanceArgs = cmd.getOptionValues("relevance");
             String[] weightArgs = cmd.getOptionValues("weight");
+            String[] stripArgs = cmd.getOptionValues("strip");
             String docType = cmd.getOptionValue("doctype");
             String stopWords = cmd.getOptionValue("stopwords");
             String dictionary = cmd.getOptionValue("dictionary");
@@ -398,6 +407,16 @@ public class Main {
                 Term idTerm = new Term("id", documentId);
                 DocumentTermRelevance relevance = new DocumentTermRelevance(idTerm, docSearcher);
                 System.out.println("Relevance: " + relevance.score(term));
+            }
+
+            //Annotating
+            if(hasLength(stripArgs, 2)) {
+                File inputFile = new File(stripArgs[0]);
+                File outputFile = new File(stripArgs[1]);
+                StripperOptions stripperOptions = new StripperOptions();
+                stripperOptions.titleExclusionRegExList = indexerOptions.titleExclusionRegExList;;
+                WikiStripper stripper = new WikiStripper(stripperOptions);
+                stripper.strip(inputFile, outputFile);
             }
 
             //Indexing
