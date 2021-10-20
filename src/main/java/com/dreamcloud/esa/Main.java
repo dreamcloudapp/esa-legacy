@@ -473,7 +473,7 @@ public class Main {
                 annotatorOptions.minimumOutgoingLinks = indexerOptions.minimumOutgoingLinks;
                 annotatorOptions.minimumTermCount = indexerOptions.minimumTermCount;
                 annotatorOptions.stopWordRepository = esaOptions.stopWordRepository;
-                WikiAnnotator annotator = new WikiAnnotator(annotatorOptions);
+                WikiLinkAnnotator annotator = new WikiLinkAnnotator(annotatorOptions);
                 annotator.annotate(strippedFile, titleMapFile, outputFile);
             }
 

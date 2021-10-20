@@ -1,5 +1,6 @@
 package com.dreamcloud.esa.annoatation;
 
+import com.dreamcloud.esa.tools.StringUtils;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream;
 import org.xml.sax.Attributes;
@@ -123,7 +124,7 @@ public class WikiStripper extends DefaultHandler {
             numRead++;
 
             if (numRead % 1000 == 0) {
-                System.out.println("processed article\t[" + numStripped + " / " + numRead + "]");
+                System.out.println("processed article\t[" + numStripped + " | " + numRead + "]");
             }
 
             inPageText = false;
@@ -147,7 +148,7 @@ public class WikiStripper extends DefaultHandler {
 
             //Write to the file
             try {
-                this.writeDocument(title, text);
+                this.writeDocument(StringUtils.normalizeWikiTitle(title), text);
             } catch (XMLStreamException e) {
                 e.printStackTrace();
                 System.exit(1);

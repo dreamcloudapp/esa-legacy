@@ -1,5 +1,6 @@
 package com.dreamcloud.esa.annoatation;
 
+import com.dreamcloud.esa.tools.StringUtils;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream;
 import org.xml.sax.Attributes;
@@ -103,12 +104,12 @@ public class WikiTitleMapper extends DefaultHandler {
     public void endElement(String uri, String localName, String qName) {
         if (inPage && inPageTitle && "title".equals(localName)) {
             inPageTitle = false;
-            title = content.toString().replaceAll("[+\\-&|!(){}\\[\\]^\"~*?:;,/\\\\]+", " ").toLowerCase();
+            title =  StringUtils.normalizeWikiTitle(content.toString());
         } else if (inPage && inPageText && "text".equals(localName)) {
             numRead++;
 
             if (numRead % 1000 == 0) {
-                System.out.println("processed article\t[" + numRedirects + " / " + numRead + "]");
+                System.out.println("processed article\t[" + numRedirects + " | " + numRead + "]");
             }
 
             inPageText = false;
@@ -120,7 +121,7 @@ public class WikiTitleMapper extends DefaultHandler {
                 numRedirects++;
                 //Write XML
                 try {
-                    this.writeDocument(title, matcher.group(1).replaceAll("[+\\-&|!(){}\\[\\]^\"~*?:;,/\\\\]+", " ").toLowerCase());
+                    this.writeDocument(title, StringUtils.normalizeWikiTitle(matcher.group(1)));
                 } catch (XMLStreamException e) {
                     e.printStackTrace();
                     System.exit(1);

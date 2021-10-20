@@ -1,14 +1,10 @@
 package com.dreamcloud.esa.annoatation;
 
-import com.dreamcloud.esa.EsaOptions;
 import com.dreamcloud.esa.analyzer.AnalyzerOptions;
 import com.dreamcloud.esa.analyzer.EsaAnalyzer;
 import com.dreamcloud.esa.analyzer.WikiLinkAnalyzer;
-import com.dreamcloud.esa.indexer.WikiIndexerOptions;
 import com.dreamcloud.esa.tools.BZipFileReader;
 
-import org.eclipse.collections.api.map.primitive.MutableObjectIntMap;
-import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -20,6 +16,7 @@ import javax.xml.stream.XMLStreamWriter;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Takes a stripped dump file and a mapping of redirect titles
@@ -30,7 +27,6 @@ import java.util.Map;
  *         <text>Cats are small, furry, and cute mammals.</text>
  *         <incomingLinks>24</incomingLinks>
  *         <outgoingLinks>24</incomingLinks>
- *         <terms>1492</terms>
  *     </doc>
  * </docs>
  *
@@ -39,12 +35,10 @@ import java.util.Map;
  * This results in a smaller file size,
  * but makes the dump less versatile.
  */
-public class WikiAnnotator extends DefaultHandler {
+public class WikiLinkAnnotator extends DefaultHandler {
     protected AnnotatorOptions options;
     protected Map<String, String> titleMap = new HashMap<>();
-    protected Map<String, WikiAnnotation> annotations = new HashMap<>();
-    protected MutableObjectIntMap<String> incomingLinks = ObjectIntMaps.mutable.empty();
-    protected MutableObjectIntMap<String> outgoingLinks = ObjectIntMaps.mutable.empty();
+    protected Map<String, WikiLinkAnnotation> annotations = new HashMap<>();
 
     protected final SAXParserFactory saxFactory;
     protected boolean inDoc;
@@ -56,7 +50,7 @@ public class WikiAnnotator extends DefaultHandler {
     protected int numStripped = 0;
     protected XMLStreamWriter xmlWriter;
 
-    public WikiAnnotator(AnnotatorOptions options) {
+    public WikiLinkAnnotator(AnnotatorOptions options) {
         this.options = options;
         saxFactory = SAXParserFactory.newInstance();
         saxFactory.setNamespaceAware(true);
@@ -67,8 +61,6 @@ public class WikiAnnotator extends DefaultHandler {
     protected void reset() {
         annotations.clear();
         titleMap.clear();
-        incomingLinks.clear();
-        outgoingLinks.clear();
     }
 
     public void annotate(File strippedFile, File titleMapFile, File outputFile) throws IOException, ParserConfigurationException, SAXException {
@@ -77,6 +69,14 @@ public class WikiAnnotator extends DefaultHandler {
         System.out.println("Title Map: " + titleMap.size());
         analyzeDocuments(strippedFile);
         System.out.println("Annotations: " + annotations.size());
+        int totalIncomingLinks = 0;
+        int totalOutgoingLinks = 0;
+        for (WikiLinkAnnotation annotation: annotations.values()) {
+            totalIncomingLinks += annotation.incomingLinks;
+            totalOutgoingLinks += annotation.outgoingLinks;
+        }
+        System.out.println("Average Incoming Links: " + totalIncomingLinks / annotations.size());
+        System.out.println("Average Outgoing Links: " + totalOutgoingLinks / annotations.size());
     }
 
     private void analyzeDocuments(File strippedFile) throws IOException, SAXException, ParserConfigurationException {
