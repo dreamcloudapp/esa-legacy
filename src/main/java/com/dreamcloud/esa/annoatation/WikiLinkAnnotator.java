@@ -134,7 +134,7 @@ public class WikiLinkAnnotator extends DefaultHandler {
         System.out.println("Articles Written:\t" + (handler.numRead - handler.numSkipped));
         NumberFormat format = NumberFormat.getPercentInstance();
         format.setMinimumFractionDigits(1);
-        System.out.println("Skip Rate:\t" + handler.numSkipped / handler.numRead);
+        System.out.println("Skip Rate:\t" + format.format((double) handler.numSkipped / (double) handler.numRead));
         System.out.println("---------------------------------------");
     }
 }

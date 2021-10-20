@@ -126,11 +126,6 @@ public class Main {
         titleExclusionRegExListOption.setRequired(false);
         options.addOption(titleExclusionRegExListOption);
 
-        Option titleExclusionListOption = new Option(null, "title-exclusion", true, "string [string2 ...] / (indexing:wiki)\tA list of strings used to exclude Wiki article titles which contain them.");
-        titleExclusionListOption.setRequired(false);
-        titleExclusionListOption.setArgs(Option.UNLIMITED_VALUES);
-        options.addOption(titleExclusionListOption);
-
         //Analyzer options
         Option limitOption = new Option(null, "vector-limit", true, "int / The maximum number of entries in each document vector.");
         limitOption.setRequired(false);
@@ -540,11 +535,6 @@ public class Main {
         String[] titleExclusionRegExList = cmd.getOptionValues("title-exclusion-regex");
         if (hasLength(titleExclusionRegExList, 1)) {
             indexerOptions.titleExclusionRegExList.addAll(Arrays.asList(titleExclusionRegExList));
-        }
-
-        String[] titleExclusionList = cmd.getOptionValues("title-exclusion");
-        if (hasLength(titleExclusionList, 1)) {
-            indexerOptions.titleExclusionList.addAll(Arrays.asList(titleExclusionList));
         }
     }
 

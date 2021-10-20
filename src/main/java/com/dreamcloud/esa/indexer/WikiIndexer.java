@@ -213,15 +213,6 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
             String wikiTitleCopy = wikiTitle;
             String wikiText = content.toString();
 
-            //Exclude specific titles ("List of" or "discography" for example)
-            if (options.titleExclusionList != null) {
-                for(String titleExclusion: options.titleExclusionList) {
-                    if (wikiTitle.contains(titleExclusion)) {
-                        return;
-                    }
-                }
-            }
-
             //Exclude titles by regex
             for (Pattern pattern: this.titleExclusionPatterns) {
                 Matcher matcher = pattern.matcher(wikiTitle);
