@@ -1,8 +1,5 @@
 package com.dreamcloud.esa.annoatation;
 
-import com.dreamcloud.esa.analyzer.AnalyzerOptions;
-import com.dreamcloud.esa.analyzer.EsaAnalyzer;
-import com.dreamcloud.esa.analyzer.WikiLinkAnalyzer;
 import com.dreamcloud.esa.tools.BZipFileReader;
 
 import org.xml.sax.InputSource;
@@ -16,7 +13,6 @@ import javax.xml.stream.XMLStreamWriter;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 /**
  * Takes a stripped dump file and a mapping of redirect titles
@@ -67,16 +63,22 @@ public class WikiLinkAnnotator extends DefaultHandler {
         reset();
         buildTitleMap(titleMapFile);
         System.out.println("Title Map: " + titleMap.size());
+        System.out.println("---------------------------------------");
+        /*for(String title: titleMap.keySet()) {
+            String redirect = titleMap.get(title);
+            System.out.println(title + "\t->\t" + redirect);
+        }*/
+        System.out.println("---------------------------------------");
         analyzeDocuments(strippedFile);
         System.out.println("Annotations: " + annotations.size());
-        int totalIncomingLinks = 0;
-        int totalOutgoingLinks = 0;
+        float totalIncomingLinks = 0;
+        float totalOutgoingLinks = 0;
         for (WikiLinkAnnotation annotation: annotations.values()) {
             totalIncomingLinks += annotation.incomingLinks;
             totalOutgoingLinks += annotation.outgoingLinks;
         }
-        System.out.println("Average Incoming Links: " + totalIncomingLinks / annotations.size());
-        System.out.println("Average Outgoing Links: " + totalOutgoingLinks / annotations.size());
+        System.out.println("Average Incoming Links: " + (totalIncomingLinks / annotations.size()));
+        System.out.println("Average Outgoing Links: " + (totalOutgoingLinks / annotations.size()));
     }
 
     private void analyzeDocuments(File strippedFile) throws IOException, SAXException, ParserConfigurationException {
@@ -84,10 +86,10 @@ public class WikiLinkAnnotator extends DefaultHandler {
         Reader reader = BZipFileReader.getFileReader(strippedFile);
         InputSource is = new InputSource(reader);
         is.setEncoding("UTF-8");
-        AnalyzerOptions analyzerOptions = new AnalyzerOptions();
+        /*AnalyzerOptions analyzerOptions = new AnalyzerOptions();
         analyzerOptions.stopWordsRepository = options.stopWordRepository;
-        EsaAnalyzer analyzer = new WikiLinkAnalyzer(analyzerOptions);
-        saxParser.parse(is, new WikiLinkHandler(titleMap, annotations, analyzer));
+        EsaAnalyzer analyzer = new WikiLinkAnalyzer(analyzerOptions);*/
+        saxParser.parse(is, new WikiLinkHandler(titleMap, annotations));
         reader.close();
     }
 

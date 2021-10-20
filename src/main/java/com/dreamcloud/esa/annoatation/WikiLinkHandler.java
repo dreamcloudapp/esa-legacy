@@ -2,16 +2,11 @@ package com.dreamcloud.esa.annoatation;
 
 import com.dreamcloud.esa.tools.StringUtils;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
-import org.apache.lucene.analysis.wikipedia.WikipediaTokenizer;
 import org.eclipse.collections.api.map.primitive.MutableObjectIntMap;
 import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
 
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -19,12 +14,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class WikiLinkHandler extends DefaultHandler {
-    static Pattern linkRegexPattern = Pattern.compile("\\[\\[((?![a-zA-Z]+:)[^|#\\]]+)[^]]+]]");
+    static Pattern linkRegexPattern = Pattern.compile("\\[\\[(?!File:|Image:)([^|#\\]]+)[^]]*]]");
     protected Map<String, String> titleMap;
     protected Map<String, WikiLinkAnnotation> annotations;
-    protected MutableObjectIntMap<String> incomingLinks = ObjectIntMaps.mutable.empty();
-    protected MutableObjectIntMap<String> outgoingLinks = ObjectIntMaps.mutable.empty();
-    protected Analyzer analyzer;
 
     protected boolean inDoc;
     protected boolean inDocTitle;
@@ -33,10 +25,9 @@ public class WikiLinkHandler extends DefaultHandler {
     protected String title;
     protected int numRead = 0;
 
-    public WikiLinkHandler(Map<String, String> titleMap, Map<String, WikiLinkAnnotation> annotations, Analyzer analyzer) {
+    public WikiLinkHandler(Map<String, String> titleMap, Map<String, WikiLinkAnnotation> annotations) {
         this.titleMap = titleMap;
         this.annotations = annotations;
-        this.analyzer = analyzer;
     }
 
     public void startElement(String uri, String localName, String qName, Attributes attributes) {
@@ -57,20 +48,15 @@ public class WikiLinkHandler extends DefaultHandler {
             title = content.toString();
         } else if (inDoc && inDocText && "text".equals(localName)) {
             numRead++;
-            if (numRead % 1000 == 0) {
-                System.out.println("link-annotated article\t[" + numRead + "]\t\"" + title + "\"");
-            }
 
             inDocText = false;
             String text = content.toString();
             Matcher matcher = linkRegexPattern.matcher(text);
             Set<String> outgoingLinks = new HashSet<>();
-            if (matcher.find()) {
-                for (int i=1; i<matcher.groupCount(); i++) {
-                    String normalizedLink = StringUtils.normalizeWikiTitle(matcher.group(i));
-                    if (titleMap.containsKey(normalizedLink)) {
-                        outgoingLinks.add(titleMap.get(normalizedLink));
-                    }
+            while (matcher.find()) {
+                String normalizedLink = StringUtils.normalizeWikiTitle(matcher.group(1));
+                if (titleMap.containsKey(normalizedLink)) {
+                    outgoingLinks.add(titleMap.get(normalizedLink));
                 }
             }
 
@@ -94,6 +80,10 @@ public class WikiLinkHandler extends DefaultHandler {
                     WikiLinkAnnotation annotation = annotations.get(outgoingLink);
                     annotation.incomingLinks++;
                 }
+            }
+
+            if (numRead % 1000 == 0) {
+                System.out.println("link-annotated article\t[" + numRead + "]\t\"" + title + "\"");
             }
         } else if (inDoc && "doc".equals(localName)) {
             inDoc = false;

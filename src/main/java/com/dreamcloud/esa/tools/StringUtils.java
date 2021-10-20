@@ -8,6 +8,6 @@ public class StringUtils {
     }
 
     public static String normalizeWikiTitle(String title) {
-        return title.toLowerCase(Locale.ROOT).replaceAll("[^a-z ]+", "");
+        return title.toLowerCase(Locale.ROOT).replaceAll("[^a-z ]+", "").trim();
     }
 }
