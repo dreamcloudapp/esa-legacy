@@ -23,7 +23,7 @@ public class WikiLinkHandler extends DefaultHandler {
     protected boolean inDocText;
     protected StringBuilder content = new StringBuilder();
     protected String title;
-    protected int numRead = 0;
+    public int numRead = 0;
 
     public WikiLinkHandler(Map<String, String> titleMap, Map<String, WikiLinkAnnotation> annotations) {
         this.titleMap = titleMap;
@@ -88,11 +88,6 @@ public class WikiLinkHandler extends DefaultHandler {
         } else if (inDoc && "doc".equals(localName)) {
             inDoc = false;
         }
-    }
-
-    protected String getRedirectedTitle(String title) {
-        title = title.replaceAll("[+\\-&|!(){}\\[\\]^\"~*?:;,/\\\\]+", " ").toLowerCase();
-        return titleMap.getOrDefault(title, null);
     }
 
     public void characters(char[] ch, int start, int length) {

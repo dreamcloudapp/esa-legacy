@@ -2,6 +2,7 @@ package com.dreamcloud.esa.annoatation;
 
 import com.dreamcloud.esa.tools.BZipFileReader;
 
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -9,8 +10,11 @@ import org.xml.sax.helpers.DefaultHandler;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 import java.io.*;
+import java.text.NumberFormat;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,7 +48,6 @@ public class WikiLinkAnnotator extends DefaultHandler {
     protected String title;
     protected int numRead = 0;
     protected int numStripped = 0;
-    protected XMLStreamWriter xmlWriter;
 
     public WikiLinkAnnotator(AnnotatorOptions options) {
         this.options = options;
@@ -59,7 +62,7 @@ public class WikiLinkAnnotator extends DefaultHandler {
         titleMap.clear();
     }
 
-    public void annotate(File strippedFile, File titleMapFile, File outputFile) throws IOException, ParserConfigurationException, SAXException {
+    public void annotate(File strippedFile, File titleMapFile, File outputFile) throws IOException, ParserConfigurationException, SAXException, XMLStreamException {
         reset();
         buildTitleMap(titleMapFile);
         System.out.println("Title Map: " + titleMap.size());
@@ -77,11 +80,25 @@ public class WikiLinkAnnotator extends DefaultHandler {
             totalIncomingLinks += annotation.incomingLinks;
             totalOutgoingLinks += annotation.outgoingLinks;
         }
+        System.out.println("Link Stats: " + titleMap.size());
+        System.out.println("---------------------------------------");
         System.out.println("Average Incoming Links: " + (totalIncomingLinks / annotations.size()));
         System.out.println("Average Outgoing Links: " + (totalOutgoingLinks / annotations.size()));
+        System.out.println("---------------------------------------");
+
+        writeAnnotatedXml(strippedFile, outputFile);
     }
 
-    private void analyzeDocuments(File strippedFile) throws IOException, SAXException, ParserConfigurationException {
+    protected void buildTitleMap(File titleMapFile) throws IOException, ParserConfigurationException, SAXException {
+        SAXParser saxParser = saxFactory.newSAXParser();
+        Reader reader = BZipFileReader.getFileReader(titleMapFile);
+        InputSource is = new InputSource(reader);
+        is.setEncoding("UTF-8");
+        saxParser.parse(is, new WikiTitleMapHandler(titleMap));
+        reader.close();
+    }
+
+    protected void analyzeDocuments(File strippedFile) throws IOException, SAXException, ParserConfigurationException {
         SAXParser saxParser = saxFactory.newSAXParser();
         Reader reader = BZipFileReader.getFileReader(strippedFile);
         InputSource is = new InputSource(reader);
@@ -93,12 +110,31 @@ public class WikiLinkAnnotator extends DefaultHandler {
         reader.close();
     }
 
-    protected void buildTitleMap(File titleMapFile) throws IOException, ParserConfigurationException, SAXException {
+    protected void writeAnnotatedXml(File strippedFile, File outputFile) throws IOException, ParserConfigurationException, SAXException, XMLStreamException {
+        OutputStream outputStream = new FileOutputStream(outputFile);
+        outputStream = new BufferedOutputStream(outputStream, 4096 * 4);
+        outputStream = new BZip2CompressorOutputStream(outputStream);
+        XMLStreamWriter xmlWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(outputStream, "UTF-8");
+
         SAXParser saxParser = saxFactory.newSAXParser();
-        Reader reader = BZipFileReader.getFileReader(titleMapFile);
+        Reader reader = BZipFileReader.getFileReader(strippedFile);
         InputSource is = new InputSource(reader);
         is.setEncoding("UTF-8");
-        saxParser.parse(is, new WikiTitleMapHandler(titleMap));
+        WikiLinkXmlWritingHandler handler = new WikiLinkXmlWritingHandler(titleMap, annotations, options, xmlWriter);
+        handler.writeDocumentBegin();
+        saxParser.parse(is, handler);
         reader.close();
+        handler.writeDocumentEnd();
+        xmlWriter.close();
+
+        System.out.println("Link Annotation Stats:");
+        System.out.println("---------------------------------------");
+        System.out.println("Articles Read:\t" + handler.numRead);
+        System.out.println("Articles Skipped:\t" + handler.numSkipped);
+        System.out.println("Articles Written:\t" + (handler.numRead - handler.numSkipped));
+        NumberFormat format = NumberFormat.getPercentInstance();
+        format.setMinimumFractionDigits(1);
+        System.out.println("Skip Rate:\t" + handler.numSkipped / handler.numRead);
+        System.out.println("---------------------------------------");
     }
 }
