@@ -1,7 +1,7 @@
 package com.dreamcloud.esa.annoatation;
 
+import com.dreamcloud.esa.tools.BZipFileReader;
 import com.dreamcloud.esa.tools.StringUtils;
-import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
@@ -15,7 +15,6 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
@@ -77,10 +76,7 @@ public class WikiStripper extends DefaultHandler {
         this.xmlWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(outputStream, "UTF-8");
 
         SAXParser saxParser = saxFactory.newSAXParser();
-        InputStream inputStream = new FileInputStream(inputFile);
-        inputStream = new BufferedInputStream(inputStream);
-        inputStream = new BZip2CompressorInputStream(inputStream, true);
-        Reader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+        Reader reader = BZipFileReader.getFileReader(inputFile);
         InputSource is = new InputSource(reader);
         is.setEncoding("UTF-8");
 
@@ -88,7 +84,7 @@ public class WikiStripper extends DefaultHandler {
         this.writeDocumentBegin();
 
         saxParser.parse(is, this);
-        inputStream.close();
+        reader.close();
 
         //End document
         this.writeDocumentEnd();

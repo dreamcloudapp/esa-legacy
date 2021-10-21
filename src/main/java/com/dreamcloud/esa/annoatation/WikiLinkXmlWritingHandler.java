@@ -5,11 +5,11 @@ import javax.xml.stream.XMLStreamWriter;
 import java.util.Map;
 
 public class WikiLinkXmlWritingHandler extends WikiLinkHandler {
-    protected AnnotatorOptions options;
+    protected WikiLinkAnnotatorOptions options;
     protected XMLStreamWriter xmlWriter;
     public int numSkipped = 0;
 
-    public WikiLinkXmlWritingHandler(Map<String, String> titleMap, Map<String, WikiLinkAnnotation> annotations, AnnotatorOptions options, XMLStreamWriter xmlWriter) {
+    public WikiLinkXmlWritingHandler(Map<String, String> titleMap, Map<String, WikiLinkAnnotation> annotations, WikiLinkAnnotatorOptions options, XMLStreamWriter xmlWriter) {
         super(titleMap, annotations);
         this.options = options;
         this.xmlWriter = xmlWriter;

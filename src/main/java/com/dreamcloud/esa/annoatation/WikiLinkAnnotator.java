@@ -36,7 +36,7 @@ import java.util.Map;
  * but makes the dump less versatile.
  */
 public class WikiLinkAnnotator extends DefaultHandler {
-    protected AnnotatorOptions options;
+    protected WikiLinkAnnotatorOptions options;
     protected Map<String, String> titleMap = new HashMap<>();
     protected Map<String, WikiLinkAnnotation> annotations = new HashMap<>();
 
@@ -46,10 +46,9 @@ public class WikiLinkAnnotator extends DefaultHandler {
     protected boolean inDocText;
     protected StringBuilder content = new StringBuilder();
     protected String title;
-    protected int numRead = 0;
     protected int numStripped = 0;
 
-    public WikiLinkAnnotator(AnnotatorOptions options) {
+    public WikiLinkAnnotator(WikiLinkAnnotatorOptions options) {
         this.options = options;
         saxFactory = SAXParserFactory.newInstance();
         saxFactory.setNamespaceAware(true);

@@ -8,7 +8,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import com.dreamcloud.esa.analyzer.AnalyzerOptions;
 import com.dreamcloud.esa.analyzer.CommandLineAnalyzerFactory;
+import com.dreamcloud.esa.analyzer.EsaAnalyzer;
+import com.dreamcloud.esa.analyzer.TokenizerFactory;
 import com.dreamcloud.esa.annoatation.*;
 import com.dreamcloud.esa.debug.ArticleFinder;
 import com.dreamcloud.esa.debug.DebugArticle;
@@ -26,8 +29,10 @@ import com.dreamcloud.esa.vectorizer.ConceptVector;
 import com.dreamcloud.esa.vectorizer.TextVectorizer;
 import com.dreamcloud.esa.vectorizer.Vectorizer;
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
+import org.apache.lucene.analysis.wikipedia.WikipediaTokenizer;
 import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.search.*;
@@ -189,10 +194,15 @@ public class Main {
         titleMapOption.setArgs(2);
         options.addOption(titleMapOption);
 
-        Option annotationOption = new Option(null, "annotate", true, "wikiInputFile titleMapFile outputFile / Creates an annotated XML file (link and token count info)");
-        annotationOption.setRequired(false);
-        annotationOption.setArgs(3);
-        options.addOption(annotationOption);
+        Option linkCountOption = new Option(null, "count-links", true, "wikiInputFile titleMapFile outputFile / Creates an annotated XML file with link counts.");
+        linkCountOption.setRequired(false);
+        linkCountOption.setArgs(3);
+        options.addOption(linkCountOption);
+
+        Option termCountOption = new Option(null, "count-terms", true, "inputFile outputFile / Creates an annotated XML file with term counts.");
+        termCountOption.setRequired(false);
+        termCountOption.setArgs(2);
+        options.addOption(termCountOption);
 
         //Indexing
         Option indexOption = new Option(null, "index", true, "input file / Indexes a corpus of documents.");
@@ -223,7 +233,8 @@ public class Main {
             String[] stripArgs = cmd.getOptionValues("strip");
             String[] titleMapArgs = cmd.getOptionValues("map-titles");
             String[] findArticleArgs = cmd.getOptionValues("find-article");
-            String[] annotateArgs = cmd.getOptionValues("annotate");
+            String[] countLinkArgs = cmd.getOptionValues("count-links");
+            String[] countTermArgs = cmd.getOptionValues("count-terms");
             String docType = cmd.getOptionValue("doctype");
             String stopWords = cmd.getOptionValue("stopwords");
             String dictionary = cmd.getOptionValue("dictionary");
@@ -459,15 +470,33 @@ public class Main {
                 titleMapper.mapToXml(outputFile);
             }
 
-            else if (hasLength(annotateArgs, 3)) {
-                File strippedFile = new File(annotateArgs[0]);
-                File titleMapFile = new File(annotateArgs[1]);
-                File outputFile = new File(annotateArgs[2]);
-                AnnotatorOptions annotatorOptions = new AnnotatorOptions();
-                annotatorOptions.minimumIncomingLinks = indexerOptions.minimumIncomingLinks;
-                annotatorOptions.minimumOutgoingLinks = indexerOptions.minimumOutgoingLinks;
-                WikiLinkAnnotator annotator = new WikiLinkAnnotator(annotatorOptions);
+            else if (hasLength(countLinkArgs, 3)) {
+                File strippedFile = new File(countLinkArgs[0]);
+                File titleMapFile = new File(countLinkArgs[1]);
+                File outputFile = new File(countLinkArgs[2]);
+                WikiLinkAnnotatorOptions wikiLinkAnnotatorOptions = new WikiLinkAnnotatorOptions();
+                wikiLinkAnnotatorOptions.minimumIncomingLinks = indexerOptions.minimumIncomingLinks;
+                wikiLinkAnnotatorOptions.minimumOutgoingLinks = indexerOptions.minimumOutgoingLinks;
+                WikiLinkAnnotator annotator = new WikiLinkAnnotator(wikiLinkAnnotatorOptions);
                 annotator.annotate(strippedFile, titleMapFile, outputFile);
+            }
+
+            else if (hasLength(countTermArgs, 2)) {
+                File inputFile = new File(countTermArgs[0]);
+                File outputFile = new File(countTermArgs[1]);
+                TermCountAnnotatorOptions termCountOptions = new TermCountAnnotatorOptions();
+                termCountOptions.minimumTerms = indexerOptions.minimumTermCount;
+                termCountOptions.maximumTerms = indexerOptions.maximumTermCount;
+                AnalyzerOptions analyzerOptions = new AnalyzerOptions();
+                analyzerOptions.stopWordsRepository = esaOptions.stopWordRepository;
+                analyzerOptions.tokenizerFactory = new TokenizerFactory() {
+                    public Tokenizer getTokenizer() {
+                        return new WikipediaTokenizer();
+                    }
+                };
+                termCountOptions.analyzer = new EsaAnalyzer(analyzerOptions);
+                TermCountAnnotator termCountAnnotator = new TermCountAnnotator(termCountOptions);
+                termCountAnnotator.annotate(inputFile, outputFile);
             }
 
             //Indexing
