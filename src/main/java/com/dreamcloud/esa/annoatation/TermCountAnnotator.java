@@ -4,6 +4,7 @@ import com.dreamcloud.esa.tools.BZipFileReader;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.xpath.operations.String;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -78,6 +79,7 @@ public class TermCountAnnotator extends DefaultHandler {
             inDoc = true;
             xmlFields = new ConcurrentHashMap<>();
         } else if (inDoc) {
+            content = new StringBuilder();
             xmlTag = localName;
         }
     }
@@ -110,7 +112,7 @@ public class TermCountAnnotator extends DefaultHandler {
                         numStripped++;
                         return;
                     }
-                    this.writeDocument(xmlFields);
+                    this.writeDocument(xmlFields, tokenCount);
                 } catch (XMLStreamException | IOException e) {
                     e.printStackTrace();
                     System.exit(1);
@@ -139,13 +141,18 @@ public class TermCountAnnotator extends DefaultHandler {
         xmlWriter.writeEndDocument();
     }
 
-    public void writeDocument(Map<String, String> xmlFields) throws XMLStreamException {
+    public void writeDocument(Map<String, String> xmlFields, int termCount) throws XMLStreamException {
         xmlWriter.writeStartElement("doc");
         for(Map.Entry<String, String> xmlField: xmlFields.entrySet()) {
             xmlWriter.writeStartElement(xmlField.getKey());
             xmlWriter.writeCharacters(xmlField.getValue());
             xmlWriter.writeEndElement();
         }
+
+        xmlWriter.writeStartElement("terms");
+        xmlWriter.writeCharacters(String.valueOf(termCount));
+        xmlWriter.writeEndElement();
+
         xmlWriter.writeEndElement();
     }
 }
