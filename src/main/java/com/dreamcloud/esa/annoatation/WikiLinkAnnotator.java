@@ -125,6 +125,7 @@ public class WikiLinkAnnotator extends DefaultHandler {
         reader.close();
         handler.writeDocumentEnd();
         xmlWriter.close();
+        outputStream.close();
 
         System.out.println("Link Annotation Stats:");
         System.out.println("---------------------------------------");

@@ -61,6 +61,7 @@ public class TermCountAnnotator extends DefaultHandler {
 
         //End document
         this.writeDocumentEnd();
+        xmlWriter.close();
         outputStream.close();
 
         //Show logs
