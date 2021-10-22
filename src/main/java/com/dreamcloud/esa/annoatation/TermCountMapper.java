@@ -69,7 +69,7 @@ public class TermCountMapper extends DefaultHandler {
         xmlWriter.close();
         outputStream.close();
 
-        System.out.print("Term Statistics:");
+        System.out.println("Term Statistics:");
         System.out.println("----------------------------------------");
         System.out.println("Articles Read:\t" + articlesRead);
         System.out.println("Terms Read:\t" + termsRead);
