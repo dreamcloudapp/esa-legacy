@@ -469,6 +469,13 @@ public class Main {
             }
 
             //Annotating
+            else if(hasLength(titleMapArgs, 2)) {
+                File inputFile = new File(titleMapArgs[0]);
+                File outputFile = new File(titleMapArgs[1]);
+                WikiTitleMapper titleMapper = new WikiTitleMapper(inputFile);
+                titleMapper.mapToXml(outputFile);
+            }
+
             else if(hasLength(stripArgs, 2)) {
                 File inputFile = new File(stripArgs[0]);
                 File outputFile = new File(stripArgs[1]);
@@ -476,13 +483,6 @@ public class Main {
                 stripperOptions.titleExclusionRegExList = indexerOptions.titleExclusionRegExList;;
                 WikiStripper stripper = new WikiStripper(stripperOptions);
                 stripper.strip(inputFile, outputFile);
-            }
-
-            else if(hasLength(titleMapArgs, 2)) {
-                File inputFile = new File(titleMapArgs[0]);
-                File outputFile = new File(titleMapArgs[1]);
-                WikiTitleMapper titleMapper = new WikiTitleMapper(inputFile);
-                titleMapper.mapToXml(outputFile);
             }
 
             else if (hasLength(countLinkArgs, 3)) {

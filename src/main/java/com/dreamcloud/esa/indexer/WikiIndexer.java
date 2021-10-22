@@ -184,7 +184,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
             fixedQueue[i] = null;
         }
         queueSize = 0;
-        System.out.println("Indexed articles\t[" + numRead + "]");
+        System.out.println("Indexed articles\t[" + numIndexed + " | " + numRead + "]");
     }
 
     Integer indexArticles (Vector<WikipediaArticle> articles) throws Exception {
