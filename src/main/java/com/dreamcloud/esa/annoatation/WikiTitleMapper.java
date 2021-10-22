@@ -1,5 +1,6 @@
 package com.dreamcloud.esa.annoatation;
 
+import com.dreamcloud.esa.tools.BZipFileReader;
 import com.dreamcloud.esa.tools.StringUtils;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream;
@@ -79,14 +80,11 @@ public class WikiTitleMapper extends DefaultHandler {
 
     protected void parse() throws ParserConfigurationException, SAXException, IOException {
         SAXParser saxParser = saxFactory.newSAXParser();
-        InputStream inputStream = new FileInputStream(inputFile);
-        inputStream = new BufferedInputStream(inputStream);
-        inputStream = new BZip2CompressorInputStream(inputStream, true);
-        Reader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+        Reader reader = BZipFileReader.getFileReader(inputFile);
         InputSource is = new InputSource(reader);
         is.setEncoding("UTF-8");
         saxParser.parse(is, this);
-        inputStream.close();
+        reader.close();
     }
 
     public void startElement(String uri, String localName, String qName, Attributes attributes) {

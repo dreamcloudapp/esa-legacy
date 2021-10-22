@@ -204,6 +204,11 @@ public class Main {
         termCountOption.setArgs(2);
         options.addOption(termCountOption);
 
+        Option mapTermCountOption = new Option(null, "map-term-counts", true, "inputFile outputFile / Creates an XML file with term information.");
+        mapTermCountOption.setRequired(false);
+        mapTermCountOption.setArgs(2);
+        options.addOption(mapTermCountOption);
+
         //Indexing
         Option indexOption = new Option(null, "index", true, "input file / Indexes a corpus of documents.");
         indexOption.setRequired(false);
@@ -235,6 +240,7 @@ public class Main {
             String[] findArticleArgs = cmd.getOptionValues("find-article");
             String[] countLinkArgs = cmd.getOptionValues("count-links");
             String[] countTermArgs = cmd.getOptionValues("count-terms");
+            String[] mapTermCountArgs = cmd.getOptionValues("map-term-counts");
             String docType = cmd.getOptionValue("doctype");
             String stopWords = cmd.getOptionValue("stopwords");
             String dictionary = cmd.getOptionValue("dictionary");
@@ -497,6 +503,13 @@ public class Main {
                 termCountOptions.analyzer = new EsaAnalyzer(analyzerOptions);
                 TermCountAnnotator termCountAnnotator = new TermCountAnnotator(termCountOptions);
                 termCountAnnotator.annotate(inputFile, outputFile);
+            }
+
+            else if (hasLength(mapTermCountArgs, 2)) {
+                File inputFile = new File(mapTermCountArgs[0]);
+                File outputFile = new File(mapTermCountArgs[1]);
+                TermCountMapper termCountMapper = new TermCountMapper(analyzerFactory.getAnalyzer());
+                termCountMapper.mapToXml(inputFile, outputFile);
             }
 
             //Indexing
