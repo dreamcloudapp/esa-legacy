@@ -98,8 +98,8 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
             Reader reader = BZipFileReader.getFileReader(file);
             InputSource is = new InputSource(reader);
             is.setEncoding("UTF-8");
-            reader.close();
             saxParser.parse(is, this);
+            reader.close();
         } catch (ParserConfigurationException | SAXException | IOException ex) {
             Logger.getLogger(WikiIndexer.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -116,7 +116,20 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
     }
 
     public void endElement(String uri, String localName, String qName) {
-        if (inDoc && element != null) {
+        if (inDoc && "doc".equals(localName)) {
+            inDoc = false;
+            //process document
+            numRead++;
+
+            if (article.canIndex(options)) {
+                fixedQueue[queueSize++] = article;
+            }
+
+            if (queueSize == options.batchSize * options.threadCount) {
+                this.processQueue();
+                queueSize = 0;
+            }
+        } else if (inDoc && element != null) {
             String value = content.toString();
             switch (element) {
                 case "title":
@@ -134,19 +147,6 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
                 case "terms":
                     article.terms =  Integer.parseInt(value);
                     break;
-            }
-        } else if (inDoc && "doc".equals(localName)) {
-            inDoc = false;
-            //process document
-            numRead++;
-
-            if (article.canIndex(options)) {
-                fixedQueue[queueSize++] = article;
-            }
-
-            if (queueSize == options.batchSize * options.threadCount) {
-                this.processQueue();
-                queueSize = 0;
             }
         }
     }
