@@ -5,26 +5,19 @@ import com.dreamcloud.esa.indexer.WikiIndexerOptions;
 import java.util.ArrayList;
 
 public class WikipediaArticle {
-    public int index;
     public String title;
     public String text;
-    public WikipediaArticleAnalysis analysis = null;
+    public Integer incomingLinks;
+    public Integer outgoingLinks;
+    public Integer terms;
 
-    public WikipediaArticle(int index, String title, String text) {
-        this.index = index;
-        this.title = title;
-        this.text = text;
-    }
 
     public boolean canIndex(WikiIndexerOptions options) {
-        return this.analysis != null && this.analysis.canIndex(options);
-    }
-
-    public ArrayList<String> getOutgoingLinks() {
-        if (analysis == null) {
-            return new ArrayList<>();
-        } else {
-            return this.analysis.outgoingLinks;
-        }
+        return !(
+                (options.minimumIncomingLinks > 0 && incomingLinks != null && incomingLinks < options.minimumIncomingLinks)
+                || (options.minimumOutgoingLinks > 0 && outgoingLinks != null && outgoingLinks < options.minimumOutgoingLinks)
+                || (options.minimumTermCount > 0 && terms != null && terms < options.minimumTermCount)
+                || (options.maximumTermCount > 0 && terms != null && terms > options.maximumTermCount)
+        );
     }
 }
