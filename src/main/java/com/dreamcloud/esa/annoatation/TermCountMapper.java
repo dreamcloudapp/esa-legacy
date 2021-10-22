@@ -6,6 +6,7 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.eclipse.collections.api.map.primitive.MutableObjectIntMap;
+import org.eclipse.collections.api.map.primitive.ObjectIntMap;
 import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
@@ -20,6 +21,7 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 import java.io.*;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class TermCountMapper extends DefaultHandler {
@@ -29,6 +31,7 @@ public class TermCountMapper extends DefaultHandler {
     protected StringBuilder content = new StringBuilder();
     protected int articlesRead = 0;
     protected int termsRead = 0;
+    protected int rareTerms = 0;
     protected MutableObjectIntMap<String> termCounts = ObjectIntMaps.mutable.empty();
     protected MutableObjectIntMap<String> uniqueTermCounts = ObjectIntMaps.mutable.empty();
     protected XMLStreamWriter xmlWriter;
@@ -54,11 +57,13 @@ public class TermCountMapper extends DefaultHandler {
         //Write the map
         OutputStream outputStream = new FileOutputStream(outputFile);
         outputStream = new BufferedOutputStream(outputStream, 4096 * 4);
-        //outputStream = new BZip2CompressorOutputStream(outputStream);
+        outputStream = new BZip2CompressorOutputStream(outputStream);
         this.xmlWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(outputStream, "UTF-8");
 
         this.writeDocumentBegin();
-
+        for (String term: termCounts.keySet()) {
+            this.writeDocument(term, termCounts.get(term), uniqueTermCounts.get(term));
+        }
         this.writeDocumentEnd();
 
         xmlWriter.close();
@@ -70,6 +75,7 @@ public class TermCountMapper extends DefaultHandler {
         System.out.println("Terms Read:\t" + termsRead);
         System.out.println("Terms per Article:\t" + termsRead / articlesRead);
         System.out.println("Unique Terms:\t" + termCounts.size());
+        System.out.println("Rare Terms (<3):\t" + rareTerms);
         System.out.println("----------------------------------------");
     }
 
@@ -116,7 +122,7 @@ public class TermCountMapper extends DefaultHandler {
 
     protected void writeDocumentBegin() throws XMLStreamException {
         this.xmlWriter.writeStartDocument();
-        xmlWriter.writeStartElement("docs");
+        xmlWriter.writeStartElement("terms");
     }
 
     protected void writeDocumentEnd() throws XMLStreamException {
@@ -124,15 +130,22 @@ public class TermCountMapper extends DefaultHandler {
         xmlWriter.writeEndDocument();
     }
 
-    protected void writeDocument(String title, String redirect) throws XMLStreamException {
-        xmlWriter.writeStartElement("doc");
+    protected void writeDocument(String term, int count, int uniqueCount) throws XMLStreamException {
+        if (uniqueCount < 3) {
+            rareTerms++;
+        }
+        xmlWriter.writeStartElement("term");
 
-        xmlWriter.writeStartElement("title");
-        xmlWriter.writeCharacters(title);
+        xmlWriter.writeStartElement("text");
+        xmlWriter.writeCharacters(term);
         xmlWriter.writeEndElement();
 
-        xmlWriter.writeStartElement("redirect");
-        xmlWriter.writeCharacters(redirect);
+        xmlWriter.writeStartElement("count");
+        xmlWriter.writeCharacters(String.valueOf(count));
+        xmlWriter.writeEndElement();
+
+        xmlWriter.writeStartElement("uniqueCount");
+        xmlWriter.writeCharacters(String.valueOf(uniqueCount));
         xmlWriter.writeEndElement();
 
         xmlWriter.writeEndElement();
