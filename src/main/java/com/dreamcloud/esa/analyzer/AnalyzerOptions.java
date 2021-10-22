@@ -20,6 +20,7 @@ public class AnalyzerOptions {
 
 
     public StopWordRepository stopWordsRepository;
+    public StopWordRepository rareWordsRepository;
     public DictionaryRepository dictionaryRepository;
     public Set<String> stopTokenTypes;
     public TokenizerFactory tokenizerFactory;

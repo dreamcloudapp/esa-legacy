@@ -140,6 +140,10 @@ public class Main {
         stopWordsOption.setRequired(false);
         options.addOption(stopWordsOption);
 
+        Option rareWordsOption = new Option(null, "rare-words", true, "rare words file / A file containing rare words (stop words) each on their own line. Do not combine these with stopwords as these are applied after all of the filter options.");
+        rareWordsOption.setRequired(false);
+        options.addOption(rareWordsOption);
+
         Option dictionaryOption = new Option(null, "dictionary", true, "dictionary file / A file containing a list of allowed words");
         dictionaryOption.setRequired(false);
         options.addOption(dictionaryOption);
@@ -204,10 +208,10 @@ public class Main {
         termCountOption.setArgs(2);
         options.addOption(termCountOption);
 
-        Option mapTermCountOption = new Option(null, "map-term-counts", true, "inputFile outputFile / Creates an XML file with term information.");
-        mapTermCountOption.setRequired(false);
-        mapTermCountOption.setArgs(2);
-        options.addOption(mapTermCountOption);
+        Option writeRareWordsOption = new Option(null, "write-rare-words", true, "inputFile outputFile rareWordCount / Creates a text file of rare words to later be used for stopwords.");
+        writeRareWordsOption.setRequired(false);
+        writeRareWordsOption.setArgs(3);
+        options.addOption(writeRareWordsOption);
 
         //Indexing
         Option indexOption = new Option(null, "index", true, "input file / Indexes a corpus of documents.");
@@ -240,9 +244,10 @@ public class Main {
             String[] findArticleArgs = cmd.getOptionValues("find-article");
             String[] countLinkArgs = cmd.getOptionValues("count-links");
             String[] countTermArgs = cmd.getOptionValues("count-terms");
-            String[] mapTermCountArgs = cmd.getOptionValues("map-term-counts");
+            String[] writeRareWordArgs = cmd.getOptionValues("write-rare-words");
             String docType = cmd.getOptionValue("doctype");
             String stopWords = cmd.getOptionValue("stopwords");
+            String rareWords = cmd.getOptionValue("rare-words");
             String dictionary = cmd.getOptionValue("dictionary");
             String indexPath = cmd.getOptionValue("index-path");
 
@@ -274,6 +279,10 @@ public class Main {
                     stopWords = "./src/data/en-stopwords.txt";
                 }
                 esaOptions.stopWordRepository = new StopWordRepository(stopWords);
+            }
+
+            if (nonEmpty(rareWords)) {
+                esaOptions.rareWordRepository = new StopWordRepository(rareWords);
             }
 
             if (nonEmpty(dictionary)) {
@@ -505,10 +514,11 @@ public class Main {
                 termCountAnnotator.annotate(inputFile, outputFile);
             }
 
-            else if (hasLength(mapTermCountArgs, 2)) {
-                File inputFile = new File(mapTermCountArgs[0]);
-                File outputFile = new File(mapTermCountArgs[1]);
-                TermCountMapper termCountMapper = new TermCountMapper(analyzerFactory.getAnalyzer());
+            else if (hasLength(writeRareWordArgs, 3)) {
+                File inputFile = new File(writeRareWordArgs[0]);
+                File outputFile = new File(writeRareWordArgs[1]);
+                int rareWordThreshold = Integer.parseInt(writeRareWordArgs[2]);
+                RareWordDictionary termCountMapper = new RareWordDictionary(analyzerFactory.getAnalyzer(), rareWordThreshold);
                 termCountMapper.mapToXml(inputFile, outputFile);
             }
 

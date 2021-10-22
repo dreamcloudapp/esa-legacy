@@ -53,12 +53,22 @@ public class EsaAnalyzer extends Analyzer {
                 result = new StopFilter(result, options.stopWordsRepository.getStopWords());
             } catch (IOException e) {
                 System.out.println("ESA warning: failed to load stop word dictionary; " + e.getMessage());
+                System.exit(1);
             }
         }
 
         if (options.porterStemmerFilter) {
             for(int i=0; i<options.porterStemmerFilterDepth; i++) {
                 result = new PorterStemFilter(result);
+            }
+        }
+
+        if (options.rareWordsRepository != null) {
+            try {
+                result = new StopFilter(result, options.rareWordsRepository.getStopWords());
+            } catch (IOException e) {
+                System.out.println("ESA warning: failed to load stop word dictionary; " + e.getMessage());
+                System.exit(1);
             }
         }
 

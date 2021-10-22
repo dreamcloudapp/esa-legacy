@@ -29,6 +29,7 @@ public class CommandLineAnalyzerFactory implements AnalyzerFactory {
     public AnalyzerOptions getAnalyzerOptions() {
         AnalyzerOptions options = new AnalyzerOptions();
         options.stopWordsRepository = esaOptions.stopWordRepository;
+        options.rareWordsRepository = esaOptions.rareWordRepository;
         options.dictionaryRepository = esaOptions.dictionaryRepository;
 
         String[] filters = cmd.getOptionValues("filter");

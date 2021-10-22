@@ -1,12 +1,10 @@
 package com.dreamcloud.esa.annoatation;
 
 import com.dreamcloud.esa.tools.BZipFileReader;
-import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.eclipse.collections.api.map.primitive.MutableObjectIntMap;
-import org.eclipse.collections.api.map.primitive.ObjectIntMap;
 import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
@@ -16,29 +14,27 @@ import org.xml.sax.helpers.DefaultHandler;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
-import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.text.NumberFormat;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
-public class TermCountMapper extends DefaultHandler {
+public class RareWordDictionary extends DefaultHandler {
     protected final SAXParserFactory saxFactory;
+    private int rareWordThreshold = 0;
     protected boolean inDoc;
     protected boolean inDocText;
     protected StringBuilder content = new StringBuilder();
-    protected int articlesRead = 0;
     protected int termsRead = 0;
     protected int rareTerms = 0;
-    protected MutableObjectIntMap<String> termCounts = ObjectIntMaps.mutable.empty();
-    protected MutableObjectIntMap<String> uniqueTermCounts = ObjectIntMaps.mutable.empty();
-    protected XMLStreamWriter xmlWriter;
+    protected MutableObjectIntMap<String> uniqueTerms = ObjectIntMaps.mutable.empty();
     Analyzer analyzer;
 
-    public TermCountMapper(Analyzer analyzer) {
+    public RareWordDictionary(Analyzer analyzer, int rareWordThreshold) {
         this.analyzer = analyzer;
+        this.rareWordThreshold = rareWordThreshold;
         saxFactory = SAXParserFactory.newInstance();
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);
@@ -57,25 +53,23 @@ public class TermCountMapper extends DefaultHandler {
         //Write the map
         OutputStream outputStream = new FileOutputStream(outputFile);
         outputStream = new BufferedOutputStream(outputStream, 4096 * 4);
-        outputStream = new BZip2CompressorOutputStream(outputStream);
-        this.xmlWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(outputStream, "UTF-8");
-
-        this.writeDocumentBegin();
-        for (String term: termCounts.keySet()) {
-            this.writeDocument(term, termCounts.get(term), uniqueTermCounts.get(term));
+        for (String term: uniqueTerms.keySet()) {
+            int count = uniqueTerms.get(term);
+            if (count < rareWordThreshold) {
+                rareTerms++;
+                outputStream.write(term.concat("\n").getBytes(StandardCharsets.UTF_8));
+            }
         }
-        this.writeDocumentEnd();
-
-        xmlWriter.close();
         outputStream.close();
 
-        System.out.println("Term Statistics:");
+        System.out.println("Word Statistics:");
         System.out.println("----------------------------------------");
-        System.out.println("Articles Read:\t" + articlesRead);
-        System.out.println("Terms Read:\t" + termsRead);
-        System.out.println("Terms per Article:\t" + termsRead / articlesRead);
-        System.out.println("Unique Terms:\t" + termCounts.size());
-        System.out.println("Rare Terms (<3):\t" + rareTerms);
+        System.out.println("Words Read:\t" + termsRead);
+        System.out.println("Unique Words:\t" + uniqueTerms.size());
+        System.out.println("Rare Words:\t" + rareTerms);
+        NumberFormat format = NumberFormat.getPercentInstance();
+        format.setMinimumFractionDigits(1);
+        System.out.println("Rare Word %:\t" + format.format((double) rareTerms / (double) uniqueTerms.size()));
         System.out.println("----------------------------------------");
     }
 
@@ -90,7 +84,6 @@ public class TermCountMapper extends DefaultHandler {
 
     public void endElement(String uri, String localName, String qName) {
          if (inDoc && inDocText && "text".equals(localName)) {
-             articlesRead++;
             inDocText = false;
             String text = content.toString();
              TokenStream tokens = analyzer.tokenStream("text", text);
@@ -99,7 +92,6 @@ public class TermCountMapper extends DefaultHandler {
              try {
                  tokens.reset();
                  while(tokens.incrementToken()) {
-                     this.termCounts.addToValue(termAttribute.toString(), 1);
                      termsRead++;
                      uniqueTerms.add(termAttribute.toString());
                  }
@@ -109,7 +101,7 @@ public class TermCountMapper extends DefaultHandler {
              }
 
              for (String term: uniqueTerms) {
-                 this.uniqueTermCounts.addToValue(term, 1);
+                 this.uniqueTerms.addToValue(term, 1);
              }
         } else if (inDoc && "doc".equals(localName)) {
             inDoc = false;
@@ -118,36 +110,5 @@ public class TermCountMapper extends DefaultHandler {
 
     public void characters(char[] ch, int start, int length) {
         content.append(ch, start, length);
-    }
-
-    protected void writeDocumentBegin() throws XMLStreamException {
-        this.xmlWriter.writeStartDocument();
-        xmlWriter.writeStartElement("terms");
-    }
-
-    protected void writeDocumentEnd() throws XMLStreamException {
-        xmlWriter.writeEndElement();
-        xmlWriter.writeEndDocument();
-    }
-
-    protected void writeDocument(String term, int count, int uniqueCount) throws XMLStreamException {
-        if (uniqueCount < 3) {
-            rareTerms++;
-        }
-        xmlWriter.writeStartElement("term");
-
-        xmlWriter.writeStartElement("text");
-        xmlWriter.writeCharacters(term);
-        xmlWriter.writeEndElement();
-
-        xmlWriter.writeStartElement("count");
-        xmlWriter.writeCharacters(String.valueOf(count));
-        xmlWriter.writeEndElement();
-
-        xmlWriter.writeStartElement("uniqueCount");
-        xmlWriter.writeCharacters(String.valueOf(uniqueCount));
-        xmlWriter.writeEndElement();
-
-        xmlWriter.writeEndElement();
     }
 }
