@@ -177,6 +177,11 @@ public class Main {
         spearmanOption.setRequired(false);
         options.addOption(spearmanOption);
 
+        //Pearson correlations to get tool p-value
+        Option pearsonOption = new Option(null, "pearson", true, "correlation file [document file] / Calculates Pearson correlations to get the p-value of the tool");
+        pearsonOption.setRequired(false);
+        options.addOption(pearsonOption);
+
         //Debugging
         Option findArticleOption = new Option(null, "find-article", true, "inputFile articleTitle|index / Displays info about an article searched for via title or numeric index");
         findArticleOption.setRequired(false);
@@ -245,6 +250,7 @@ public class Main {
             String[] countLinkArgs = cmd.getOptionValues("count-links");
             String[] countTermArgs = cmd.getOptionValues("count-terms");
             String[] writeRareWordArgs = cmd.getOptionValues("write-rare-words");
+            String[] pearsonArgs = cmd.getOptionValues("pearson");
             String docType = cmd.getOptionValue("doctype");
             String stopWords = cmd.getOptionValue("stopwords");
             String rareWords = cmd.getOptionValue("rare-words");
@@ -390,14 +396,30 @@ public class Main {
             else if (cmd.hasOption("spearman")) {
                 String spearman = cmd.getOptionValue("spearman");
                 if ("en-wordsim353".equals(spearman)) {
-                    spearman = "./src/data/en-wordsim353.txt";
+                    spearman = "./src/data/en-wordsim353.csv";
                 }
                 TextVectorizer textVectorizer = new Vectorizer(esaOptions);
                 SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
-                PValueCalculator calculator = new PValueCalculator(spearman);
+                PValueCalculator calculator = new PValueCalculator(new File(spearman));
                 System.out.println("Calculating P-value using Spearman correlation...");
                 System.out.println("----------------------------------------");
                 System.out.println("p-value:\t" + calculator.getSpearmanCorrelation(similarityTool));
+                System.out.println("----------------------------------------");
+            }
+
+            else if (hasLength(pearsonArgs, 1)) {
+                String pearsonFile = pearsonArgs[0];
+                File documentFile = pearsonArgs.length > 1 ? new File(pearsonArgs[1]) : null;
+                if ("en-lp50".equals(pearsonFile)) {
+                    pearsonFile = "./src/data/en-lp50.csv";
+                    documentFile = new File("./src/data/en-lp50-documents.csv");
+                }
+                TextVectorizer textVectorizer = new Vectorizer(esaOptions);
+                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
+                PValueCalculator calculator = new PValueCalculator(new File(pearsonFile));
+                System.out.println("Calculating P-value using Pearson correlation...");
+                System.out.println("----------------------------------------");
+                System.out.println("p-value:\t" + calculator.getPearsonCorrelation(similarityTool, documentFile));
                 System.out.println("----------------------------------------");
             }
 
