@@ -11,6 +11,7 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 import com.dreamcloud.esa.analyzer.WikipediaArticle;
+import com.dreamcloud.esa.similarity.TrueTFIDFSimilarity;
 import com.dreamcloud.esa.tools.BZipFileReader;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -30,8 +31,6 @@ import java.util.concurrent.Executors;
  * @author Philip van Oosten
  */
 public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexer {
-    private static String TEXT_FIELD = "text";
-    private static String TITLE_FIELD = "title";
     private final SAXParserFactory saxFactory;
     private ExecutorService executorService;
     WikipediaArticle[] fixedQueue;
@@ -67,6 +66,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
         reset();
         executorService = Executors.newFixedThreadPool(options.threadCount);
         IndexWriterConfig indexWriterConfig = new IndexWriterConfig(options.analyzerFactory.getAnalyzer());
+        //indexWriterConfig.setSimilarity(new TrueTFIDFSimilarity());
         indexWriter = new IndexWriter(options.indexDirectory, indexWriterConfig);
         parseXmlDump(file);
         //There may be queue items left over

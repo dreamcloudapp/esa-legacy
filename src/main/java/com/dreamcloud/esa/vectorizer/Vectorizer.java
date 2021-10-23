@@ -6,6 +6,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.dreamcloud.esa.EsaOptions;
+import com.dreamcloud.esa.similarity.TrueTFIDFSimilarity;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryparser.classic.QueryParser;
@@ -32,6 +33,7 @@ public class Vectorizer implements AutoCloseable, TextVectorizer {
         termToConceptDirectory = FSDirectory.open(options.indexPath);
         indexReader = DirectoryReader.open(termToConceptDirectory);
         searcher = new IndexSearcher(indexReader);
+        //searcher.setSimilarity(new TrueTFIDFSimilarity());
         queryParser = new QueryParser("text", options.analyzer);
     }
 
