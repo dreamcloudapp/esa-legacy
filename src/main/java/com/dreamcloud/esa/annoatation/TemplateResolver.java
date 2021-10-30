@@ -10,50 +10,32 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.stream.XMLStreamException;
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.Reader;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Takes a Wikimedia dump file and strips out all of the extra information.
- * It also applies basic title exclusions to reduce the file size.
- * Wikipedia redirect articles are further removed.
- *
- * Output structure is:
- * <docs>
- *     <doc>
- *         <title>Cat</title>
- *         <text>Cats are small, furry, and cute mammals.</text>
- *     </doc>
- * </docs>
- */
-public class WikiStripper extends XmlWritingHandler {
-    protected String redirectRegex = "^#REDIRECT \\[\\[(.+)]]$";
-    protected Pattern redirectPattern;
+public class TemplateResolver extends XmlWritingHandler {
+    protected Pattern templateTextPattern = Pattern.compile("[^{]\\{\\{([^#<>\\[\\]{}|]+)");
     protected final SAXParserFactory saxFactory;
     protected int docsStripped = 0;
+    protected int invokes = 0;
+    protected int templates = 0;
     ArrayList<Pattern> titleExclusionPatterns;
 
-    public WikiStripper(StripperOptions options) {
+    public TemplateResolver(TemplateResolutionOptions options) {
         this.setDocumentTag("page");
         saxFactory = SAXParserFactory.newInstance();
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);
         saxFactory.setXIncludeAware(true);
-
-        this.titleExclusionPatterns = new ArrayList<>();
-        if (options.titleExclusionRegExList != null) {
-            for(String titleExclusionRegEx: options.titleExclusionRegExList) {
-                this.titleExclusionPatterns.add(Pattern.compile(titleExclusionRegEx));
-            }
-        }
-        redirectPattern = Pattern.compile(redirectRegex);
     }
 
-    public void strip(File inputFile, File outputFile) throws IOException, ParserConfigurationException, SAXException, XMLStreamException {
+    public void resolve(File inputFile, File outputFile) throws IOException, ParserConfigurationException, SAXException, XMLStreamException {
         reset();
         SAXParser saxParser = saxFactory.newSAXParser();
         Reader reader = BZipFileReader.getFileReader(inputFile);
@@ -74,6 +56,8 @@ public class WikiStripper extends XmlWritingHandler {
         System.out.println("----------------------------------------");
         System.out.println("Articles Read:\t" + this.getDocsRead());
         System.out.println("Articles Stripped:\t" + docsStripped);
+        System.out.println("Templates:\t" + templates);
+        System.out.println("Invokes:\t" + invokes);
         NumberFormat format = NumberFormat.getPercentInstance();
         format.setMinimumFractionDigits(1);
         System.out.println("Strip Rate:\t" + format.format(((double) docsStripped) / ((double) this.getDocsRead())));
@@ -88,27 +72,21 @@ public class WikiStripper extends XmlWritingHandler {
 
         String title = xmlFields.get("title");
         String text = xmlFields.get("text");
-        if (title == null || text == null) {
-            this.docsStripped++;
-            return;
-        }
-
-        //Exclude titles by regex
-        for (Pattern pattern: this.titleExclusionPatterns) {
-            Matcher matcher = pattern.matcher(title);
-            if (matcher.find()) {
-                this.docsStripped++;
-                return;
+        /*Matcher textMatcher = templateTextPattern.matcher(text);
+        if (textMatcher.find()) {
+            System.out.println("template invocation: " + textMatcher.group(1));
+        }*/
+        if (title.contains("Template:")) {
+            templates++;
+            if (text.contains("#invoke")) {
+                invokes++;
             }
         }
 
-        //Exclude redirects
-        Matcher matcher = redirectPattern.matcher(text);
-        if (matcher.matches()) {
-            this.docsStripped++;
-            return;
-        }
 
+        return;
+
+        /*
         //Write to the file
         try {
             this.writeDocument(StringUtils.normalizeWikiTitle(title), text);
@@ -116,6 +94,7 @@ public class WikiStripper extends XmlWritingHandler {
             e.printStackTrace();
             System.exit(1);
         }
+         */
     }
 
     public void writeDocument(String title, String text) throws XMLStreamException, IOException {

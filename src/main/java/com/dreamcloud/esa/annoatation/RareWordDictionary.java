@@ -1,15 +1,14 @@
 package com.dreamcloud.esa.annoatation;
 
+import com.dreamcloud.esa.annoatation.handler.XmlReadingHandler;
 import com.dreamcloud.esa.tools.BZipFileReader;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.eclipse.collections.api.map.primitive.MutableObjectIntMap;
 import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
-import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import org.xml.sax.helpers.DefaultHandler;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -19,14 +18,12 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
-public class RareWordDictionary extends DefaultHandler {
+public class RareWordDictionary extends XmlReadingHandler {
     protected final SAXParserFactory saxFactory;
     private int rareWordThreshold = 0;
-    protected boolean inDoc;
-    protected boolean inDocText;
-    protected StringBuilder content = new StringBuilder();
     protected int termsRead = 0;
     protected int rareTerms = 0;
     protected MutableObjectIntMap<String> uniqueTerms = ObjectIntMaps.mutable.empty();
@@ -73,42 +70,26 @@ public class RareWordDictionary extends DefaultHandler {
         System.out.println("----------------------------------------");
     }
 
-    public void startElement(String uri, String localName, String qName, Attributes attributes) {
-        if ("doc".equals(localName)) {
-            inDoc = true;
-        } else if (inDoc && "text".equals(localName)) {
-            inDocText = true;
-            content = new StringBuilder();
+    @Override
+    public void handleDocument(Map<String, String> xmlFields) throws SAXException {
+        String text = xmlFields.get("text");
+        TokenStream tokens = analyzer.tokenStream("text", text);
+        CharTermAttribute termAttribute = tokens.addAttribute(CharTermAttribute.class);
+        Set<String> uniqueTerms = new HashSet<>();
+        try {
+            tokens.reset();
+            while(tokens.incrementToken()) {
+                termsRead++;
+                uniqueTerms.add(termAttribute.toString());
+            }
+            tokens.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
         }
-    }
 
-    public void endElement(String uri, String localName, String qName) {
-         if (inDoc && inDocText && "text".equals(localName)) {
-            inDocText = false;
-            String text = content.toString();
-             TokenStream tokens = analyzer.tokenStream("text", text);
-             CharTermAttribute termAttribute = tokens.addAttribute(CharTermAttribute.class);
-             Set<String> uniqueTerms = new HashSet<>();
-             try {
-                 tokens.reset();
-                 while(tokens.incrementToken()) {
-                     termsRead++;
-                     uniqueTerms.add(termAttribute.toString());
-                 }
-                 tokens.close();
-             } catch (IOException e) {
-                 e.printStackTrace();
-             }
-
-             for (String term: uniqueTerms) {
-                 this.uniqueTerms.addToValue(term, 1);
-             }
-        } else if (inDoc && "doc".equals(localName)) {
-            inDoc = false;
+        for (String term: uniqueTerms) {
+            this.uniqueTerms.addToValue(term, 1);
         }
-    }
-
-    public void characters(char[] ch, int start, int length) {
-        content.append(ch, start, length);
     }
 }

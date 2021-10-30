@@ -203,6 +203,11 @@ public class Main {
         titleMapOption.setArgs(2);
         options.addOption(titleMapOption);
 
+        Option resolveTemplatesOption = new Option(null, "resolve-templates", true, "inputFile outputFile / Resolves templates");
+        resolveTemplatesOption.setRequired(false);
+        resolveTemplatesOption.setArgs(2);
+        options.addOption(resolveTemplatesOption);
+
         Option linkCountOption = new Option(null, "count-links", true, "wikiInputFile titleMapFile outputFile / Creates an annotated XML file with link counts.");
         linkCountOption.setRequired(false);
         linkCountOption.setArgs(3);
@@ -246,6 +251,7 @@ public class Main {
             String[] weightArgs = cmd.getOptionValues("weight");
             String[] stripArgs = cmd.getOptionValues("strip");
             String[] titleMapArgs = cmd.getOptionValues("map-titles");
+            String[] resolveTemplateArgs = cmd.getOptionValues("resolve-templates");
             String[] findArticleArgs = cmd.getOptionValues("find-article");
             String[] countLinkArgs = cmd.getOptionValues("count-links");
             String[] countTermArgs = cmd.getOptionValues("count-terms");
@@ -496,6 +502,14 @@ public class Main {
                 File outputFile = new File(titleMapArgs[1]);
                 WikiTitleMapper titleMapper = new WikiTitleMapper(inputFile);
                 titleMapper.mapToXml(outputFile);
+            }
+
+            else if(hasLength(resolveTemplateArgs, 2)) {
+                File inputFile = new File(resolveTemplateArgs[0]);
+                File outputFile = new File(resolveTemplateArgs[1]);
+                TemplateResolutionOptions templateResolutionOptions = new TemplateResolutionOptions();
+                TemplateResolver templateResolver = new TemplateResolver(templateResolutionOptions);
+                templateResolver.resolve(inputFile, outputFile);
             }
 
             else if(hasLength(stripArgs, 2)) {

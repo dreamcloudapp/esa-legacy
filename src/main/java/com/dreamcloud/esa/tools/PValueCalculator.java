@@ -6,7 +6,6 @@ import org.apache.commons.math.stat.correlation.PearsonsCorrelation;
 import org.apache.commons.math.stat.correlation.SpearmansCorrelation;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,13 +31,13 @@ public class PValueCalculator {
         }
 
         for (DocumentSimilarity docSim: docSims) {
-            int doc1 = Integer.parseInt(docSim.doc1) - 1;
-            int doc2 = Integer.parseInt(docSim.doc2) - 1;
+            int doc1 = Integer.parseInt(docSim.doc1);
+            int doc2 = Integer.parseInt(docSim.doc2);
             if (documents.size() <= doc1) {
-                throw new CsvValidationException("LP50 document " + (doc1 + 1) + " could not be found.");
+                throw new CsvValidationException("LP50 document " + doc1 + " could not be found.");
             }
             if (documents.size() <= doc2) {
-                throw new CsvValidationException("LP50 document " + (doc1 + 1) + " could not be found.");
+                throw new CsvValidationException("LP50 document " + doc1 + " could not be found.");
             }
             docSim.doc1 = documents.get(doc1);
             docSim.doc2 = documents.get(doc2);
@@ -55,6 +54,7 @@ public class PValueCalculator {
             resolveDocuments(humanSimilarityList, documentFile);
         }
         double[] humanScores = this.getHumanScores(humanSimilarityList);
+        System.out.println("Human Scores:\t" + humanScores.length);
         double[] esaScores = this.getEsaScores(humanSimilarityList, similarity);
         PearsonsCorrelation pearsonsCorrelation = new PearsonsCorrelation();
         return pearsonsCorrelation.correlation(humanScores, esaScores);
@@ -63,6 +63,7 @@ public class PValueCalculator {
     public double getSpearmanCorrelation(SemanticSimilarityTool similarity) throws Exception {
         ArrayList<DocumentSimilarity> humanSimilarityList = this.readHumanScores();
         double[] humanScores = this.getHumanScores(humanSimilarityList);
+        System.out.println("Human Scores:\t" + humanScores.length);
         double[] esaScores = this.getEsaScores(humanSimilarityList, similarity);
         SpearmansCorrelation spearmansCorrelation = new SpearmansCorrelation();
         return spearmansCorrelation.correlation(humanScores, esaScores);
@@ -73,6 +74,10 @@ public class PValueCalculator {
         for(int i=0; i<humanSimilarityList.size(); i++) {
             DocumentSimilarity docSim = humanSimilarityList.get(i);
             esaScores[i] = similarity.findSemanticSimilarity(docSim.doc1, docSim.doc2);
+
+            String sourceDesc = docSim.doc1.substring(0, Math.min(16, docSim.doc1.length()));
+            String compareDesc = docSim.doc2.substring(0, Math.min(16, docSim.doc2.length()));
+            System.out.println("doc " + i + "\t ('" + sourceDesc + "', '" + compareDesc + "'):\t" + esaScores[i]);
         }
         return esaScores;
     }
