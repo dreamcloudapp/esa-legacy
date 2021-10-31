@@ -1,6 +1,7 @@
 package com.dreamcloud.esa.annoatation;
 
 import com.dreamcloud.esa.annoatation.handler.XmlWritingHandler;
+import com.dreamcloud.esa.parser.TemplateParameter;
 import com.dreamcloud.esa.parser.TemplateParser;
 import com.dreamcloud.esa.parser.TemplateReference;
 import com.dreamcloud.esa.tools.BZipFileReader;
@@ -16,7 +17,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -24,7 +24,6 @@ public class TemplateResolver extends XmlWritingHandler {
     TemplateResolutionOptions options;
     Map<String, String> templateMap;
     protected final SAXParserFactory saxFactory;
-    protected int docsStripped = 0;
     protected int templates = 0;
 
     public TemplateResolver(TemplateResolutionOptions options, Map<String, String> templateMap) {
@@ -35,11 +34,6 @@ public class TemplateResolver extends XmlWritingHandler {
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);
         saxFactory.setXIncludeAware(true);
-    }
-
-    public void reset() {
-        super.reset();
-        docsStripped = 0;
     }
 
     public void resolve(File inputFile, File outputFile) throws IOException, ParserConfigurationException, SAXException, XMLStreamException {
@@ -62,37 +56,65 @@ public class TemplateResolver extends XmlWritingHandler {
         //Show logs
         System.out.println("----------------------------------------");
         System.out.println("Articles Read:\t" + this.getDocsRead());
-        System.out.println("Articles Stripped:\t" + docsStripped);
-        System.out.println("Templates:\t" + templates);
-        NumberFormat format = NumberFormat.getPercentInstance();
-        format.setMinimumFractionDigits(1);
-        System.out.println("Strip Rate:\t" + format.format(((double) docsStripped) / ((double) this.getDocsRead())));
+        System.out.println("Templates Refs:\t" + templates);
         System.out.println("----------------------------------------");
     }
 
     public void handleDocument(Map<String, String> xmlFields) {
         int docsRead = this.getDocsRead();
         if (docsRead % 1000 == 0) {
-            System.out.println("processed template\t[" + docsStripped + " | " + templates + "]");
+            System.out.println("processed template\t[" + templates + " | " + docsRead + "]");
         }
         String title = xmlFields.get("title");
         String text = xmlFields.get("text");
 
         try {
+            text = this.resolveTemplates(text, templateMap, 0);
             this.writeDocument(StringUtils.normalizeWikiTitle(title), text);
-            text = this.resolveTemplates(text, templateMap);
         } catch (XMLStreamException | IOException e) {
             e.printStackTrace();
             System.exit(1);
         }
     }
 
-    public String resolveTemplates(String text, Map<String, String> templateMap) throws IOException {
+    public String resolveTemplates(String text, Map<String, String> templateMap, int depth) throws IOException {
+        if (depth > options.minimumTerms) {
+            return text;
+        }
+
         TemplateParser parser = new TemplateParser();
         ArrayList<TemplateReference> templateReferences = parser.parseTemplates(
             new StringReader(text)
         );
-        this.logMessage("found " + templateReferences.size() + " templates");
+        templates += templateReferences.size();
+
+        for (TemplateReference templateReference: templateReferences) {
+            String templateName = StringUtils.normalizeWikiTitle(templateReference.name);
+            if (templateMap.containsKey(templateName)) {
+                String templateText = templateMap.get(templateName);
+
+                //Replace the parameters
+                int parameterCount = 1;
+                for (TemplateParameter parameter: templateReference.parameters) {
+                    if (!"".equals(parameter.name)) {
+                        templateText = templateText.replaceAll("{{" + parameter.name + "}}", parameter.value);
+                    } else {
+                        templateText = templateText.replaceAll("{{" + String.valueOf(parameterCount) + "}}", parameter.value);
+                    }
+                    parameterCount++;
+                }
+
+                templateText = resolveTemplates(templateText, templateMap, depth + 1);
+                text = text.replaceFirst(templateReference.text, templateText);
+            } else {
+                StringBuilder replacement = new StringBuilder();
+                for (TemplateParameter parameter: templateReference.parameters) {
+                    replacement.append(parameter.name).append(' ').append(parameter.value);
+                }
+                text = text.replaceFirst(templateReference.text, replacement.toString());
+            }
+        }
+
         return text;
     }
 

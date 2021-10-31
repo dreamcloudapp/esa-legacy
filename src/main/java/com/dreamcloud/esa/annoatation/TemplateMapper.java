@@ -112,6 +112,7 @@ public class TemplateMapper extends XmlReadingHandler {
                 return;
             }
 
+            title = title.substring(9);
             title = StringUtils.normalizeWikiTitle(title);
             String text = xmlFields.get("text");
 
