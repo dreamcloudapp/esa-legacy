@@ -1,9 +1,10 @@
 package com.dreamcloud.esa.annoatation;
 
 import com.dreamcloud.esa.annoatation.handler.XmlWritingHandler;
+import com.dreamcloud.esa.parser.TemplateParser;
+import com.dreamcloud.esa.parser.TemplateReference;
 import com.dreamcloud.esa.tools.BZipFileReader;
 import com.dreamcloud.esa.tools.StringUtils;
-import org.apache.commons.text.StringEscapeUtils;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -14,38 +15,31 @@ import javax.xml.stream.XMLStreamException;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
+import java.io.StringReader;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class TemplateResolver extends XmlWritingHandler {
-    private static WikiTitleMatcher matcher = null;
-    private static Pattern noIncludeTagPattern = Pattern.compile("<noinclude>.+</noinclude>", Pattern.DOTALL);
-    private static Pattern onlyIncludeTagPattern = Pattern.compile("<onlyinclude>(.+)</onlyinclude>", Pattern.DOTALL);
-    private static Pattern includeOnlyTagPattern = Pattern.compile("<includeonly>(.+)</includeonly>", Pattern.DOTALL);
-
+    TemplateResolutionOptions options;
+    Map<String, String> templateMap;
     protected final SAXParserFactory saxFactory;
     protected int docsStripped = 0;
-    protected int invokes = 0;
     protected int templates = 0;
-    ArrayList<Pattern> titleExclusionPatterns;
 
-    public TemplateResolver(TemplateResolutionOptions options) {
+    public TemplateResolver(TemplateResolutionOptions options, Map<String, String> templateMap) {
+        this.options = options;
+        this.templateMap = templateMap;
         this.setDocumentTag("page");
-        this.setKeepArticleTags(true);
         saxFactory = SAXParserFactory.newInstance();
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);
         saxFactory.setXIncludeAware(true);
     }
 
-    protected static WikiTitleMatcher getTitleMatcher() {
-        if (matcher == null) {
-            matcher = WikiTitleMatcher.createForTemplateStripping();
-        }
-        return matcher;
+    public void reset() {
+        super.reset();
+        docsStripped = 0;
     }
 
     public void resolve(File inputFile, File outputFile) throws IOException, ParserConfigurationException, SAXException, XMLStreamException {
@@ -70,7 +64,6 @@ public class TemplateResolver extends XmlWritingHandler {
         System.out.println("Articles Read:\t" + this.getDocsRead());
         System.out.println("Articles Stripped:\t" + docsStripped);
         System.out.println("Templates:\t" + templates);
-        System.out.println("Invokes:\t" + invokes);
         NumberFormat format = NumberFormat.getPercentInstance();
         format.setMinimumFractionDigits(1);
         System.out.println("Strip Rate:\t" + format.format(((double) docsStripped) / ((double) this.getDocsRead())));
@@ -80,48 +73,27 @@ public class TemplateResolver extends XmlWritingHandler {
     public void handleDocument(Map<String, String> xmlFields) {
         int docsRead = this.getDocsRead();
         if (docsRead % 1000 == 0) {
-            System.out.println("processed article\t[" + docsStripped + " | " + docsRead + "]");
+            System.out.println("processed template\t[" + docsStripped + " | " + templates + "]");
         }
-
         String title = xmlFields.get("title");
-        title = StringUtils.normalizeWikiTitle(title);
+        String text = xmlFields.get("text");
 
-        if (title.startsWith("template:")) {
-            templates++;
-
-            if (matcher.matches(title)) {
-                docsStripped++;
-                return;
-            }
-
-            String text = xmlFields.get("text");
-
-            if (text.contains("#invoke")) {
-                invokes++;
-                docsStripped++;
-                return;
-            }
-
-            //Analyze the template text
-            if (text.contains("<noinclude>")) {
-                //strip out the tag
-                Matcher noIncludeMatcher = noIncludeTagPattern.matcher(text);
-                text = noIncludeMatcher.replaceAll("");
-            }
-            if (text.contains("onlyinclude")) {
-
-            }
-        }
-
-        /*
-        //Write to the file
         try {
             this.writeDocument(StringUtils.normalizeWikiTitle(title), text);
+            text = this.resolveTemplates(text, templateMap);
         } catch (XMLStreamException | IOException e) {
             e.printStackTrace();
             System.exit(1);
         }
-         */
+    }
+
+    public String resolveTemplates(String text, Map<String, String> templateMap) throws IOException {
+        TemplateParser parser = new TemplateParser();
+        ArrayList<TemplateReference> templateReferences = parser.parseTemplates(
+            new StringReader(text)
+        );
+        this.logMessage("found " + templateReferences.size() + " templates");
+        return text;
     }
 
     public void writeDocument(String title, String text) throws XMLStreamException, IOException {

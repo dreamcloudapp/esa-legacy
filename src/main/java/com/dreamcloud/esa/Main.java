@@ -43,6 +43,7 @@ import org.apache.commons.cli.*;
 //Reading input files
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Map;
 
 public class Main {
     public static String readInputFile(String path, String encoding) throws IOException {
@@ -508,7 +509,10 @@ public class Main {
                 File inputFile = new File(resolveTemplateArgs[0]);
                 File outputFile = new File(resolveTemplateArgs[1]);
                 TemplateResolutionOptions templateResolutionOptions = new TemplateResolutionOptions();
-                TemplateResolver templateResolver = new TemplateResolver(templateResolutionOptions);
+
+                TemplateMapper templateMapper = new TemplateMapper(templateResolutionOptions);
+                Map<String, String> templateMap = templateMapper.map(inputFile);
+                TemplateResolver templateResolver = new TemplateResolver(templateResolutionOptions, templateMap);
                 templateResolver.resolve(inputFile, outputFile);
             }
 

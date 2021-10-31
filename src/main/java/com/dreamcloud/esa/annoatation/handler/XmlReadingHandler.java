@@ -1,6 +1,5 @@
 package com.dreamcloud.esa.annoatation.handler;
 
-import com.dreamcloud.esa.debug.ArticleFoundException;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -12,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 abstract public class XmlReadingHandler extends DefaultHandler implements AutoCloseable {
     private String documentTag = "doc";
     private final ArrayList<String> allowedTags = new ArrayList<>();
-    private boolean keepArticleTags = false;
+    private final ArrayList<String> allowedArticleTags = new ArrayList<>();
 
     private StringBuilder content;
     private boolean inDoc = false;
@@ -35,6 +34,9 @@ abstract public class XmlReadingHandler extends DefaultHandler implements AutoCl
     public void allowTag(String tag) {
         this.allowedTags.add(tag);
     }
+    public void allowArticleTag(String tag) {
+        this.allowedArticleTags.add(tag);
+    }
 
     public void clearAllowedTags() {
         this.allowedTags.clear();
@@ -52,10 +54,6 @@ abstract public class XmlReadingHandler extends DefaultHandler implements AutoCl
         this.documentTag = documentTag;
     }
 
-    public void setKeepArticleTags(boolean keepArticleTags) {
-        this.keepArticleTags = keepArticleTags;
-    }
-
     public int getDocsRead() {
         return this.docsRead;
     }
@@ -67,7 +65,7 @@ abstract public class XmlReadingHandler extends DefaultHandler implements AutoCl
         } else if (inDoc && this.allowedTags.contains(localName)) {
             content = new StringBuilder();
             currentTag = localName;
-        } else if(inDoc && "text".equals(currentTag) && keepArticleTags) {
+        } else if(inDoc && "text".equals(currentTag) && this.allowedArticleTags.contains(localName)) {
             content.append("<").append(localName).append(">");
         }
     }
@@ -81,7 +79,7 @@ abstract public class XmlReadingHandler extends DefaultHandler implements AutoCl
             } else if(this.allowedTags.contains(localName)) {
                 xmlFields.put(currentTag, content.toString());
                 currentTag = null;
-            } else if("text".equals(currentTag) && keepArticleTags) {
+            } else if("text".equals(currentTag) && this.allowedArticleTags.contains(localName)) {
                 content.append("</").append(localName).append(">");
             }
         }
