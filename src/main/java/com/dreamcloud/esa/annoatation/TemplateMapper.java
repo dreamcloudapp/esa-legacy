@@ -11,6 +11,7 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.wikipedia.WikipediaTokenizer;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -44,7 +45,7 @@ public class TemplateMapper extends XmlReadingHandler {
         AnalyzerOptions analyzerOptions = new AnalyzerOptions();
         analyzerOptions.tokenizerFactory = new TokenizerFactory() {
             public Tokenizer getTokenizer() {
-                return new StandardTokenizer();
+                return new WikipediaTokenizer();
             }
         };
         analyzer = new EsaAnalyzer(analyzerOptions);

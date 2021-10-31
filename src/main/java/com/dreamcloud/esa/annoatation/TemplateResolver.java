@@ -104,7 +104,7 @@ public class TemplateResolver extends XmlWritingHandler {
                 int parameterCount = 1;
                 for (TemplateParameter parameter: templateReference.parameters) {
                     if (!"".equals(parameter.name)) {
-                        templateText = templateText.replaceAll("\\{{\\{\\{" + parameter.name + "}}}", Matcher.quoteReplacement(parameter.value));
+                        templateText = templateText.replaceAll("\\{\\{\\{" + parameter.name + "}}}", Matcher.quoteReplacement(parameter.value));
                     } else {
                         templateText = templateText.replaceAll("\\{\\{\\{" + parameterCount + "}}}", Matcher.quoteReplacement(parameter.value));
                     }
