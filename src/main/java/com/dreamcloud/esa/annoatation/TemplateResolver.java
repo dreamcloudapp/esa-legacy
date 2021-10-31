@@ -19,6 +19,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.regex.Matcher;
 
 public class TemplateResolver extends XmlWritingHandler {
     TemplateResolutionOptions options;
@@ -66,6 +67,12 @@ public class TemplateResolver extends XmlWritingHandler {
             System.out.println("processed template\t[" + templates + " | " + docsRead + "]");
         }
         String title = xmlFields.get("title");
+
+        //We aren't going to write templates
+        if (title.startsWith("Template:")) {
+            return;
+        }
+
         String text = xmlFields.get("text");
 
         try {
@@ -78,7 +85,7 @@ public class TemplateResolver extends XmlWritingHandler {
     }
 
     public String resolveTemplates(String text, Map<String, String> templateMap, int depth) throws IOException {
-        if (depth > options.minimumTerms) {
+        if (depth > options.recursionDepth) {
             return text;
         }
 
@@ -97,21 +104,21 @@ public class TemplateResolver extends XmlWritingHandler {
                 int parameterCount = 1;
                 for (TemplateParameter parameter: templateReference.parameters) {
                     if (!"".equals(parameter.name)) {
-                        templateText = templateText.replaceAll("{{" + parameter.name + "}}", parameter.value);
+                        templateText = templateText.replaceAll("\\{{\\{\\{" + parameter.name + "}}}", Matcher.quoteReplacement(parameter.value));
                     } else {
-                        templateText = templateText.replaceAll("{{" + String.valueOf(parameterCount) + "}}", parameter.value);
+                        templateText = templateText.replaceAll("\\{\\{\\{" + parameterCount + "}}}", Matcher.quoteReplacement(parameter.value));
                     }
                     parameterCount++;
                 }
 
                 templateText = resolveTemplates(templateText, templateMap, depth + 1);
-                text = text.replaceFirst(templateReference.text, templateText);
+                text = text.replaceFirst(templateReference.text, Matcher.quoteReplacement(templateText));
             } else {
                 StringBuilder replacement = new StringBuilder();
                 for (TemplateParameter parameter: templateReference.parameters) {
                     replacement.append(parameter.name).append(' ').append(parameter.value);
                 }
-                text = text.replaceFirst(templateReference.text, replacement.toString());
+                text = text.replaceFirst(templateReference.text, Matcher.quoteReplacement(replacement.toString()));
             }
         }
 
