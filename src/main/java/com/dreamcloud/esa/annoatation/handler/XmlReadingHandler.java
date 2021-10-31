@@ -11,7 +11,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 abstract public class XmlReadingHandler extends DefaultHandler implements AutoCloseable {
     private String documentTag = "doc";
-    private ArrayList<String> allowedTags = new ArrayList<>();
+    private final ArrayList<String> allowedTags = new ArrayList<>();
+    private boolean keepArticleTags = false;
 
     private StringBuilder content;
     private boolean inDoc = false;
@@ -51,6 +52,10 @@ abstract public class XmlReadingHandler extends DefaultHandler implements AutoCl
         this.documentTag = documentTag;
     }
 
+    public void setKeepArticleTags(boolean keepArticleTags) {
+        this.keepArticleTags = keepArticleTags;
+    }
+
     public int getDocsRead() {
         return this.docsRead;
     }
@@ -62,6 +67,8 @@ abstract public class XmlReadingHandler extends DefaultHandler implements AutoCl
         } else if (inDoc && this.allowedTags.contains(localName)) {
             content = new StringBuilder();
             currentTag = localName;
+        } else if(inDoc && "text".equals(currentTag) && keepArticleTags) {
+            content.append("<").append(localName).append(">");
         }
     }
 
@@ -71,8 +78,11 @@ abstract public class XmlReadingHandler extends DefaultHandler implements AutoCl
                 inDoc = false;
                 docsRead++;
                 this.handleDocument(xmlFields);
-            } else {
+            } else if(this.allowedTags.contains(localName)) {
                 xmlFields.put(currentTag, content.toString());
+                currentTag = null;
+            } else if("text".equals(currentTag) && keepArticleTags) {
+                content.append("</").append(localName).append(">");
             }
         }
     }

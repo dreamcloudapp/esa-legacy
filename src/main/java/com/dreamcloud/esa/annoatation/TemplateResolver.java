@@ -3,6 +3,7 @@ package com.dreamcloud.esa.annoatation;
 import com.dreamcloud.esa.annoatation.handler.XmlWritingHandler;
 import com.dreamcloud.esa.tools.BZipFileReader;
 import com.dreamcloud.esa.tools.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -20,7 +21,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TemplateResolver extends XmlWritingHandler {
-    protected Pattern templateTextPattern = Pattern.compile("[^{]\\{\\{([^#<>\\[\\]{}|]+)");
+    private static WikiTitleMatcher matcher = null;
+    private static Pattern noIncludeTagPattern = Pattern.compile("<noinclude>.+</noinclude>", Pattern.DOTALL);
+    private static Pattern onlyIncludeTagPattern = Pattern.compile("<onlyinclude>(.+)</onlyinclude>", Pattern.DOTALL);
+    private static Pattern includeOnlyTagPattern = Pattern.compile("<includeonly>(.+)</includeonly>", Pattern.DOTALL);
+
     protected final SAXParserFactory saxFactory;
     protected int docsStripped = 0;
     protected int invokes = 0;
@@ -29,10 +34,18 @@ public class TemplateResolver extends XmlWritingHandler {
 
     public TemplateResolver(TemplateResolutionOptions options) {
         this.setDocumentTag("page");
+        this.setKeepArticleTags(true);
         saxFactory = SAXParserFactory.newInstance();
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);
         saxFactory.setXIncludeAware(true);
+    }
+
+    protected static WikiTitleMatcher getTitleMatcher() {
+        if (matcher == null) {
+            matcher = WikiTitleMatcher.createForTemplateStripping();
+        }
+        return matcher;
     }
 
     public void resolve(File inputFile, File outputFile) throws IOException, ParserConfigurationException, SAXException, XMLStreamException {
@@ -71,20 +84,34 @@ public class TemplateResolver extends XmlWritingHandler {
         }
 
         String title = xmlFields.get("title");
-        String text = xmlFields.get("text");
-        /*Matcher textMatcher = templateTextPattern.matcher(text);
-        if (textMatcher.find()) {
-            System.out.println("template invocation: " + textMatcher.group(1));
-        }*/
-        if (title.contains("Template:")) {
+        title = StringUtils.normalizeWikiTitle(title);
+
+        if (title.startsWith("template:")) {
             templates++;
+
+            if (matcher.matches(title)) {
+                docsStripped++;
+                return;
+            }
+
+            String text = xmlFields.get("text");
+
             if (text.contains("#invoke")) {
                 invokes++;
+                docsStripped++;
+                return;
+            }
+
+            //Analyze the template text
+            if (text.contains("<noinclude>")) {
+                //strip out the tag
+                Matcher noIncludeMatcher = noIncludeTagPattern.matcher(text);
+                text = noIncludeMatcher.replaceAll("");
+            }
+            if (text.contains("onlyinclude")) {
+
             }
         }
-
-
-        return;
 
         /*
         //Write to the file
