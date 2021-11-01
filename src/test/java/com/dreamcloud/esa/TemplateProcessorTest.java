@@ -16,8 +16,6 @@ import org.junit.Test;
 
 
 public class TemplateProcessorTest {
-    TemplateProcessor processor;
-
     public TemplateProcessorTest() {
     }
 
@@ -61,7 +59,7 @@ public class TemplateProcessorTest {
 
         String article = "{{foo}}";
         String processedArticle = processor.substitute(article);
-        assertEquals(processedArticle, "bar");
+        assertEquals("bar", processedArticle);
     }
 
     @Test
@@ -74,7 +72,7 @@ public class TemplateProcessorTest {
 
         String article = "{{foo|world}}";
         String processedArticle = processor.substitute(article);
-        assertEquals(processedArticle, "hello world");
+        assertEquals("hello world", processedArticle);
     }
 
     @Test
@@ -87,7 +85,7 @@ public class TemplateProcessorTest {
 
         String article = "{{foo|bar=world}}";
         String processedArticle = processor.substitute(article);
-        assertEquals(processedArticle, "hello world");
+        assertEquals("hello world", processedArticle);
     }
 
     @Test
@@ -100,6 +98,6 @@ public class TemplateProcessorTest {
 
         String article = "{{foo|hello|bar=world|!}}";
         String processedArticle = processor.substitute(article);
-        assertEquals(processedArticle, "hello world!");
+        assertEquals("hello world!", processedArticle);
     }
 }
