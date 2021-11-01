@@ -512,7 +512,7 @@ public class Main {
 
                 TemplateMapper templateMapper = new TemplateMapper(templateResolutionOptions);
                 Map<String, String> templateMap = templateMapper.map(inputFile);
-                TemplateResolver templateResolver = new TemplateResolver(templateResolutionOptions, templateMap);
+                TemplateResolver templateResolver = new TemplateResolver(templateMap);
                 templateResolver.resolve(inputFile, outputFile);
             }
 

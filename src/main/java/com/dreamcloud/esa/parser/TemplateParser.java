@@ -1,6 +1,7 @@
 package com.dreamcloud.esa.parser;
 
 import java.io.IOException;
+import java.io.PushbackReader;
 import java.io.Reader;
 import java.util.ArrayList;
 
@@ -33,7 +34,7 @@ public class TemplateParser {
         templateText = new StringBuilder();
     }
 
-    public ArrayList<TemplateReference> parseTemplates(Reader reader) throws IOException {
+    public ArrayList<TemplateReference> parseTemplates(PushbackReader reader) throws IOException {
         reset();
         int c;
         TemplateReference template = null;
@@ -48,7 +49,9 @@ public class TemplateParser {
             switch (c) {
                 case '{':
                     bracesSeen++;
-                    if (bracesSeen == 2) {
+                    int peek = reader.read();
+                    reader.unread(peek);
+                    if (bracesSeen == 2 && peek != '{') {
                         inTemplate = true;
                         template = new TemplateReference();
                         templateText = new StringBuilder();
@@ -56,17 +59,18 @@ public class TemplateParser {
                     }
                     break;
                 case '}':
-                    bracesSeen--;
-                    if (inTemplate && bracesSeen == 0) {
-                        if (content.length() > 0) {
-                            if (inParameter) {
-                                parameter.value = content.toString();
-                            } else {
-                                template.name = content.toString();
+                    if (inTemplate) {
+                        if (--bracesSeen == 0) {
+                            if (content.length() > 0) {
+                                if (inParameter) {
+                                    parameter.value = content.toString();
+                                } else {
+                                    template.name = content.toString();
+                                }
                             }
+                            templateReferences.add(template);
+                            resetTemplate();
                         }
-                        templateReferences.add(template);
-                        resetTemplate();
                     }
                     break;
                 case '|':

@@ -4,12 +4,14 @@ import com.dreamcloud.esa.analyzer.AnalyzerOptions;
 import com.dreamcloud.esa.analyzer.EsaAnalyzer;
 import com.dreamcloud.esa.analyzer.TokenizerFactory;
 import com.dreamcloud.esa.annoatation.handler.XmlReadingHandler;
+import com.dreamcloud.esa.parser.TemplateParameter;
+import com.dreamcloud.esa.parser.TemplateParser;
+import com.dreamcloud.esa.parser.TemplateReference;
 import com.dreamcloud.esa.tools.BZipFileReader;
 import com.dreamcloud.esa.tools.StringUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
-import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.wikipedia.WikipediaTokenizer;
 import org.xml.sax.InputSource;
@@ -19,10 +21,9 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.stream.XMLStreamException;
-import java.io.File;
-import java.io.IOException;
-import java.io.Reader;
+import java.io.*;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -71,6 +72,7 @@ public class TemplateMapper extends XmlReadingHandler {
         templateMap = new HashMap<>();
         docsStripped = 0;
         invokes = 0;
+        templates = 0;
     }
 
     public Map<String, String> map(File inputFile) throws IOException, ParserConfigurationException, SAXException, XMLStreamException {
@@ -87,13 +89,20 @@ public class TemplateMapper extends XmlReadingHandler {
         System.out.println("----------------------------------------");
         System.out.println("Articles Read:\t" + this.getDocsRead());
         System.out.println("Articles Stripped:\t" + docsStripped);
-        System.out.println("Templates:\t" + templates);
         System.out.println("Invokes:\t" + invokes);
+        System.out.println("Templates:\t" + templates);
         NumberFormat format = NumberFormat.getPercentInstance();
         format.setMinimumFractionDigits(1);
         System.out.println("Strip Rate:\t" + format.format(((double) docsStripped) / ((double) this.getDocsRead())));
         System.out.println("----------------------------------------");
 
+        //Preprocess the templates to save on performance
+        TemplateProcessor processor = new TemplateProcessor(templateMap, options);
+        for (Map.Entry<String, String> entry: templateMap.entrySet()) {
+            String resolvedText = processor.substitute(entry.getValue());
+            templateMap.put(entry.getKey(), resolvedText);
+        }
+        processor.displayInfo();
         return templateMap;
     }
 
