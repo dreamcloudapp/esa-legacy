@@ -2,7 +2,6 @@ package com.dreamcloud.esa.parser;
 
 import java.io.IOException;
 import java.io.PushbackReader;
-import java.io.Reader;
 import java.util.ArrayList;
 
 public class TemplateParser {
@@ -18,12 +17,8 @@ public class TemplateParser {
     }
 
     public void reset() {
-        inTemplate = false;
-        inParameter = false;
-        bracesSeen = 0;
-        content = new StringBuilder();
-        templateText = new StringBuilder();
         templateReferences = new ArrayList<>();
+        resetTemplate();
     }
 
     public void resetTemplate() {
@@ -68,7 +63,10 @@ public class TemplateParser {
                                     template.name = content.toString();
                                 }
                             }
-                            templateReferences.add(template);
+                            if (template.name != null) {
+                                template.text = templateText.toString();
+                                templateReferences.add(template);
+                            }
                             resetTemplate();
                         }
                     }
@@ -79,6 +77,7 @@ public class TemplateParser {
                         parameter.value = content.toString();
                         content = new StringBuilder();
                         template.parameters.add(parameter);
+                        parameter = new TemplateParameter();
                     } else if(inTemplate) {
                         inParameter = true;
                         parameter = new TemplateParameter();

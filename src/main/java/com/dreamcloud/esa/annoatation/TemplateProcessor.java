@@ -19,20 +19,28 @@ public class TemplateProcessor {
     protected Map<String, String> templateMap;
     protected TemplateResolutionOptions options;
 
+    protected int processed = 0;
     protected int templateReferenceCount = 0;
     protected int variableCount = 0;
     protected int variableReplacements = 0;
     protected int defaultVariableReplacements = 0;
+    protected int nuked = 0;
 
     public TemplateProcessor(Map<String, String> templateMap, TemplateResolutionOptions options) {
         this.templateMap = templateMap;
         this.options = options;
     }
 
-    public String substitute(String text, int depth) throws IOException {
+    public String substitute(String text, ArrayList<String> templatesSeen, int depth) throws IOException {
         if (depth > options.recursionDepth) {
             return text;
         }
+
+        if (depth == 0) {
+            processed++;
+        }
+
+        System.out.println("processed (" + depth + "):\t" + processed);
 
         TemplateParser parser = new TemplateParser();
         ArrayList<TemplateReference> templateReferences = parser.parseTemplates(
@@ -40,14 +48,18 @@ public class TemplateProcessor {
         );
         templateReferenceCount += templateReferences.size();
 
+        System.out.println("template ref count: " + templateReferences.size());
+
         for (TemplateReference templateReference: templateReferences) {
             String templateName = StringUtils.normalizeWikiTitle(templateReference.name);
-            if (templateMap.containsKey(templateName)) {
+            boolean templateExists = templateMap.containsKey(templateName);
+            if (templateExists && !templatesSeen.contains(templateName)) {
                 Map<String, TemplateParameter> templateParameterMap = new HashMap<>();
                 int parameterCount = 0;
                 for (TemplateParameter parameter: templateReference.parameters) {
-                    String parameterName = parameter.name != null ? parameter.name : String.valueOf(parameterCount++);
+                    String parameterName = parameter.name != null ? parameter.name : String.valueOf(parameterCount);
                     templateParameterMap.put(parameterName, parameter);
+                    parameterCount++;
                 }
 
                 String templateText = templateMap.get(templateName);
@@ -78,26 +90,47 @@ public class TemplateProcessor {
                     }
                     if (replacement != null) {
                         variableReplacements++;
-                        templateText = templateText.replaceAll(variable.text, replacement);
+                        if (replacement.contains(variable.text)) {
+                            System.out.println("recursive replace: " + replacement + " : " + variable.text);
+                            System.exit(1);
+                        }
+                        templateText = templateText.replace(variable.text, replacement);
                     }
                 }
 
-                templateText = substitute(templateText, depth + 1);
-                text = text.replaceFirst(templateReference.text, Matcher.quoteReplacement(templateText));
-            } else {
+                templatesSeen.add(templateName);
+                templateText = substitute(templateText, templatesSeen, depth + 1);
+                templatesSeen.remove(templateName);
+                text = text.replaceFirst(Pattern.quote(templateReference.text), Matcher.quoteReplacement(templateText));
+            } else if(templateReference.name.startsWith("#")) {
+                //Nuke 'em!
+                nuked++;
+                text = text.replace(templateReference.text, "");
+            }
+            else {
                 StringBuilder replacement = new StringBuilder();
                 for (TemplateParameter parameter: templateReference.parameters) {
-                    replacement.append(parameter.name).append(' ').append(parameter.value);
+                    if (parameter.name !=  null) {
+                        replacement.append(parameter.name).append(' ');
+                    }
+                    if (parameter.value != null) {
+                        replacement.append(parameter.value).append(' ');
+                    }
                 }
-                text = text.replaceFirst(templateReference.text, Matcher.quoteReplacement(replacement.toString()));
+                text = text.replace(templateReference.text, replacement.toString());
             }
         }
 
         return text;
     }
 
+    public String substitute(String text, ArrayList<String> templatesSeen) throws IOException {
+        return substitute(text, templatesSeen, 0);
+    }
+
     public String substitute(String text) throws IOException {
-        return substitute(text, 0);
+        ArrayList<String> templatesSeen = new ArrayList<>();
+        return substitute(text, templatesSeen);
     }
 
     public void displayInfo() {
@@ -107,6 +140,7 @@ public class TemplateProcessor {
         System.out.println("Variable Refs:\t" + variableCount);
         System.out.println("Variables Replaced:\t" + variableReplacements);
         System.out.println("Defaulted Variables:\t" + defaultVariableReplacements);
+        System.out.println("Nuked Refs:\t" + nuked);
         System.out.println("----------------------------------------");
     }
 }

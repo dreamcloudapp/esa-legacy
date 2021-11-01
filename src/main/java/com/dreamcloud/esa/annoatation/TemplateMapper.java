@@ -98,8 +98,12 @@ public class TemplateMapper extends XmlReadingHandler {
 
         //Preprocess the templates to save on performance
         TemplateProcessor processor = new TemplateProcessor(templateMap, options);
+        int preprocessCount = 0;
         for (Map.Entry<String, String> entry: templateMap.entrySet()) {
-            String resolvedText = processor.substitute(entry.getValue());
+            ArrayList<String> templatesSeen = new ArrayList<>();
+            templatesSeen.add(entry.getKey());
+            String resolvedText = processor.substitute(entry.getValue(), templatesSeen);
+            System.out.println("preprocessed template:\t" + (preprocessCount++) + "\t" + entry.getKey());
             templateMap.put(entry.getKey(), resolvedText);
         }
         processor.displayInfo();
