@@ -125,6 +125,21 @@ public class TemplateParserTest {
     }
 
     @Test
+    public void testSpacingAndTrimming() throws IOException {
+        ArrayList<TemplateReference> templates = this.quickParse("{{ foo | bar = baz | hello | baz=bar | world}}");
+        assertEquals(1, templates.size());
+        TemplateReference template = templates.get(0);
+        assertEquals("foo", template.name);
+        assertEquals(4, template.parameters.size());
+        assertEquals("{{ foo | bar = baz | hello | baz=bar | world}}", template.text);
+
+        assertParameter(template.parameters, 1, "bar", "baz");
+        assertParameter(template.parameters, 2, "2", " hello ");
+        assertParameter(template.parameters, 3, "baz", "bar");
+        assertParameter(template.parameters, 4, "4", " world");
+    }
+
+    @Test
     public void testInvalidTemplateNames() throws IOException {
         ArrayList<TemplateReference> templates = this.quickParse("{{lcfirst:John}}");
         assertEquals(0, templates.size());

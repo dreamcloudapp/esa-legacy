@@ -12,6 +12,10 @@ public class TemplateReference {
         parameter.index = index;
         if (parameter.name == null) {
             parameter.name = String.valueOf(index);
+        } else {
+            //Trim names and values of named parameters per Wiki docs
+            parameter.name = parameter.name.trim();
+            parameter.value = parameter.value.trim();
         }
         this.parameters.add(parameter);
     }
