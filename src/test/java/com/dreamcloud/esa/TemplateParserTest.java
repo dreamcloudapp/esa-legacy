@@ -123,4 +123,12 @@ public class TemplateParserTest {
         assertParameter(template.parameters, 3, "baz", "bar");
         assertParameter(template.parameters, 4, "4", "{{world|test}}");
     }
+
+    @Test
+    public void testInvalidTemplateNames() throws IOException {
+        ArrayList<TemplateReference> templates = this.quickParse("{{lcfirst:John}}");
+        assertEquals(0, templates.size());
+        templates = this.quickParse("{{#magic:never believe it's not so}}");
+        assertEquals(0, templates.size());
+    }
 }
