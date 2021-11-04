@@ -36,7 +36,7 @@ public class TemplateProcessor {
             return text;
         }
 
-        if (depth == 0) {
+        if (depth == 1) {
             processed++;
         }
 
@@ -86,7 +86,6 @@ public class TemplateProcessor {
                     }
                     if (replacement != null) {
                         variableReplacements++;
-                        System.out.println("replacing '" + variable.text + "' with '" + replacement + "'");
                         templateText = templateText.replace(variable.text, replacement);
                     }
                 }
@@ -118,7 +117,7 @@ public class TemplateProcessor {
     }
 
     public String substitute(String text, ArrayList<String> templatesSeen) throws IOException {
-        return substitute(text, templatesSeen, 0);
+        return substitute(text, templatesSeen, 1);
     }
 
     public String substitute(String text) throws IOException {

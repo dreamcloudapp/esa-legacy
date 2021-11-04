@@ -154,4 +154,48 @@ public class TemplateProcessorTest {
         String processedArticle = processor.substitute(article);
         assertEquals("hello world", processedArticle);
     }
+
+    @Test
+    public void testTemplateDepth() throws IOException {
+        Map<String, String> templateMap = new HashMap<>();
+        templateMap.put("a", "{{b}}");
+        templateMap.put("b", "{{c}}");
+        templateMap.put("c", "{{d}}");
+        templateMap.put("d", "{{e}}");
+        templateMap.put("e", "{{f}}");
+        templateMap.put("f", "I'm in too deep!");
+
+        TemplateResolutionOptions options = new TemplateResolutionOptions();
+        TemplateProcessor processor = new TemplateProcessor(templateMap, options);
+
+        String article = "{{a}}";
+        String processedArticle = processor.substitute(article);
+        assertEquals("{{f}}", processedArticle);
+    }
+
+    @Test
+    public void testRecursiveTemplate() throws IOException {
+        Map<String, String> templateMap = new HashMap<>();
+        templateMap.put("a", "{{b|letter={{{letter}}}}}");
+        templateMap.put("b", "{{a|letter={{{letter}}}}}");
+
+        TemplateResolutionOptions options = new TemplateResolutionOptions();
+        TemplateProcessor processor = new TemplateProcessor(templateMap, options);
+
+        String article = "{{a|letter=b}}";
+        String processedArticle = processor.substitute(article);
+        assertEquals("letter b ", processedArticle);
+    }
+
+    @Test
+    public void testMissingTemplate() throws IOException {
+        Map<String, String> templateMap = new HashMap<>();
+
+        TemplateResolutionOptions options = new TemplateResolutionOptions();
+        TemplateProcessor processor = new TemplateProcessor(templateMap, options);
+
+        String article = "{{missing|cats=better|than=dogs}}";
+        String processedArticle = processor.substitute(article);
+        assertEquals("cats better than dogs ", processedArticle);
+    }
 }
