@@ -43,7 +43,7 @@ public class TemplateProcessor {
         System.out.println("processed (" + depth + "):\t" + processed);
 
         TemplateParser parser = new TemplateParser();
-        ArrayList<TemplateReference> templateReferences = parser.parseTemplates(
+        ArrayList<TemplateReference> templateReferences = parser.parse(
                 new PushbackReader(new StringReader(text))
         );
         templateReferenceCount += templateReferences.size();

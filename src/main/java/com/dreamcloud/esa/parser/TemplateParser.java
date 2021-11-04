@@ -4,113 +4,107 @@ import java.io.IOException;
 import java.io.PushbackReader;
 import java.util.ArrayList;
 
+/**
+ * A simple parser to extract templates from Wikipedia text.
+ *
+ * @note The parse method is thread safe.
+ * @note The parser doesn't handle nested templates
+ */
 public class TemplateParser {
-    ArrayList<TemplateReference> templateReferences;
-    protected boolean inTemplate = false;
-    protected boolean inParameter = false;
-    protected int bracesSeen = 0;
-    protected StringBuilder content;
-    StringBuilder templateText;
-    protected TemplateReference template = null;
-    protected TemplateParameter parameter = null;
-
     public TemplateParser() {
 
     }
 
-    public void reset() {
-        templateReferences = new ArrayList<>();
-        resetTemplate();
-    }
-
-    public void resetTemplate() {
-        inTemplate = false;
-        inParameter = false;
-        bracesSeen = 0;
-        content = new StringBuilder();
-        templateText = new StringBuilder();
-        template = new TemplateReference();
-        parameter = new TemplateParameter();
-    }
-
-    public ArrayList<TemplateReference> parseTemplates(PushbackReader reader) throws IOException {
-        reset();
+    public ArrayList<TemplateReference> parse(PushbackReader reader) throws IOException {
+        ArrayList<TemplateReference> templateReferences = new ArrayList<>();
+        int bracesSeen = 0;
         int c;
-
         while ((c = reader.read()) != -1) {
-            if (inTemplate) {
-                //Keep track of the exact template text
-                templateText.append((char) c);
-            }
-            //Basic character handling
-            switch (c) {
-                case '{':
-                    bracesSeen++;
+            if (c == '{') {
+                if (++bracesSeen == 2) {
                     int peek = reader.read();
                     reader.unread(peek);
-                    if (bracesSeen == 2 && peek != '{') {
-                        inTemplate = true;
-                        template = new TemplateReference();
-                        templateText = new StringBuilder();
-                        templateText.append("{{");
+                    if (peek != '{') {
+                        TemplateReference template = parseTemplate(reader);
+                        if (template != null) {
+                            templateReferences.add(template);
+                        }
                     }
+                    bracesSeen = 0;
+                }
+            } else {
+                bracesSeen = 0;
+            }
+        }
+        return templateReferences;
+    }
+
+    protected TemplateReference parseTemplate(PushbackReader reader) throws IOException {
+        TemplateReference template = new TemplateReference();
+        int depth = 2;
+        StringBuilder templateText = new StringBuilder("{{");
+        StringBuilder content = new StringBuilder();
+        TemplateParameter parameter = null;
+
+        while (depth > 0) {
+            int c = reader.read();
+            if (c == -1) {
+                return null;
+            }
+            templateText.append((char) c);
+
+            switch (c) {
+                case '{':
+                case '[':
+                    depth++;
+                    content.append((char) c);
+                    break;
+                case ']':
+                    depth--;
+                    content.append((char) c);
                     break;
                 case '}':
-                    if (inTemplate) {
-                        if (--bracesSeen == 0) {
-                            if (content.length() > 0) {
-                                if (inParameter) {
+                    if (depth > 2) {
+                        content.append((char) c);
+                    }
+                    depth--;
+                    break;
+                default:
+                    if (depth == 2) {
+                        switch (c) {
+                            case '|':
+                                if (parameter != null) {
                                     parameter.value = content.toString();
                                     template.addParameter(parameter);
                                 } else {
                                     template.name = content.toString();
                                 }
-                            }
-                            if (template.name != null) {
-                                template.text = templateText.toString();
-                                templateReferences.add(template);
-                            }
-                            resetTemplate();
+                                parameter = new TemplateParameter();
+                                content = new StringBuilder();
+                                break;
+                            case '=':
+                                if (parameter != null) {
+                                    parameter.name = content.toString();
+                                    content = new StringBuilder();
+                                }
+                                break;
+                            default:
+                                content.append((char) c);
                         }
-                    }
-                    break;
-                case '|':
-                    if (bracesSeen == 2) {
-                        if (inParameter) {
-                            //End of the parameter
-                            parameter.value = content.toString();
-                            template.addParameter(parameter);
-                            content = new StringBuilder();
-
-                            parameter = new TemplateParameter();
-                        } else if(inTemplate) {
-                            inParameter = true;
-                            parameter = new TemplateParameter();
-                            template.name = content.toString();
-                            content = new StringBuilder();
-                        }
-                        break;
-                    }
-                case '=':
-                    if (bracesSeen == 2) {
-                        if (inParameter) {
-                            parameter.name = content.toString();
-                            content = new StringBuilder();
-                        }
-                        break;
-                    }
-                default:
-                    if (!inTemplate) {
-                        bracesSeen = 0;
                     } else {
                         content.append((char) c);
-                        //If we ever find "nowiki" in here, then it's not a real template
-                        if (content.indexOf("nowiki") > 0) {
-                            resetTemplate();
-                        }
                     }
             }
         }
-        return templateReferences;
+        if (content.length() > 0) {
+            if (parameter != null) {
+                parameter.value = content.toString();
+                template.addParameter(parameter);
+            } else {
+                template.name = content.toString();
+            }
+        }
+        template.text = templateText.toString();
+        return template;
     }
 }

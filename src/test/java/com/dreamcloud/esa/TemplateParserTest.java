@@ -42,7 +42,7 @@ public class TemplateParserTest {
     private ArrayList<TemplateReference> quickParse(String text) throws IOException {
         TemplateParser parser = new TemplateParser();
         PushbackReader reader = new PushbackReader(new StringReader(text));
-        return parser.parseTemplates(reader);
+        return parser.parse(reader);
     }
 
     private void assertParameter(ArrayList<TemplateParameter> parameters, int index, String name, String value) {
