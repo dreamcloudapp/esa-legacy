@@ -100,4 +100,58 @@ public class TemplateProcessorTest {
         String processedArticle = processor.substitute(article);
         assertEquals("hello world!", processedArticle);
     }
+
+    @Test
+    public void testNestedTemplates() throws IOException {
+        Map<String, String> templateMap = new HashMap<>();
+        templateMap.put("foo", "hello {{bar}}");
+        templateMap.put("bar", "world");
+
+        TemplateResolutionOptions options = new TemplateResolutionOptions();
+        TemplateProcessor processor = new TemplateProcessor(templateMap, options);
+
+        String article = "{{foo}}";
+        String processedArticle = processor.substitute(article);
+        assertEquals("hello world", processedArticle);
+    }
+
+    @Test
+    public void testNestedTemplatesWithParameters() throws IOException {
+        Map<String, String> templateMap = new HashMap<>();
+        templateMap.put("greeting", "{{user|{{{from}}}}} greets {{{to}}}{{{3}}}");
+        templateMap.put("user", "{{{1}}}");
+
+        TemplateResolutionOptions options = new TemplateResolutionOptions();
+        TemplateProcessor processor = new TemplateProcessor(templateMap, options);
+
+        String article = "{{greeting|from=Bob|to=the world|!}}";
+        String processedArticle = processor.substitute(article);
+        assertEquals("Bob greets the world!", processedArticle);
+    }
+
+    @Test
+    public void testMissingVariable() throws IOException {
+        Map<String, String> templateMap = new HashMap<>();
+        templateMap.put("greeting", "hello {{{to}}}");
+
+        TemplateResolutionOptions options = new TemplateResolutionOptions();
+        TemplateProcessor processor = new TemplateProcessor(templateMap, options);
+
+        String article = "{{greeting}}";
+        String processedArticle = processor.substitute(article);
+        assertEquals("hello {{{to}}}", processedArticle);
+    }
+
+    @Test
+    public void testDefaultVariable() throws IOException {
+        Map<String, String> templateMap = new HashMap<>();
+        templateMap.put("greeting", "hello {{{to|world}}}");
+
+        TemplateResolutionOptions options = new TemplateResolutionOptions();
+        TemplateProcessor processor = new TemplateProcessor(templateMap, options);
+
+        String article = "{{greeting}}";
+        String processedArticle = processor.substitute(article);
+        assertEquals("hello world", processedArticle);
+    }
 }

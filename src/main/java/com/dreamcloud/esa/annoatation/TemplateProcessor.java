@@ -15,7 +15,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TemplateProcessor {
-    private static Pattern variablePattern = Pattern.compile("\\{\\{\\{([^|}]+)\\|?([^}]*)}}}");
+    private static Pattern variablePattern = Pattern.compile("\\{\\{\\{([^|}]+)(\\|[^}]*)?}}}");
     protected Map<String, String> templateMap;
     protected TemplateResolutionOptions options;
 
@@ -40,15 +40,11 @@ public class TemplateProcessor {
             processed++;
         }
 
-        System.out.println("processed (" + depth + "):\t" + processed);
-
         TemplateParser parser = new TemplateParser();
         ArrayList<TemplateReference> templateReferences = parser.parse(
                 new PushbackReader(new StringReader(text))
         );
         templateReferenceCount += templateReferences.size();
-
-        System.out.println("template ref count: " + templateReferences.size());
 
         for (TemplateReference templateReference: templateReferences) {
             String templateName = StringUtils.normalizeWikiTitle(templateReference.name);
@@ -72,8 +68,8 @@ public class TemplateProcessor {
                     WikiVariable variable = new WikiVariable();
                     variable.text = variableMatcher.group();
                     variable.name = variableMatcher.group(1);
-                    if (variableMatcher.groupCount() > 1) {
-                        variable.defaultValue = variableMatcher.group(2);
+                    if (variableMatcher.group(2) != null) {
+                        variable.defaultValue = variableMatcher.group(2).substring(1);
                     }
                     variables.add(variable);
                 }
@@ -90,10 +86,7 @@ public class TemplateProcessor {
                     }
                     if (replacement != null) {
                         variableReplacements++;
-                        if (replacement.contains(variable.text)) {
-                            System.out.println("recursive replace: " + replacement + " : " + variable.text);
-                            System.exit(1);
-                        }
+                        System.out.println("replacing '" + variable.text + "' with '" + replacement + "'");
                         templateText = templateText.replace(variable.text, replacement);
                     }
                 }
