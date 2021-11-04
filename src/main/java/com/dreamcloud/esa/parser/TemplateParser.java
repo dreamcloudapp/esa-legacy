@@ -11,6 +11,8 @@ public class TemplateParser {
     protected int bracesSeen = 0;
     protected StringBuilder content;
     StringBuilder templateText;
+    protected TemplateReference template = null;
+    protected TemplateParameter parameter = null;
 
     public TemplateParser() {
 
@@ -27,13 +29,13 @@ public class TemplateParser {
         bracesSeen = 0;
         content = new StringBuilder();
         templateText = new StringBuilder();
+        template = new TemplateReference();
+        parameter = new TemplateParameter();
     }
 
     public ArrayList<TemplateReference> parseTemplates(PushbackReader reader) throws IOException {
         reset();
         int c;
-        TemplateReference template = null;
-        TemplateParameter parameter = null;
 
         while ((c = reader.read()) != -1) {
             if (inTemplate) {
@@ -59,6 +61,7 @@ public class TemplateParser {
                             if (content.length() > 0) {
                                 if (inParameter) {
                                     parameter.value = content.toString();
+                                    template.addParameter(parameter);
                                 } else {
                                     template.name = content.toString();
                                 }
@@ -72,23 +75,29 @@ public class TemplateParser {
                     }
                     break;
                 case '|':
-                    if (inParameter) {
-                        //End of the parameter
-                        parameter.value = content.toString();
-                        content = new StringBuilder();
-                        template.parameters.add(parameter);
-                        parameter = new TemplateParameter();
-                    } else if(inTemplate) {
-                        inParameter = true;
-                        parameter = new TemplateParameter();
-                        template.name = content.toString();
-                        content = new StringBuilder();
+                    if (bracesSeen == 2) {
+                        if (inParameter) {
+                            //End of the parameter
+                            parameter.value = content.toString();
+                            template.addParameter(parameter);
+                            content = new StringBuilder();
+
+                            parameter = new TemplateParameter();
+                        } else if(inTemplate) {
+                            inParameter = true;
+                            parameter = new TemplateParameter();
+                            template.name = content.toString();
+                            content = new StringBuilder();
+                        }
+                        break;
                     }
-                    break;
                 case '=':
-                    if (inParameter) {
-                        parameter.name = content.toString();
-                        content = new StringBuilder();
+                    if (bracesSeen == 2) {
+                        if (inParameter) {
+                            parameter.name = content.toString();
+                            content = new StringBuilder();
+                        }
+                        break;
                     }
                 default:
                     if (!inTemplate) {
