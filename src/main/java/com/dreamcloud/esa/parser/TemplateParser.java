@@ -35,10 +35,6 @@ public class TemplateParser {
             starts.add("DISPLAYTITLE");
             starts.add("DEFAULTSORT");
             starts.add("NOEXTERNALLANGLINKS");
-            starts.add("FULLPAGENAME");
-            starts.add("PAGENAME");
-            starts.add("BASEPAGENAME");
-            starts.add("ROOTPAGENAME");
             starts.add("SUBPAGENAME");
             starts.add("ARTICLEPAGENAME");
             starts.add("SUBJECTPAGENAME");
@@ -48,10 +44,6 @@ public class TemplateParser {
             starts.add("ARTICLESPACE");
             starts.add("SUBJECTSPACE");
             starts.add("TALKSPACE");
-            starts.add("FULLPAGENAMEE");
-            starts.add("PAGENAMEE");
-            starts.add("BASEPAGENAMEE");
-            starts.add("ROOTPAGENAMEE");
             starts.add("SUBPAGENAMEE");
             starts.add("ARTICLEPAGENAMEE");
             starts.add("SUBJECTPAGENAMEE");
@@ -96,10 +88,6 @@ public class TemplateParser {
             starts.add("PENDINGCHANGELEVEL");
             starts.add("PAGESINCATEGORY");
             starts.add("NUMBERINGROUP");
-            starts.add("lc");
-            starts.add("lcfirst");
-            starts.add("uc");
-            starts.add("ucfirst");
             starts.add("formatnum");
             starts.add("padleft");
             starts.add("padright");
@@ -118,7 +106,7 @@ public class TemplateParser {
     }
 
     public boolean isTemplateStartValid(int c) {
-        return c != '{' && c != '#'  && c != '<' && c != '>' && c != '[' && c !=']' && c != '}'  && c != '|';
+        return c != '{'  && c != '<' && c != '>' && c != '[' && c !=']' && c != '}'  && c != '|';
     }
 
     public boolean isTemplateNameValid(String name) {
@@ -166,16 +154,26 @@ public class TemplateParser {
     protected TemplateReference parseTemplate(PushbackReader reader) throws IOException {
         TemplateReference template = new TemplateReference();
         int depth = 2;
+        boolean inFormattingTemplate = false;
         StringBuilder templateText = new StringBuilder("{{");
         StringBuilder content = new StringBuilder();
         TemplateParameter parameter = null;
 
         while (depth > 0) {
+
             int c = reader.read();
             if (c == -1) {
                 return null;
             }
             templateText.append((char) c);
+
+            if (!inFormattingTemplate && (templateText.length() == 5 || templateText.length() == 10)) {
+                if (templateText.indexOf("{{lc:") == 0 || templateText.indexOf("{{uc:") == 0 || templateText.indexOf("{{lcfirst:") == 0 || templateText.indexOf("{{ucfirst:") == 0) {
+                    inFormattingTemplate = true;
+                }
+            }
+
+            boolean ignoreTemplateChars = depth != 2 || inFormattingTemplate;
 
             switch (c) {
                 case '{':
@@ -194,7 +192,7 @@ public class TemplateParser {
                     depth--;
                     break;
                 default:
-                    if (depth == 2) {
+                    if (!ignoreTemplateChars) {
                         switch (c) {
                             case '|':
                                 if (parameter != null) {

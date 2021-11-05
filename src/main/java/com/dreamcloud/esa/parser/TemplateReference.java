@@ -19,4 +19,20 @@ public class TemplateReference {
         }
         this.parameters.add(parameter);
     }
+
+    public boolean isTitleVariable() {
+        return (name.startsWith("FULLPAGENAME") || name.startsWith("PAGENAME") || name.startsWith("BASEPAGENAME") || name.startsWith("ROOTPAGENAME"));
+    }
+
+    public boolean isTag() {
+        return "#tag".equals(name);
+    }
+
+    public boolean isFormatting() {
+        return (name.startsWith("lc:") || name.startsWith("uc:") || name.startsWith("lcfirst:") || name.startsWith(("ucfirst:")));
+    }
+
+    public boolean isMagic() {
+        return this.name.charAt(0) == '#';
+    }
 }

@@ -141,9 +141,40 @@ public class TemplateParserTest {
 
     @Test
     public void testInvalidTemplateNames() throws IOException {
-        ArrayList<TemplateReference> templates = this.quickParse("{{lcfirst:John}}");
+        ArrayList<TemplateReference> templates = this.quickParse("{{[invalid]}}");
         assertEquals(0, templates.size());
-        templates = this.quickParse("{{#magic:never believe it's not so}}");
-        assertEquals(0, templates.size());
+    }
+
+    @Test
+    public void testMagicTemplateName() throws IOException {
+        ArrayList<TemplateReference> templates = this.quickParse("{{#foo|bar}}");
+        assertEquals(1, templates.size());
+        TemplateReference template = templates.get(0);
+        assertEquals("#foo", template.name);
+        assertTrue(template.isMagic());
+        assertEquals(1, template.parameters.size());
+        assertEquals("{{#foo|bar}}", template.text);
+    }
+
+    @Test
+    public void testTagTemplateName() throws IOException {
+        ArrayList<TemplateReference> templates = this.quickParse("{{#tag|span}}");
+        assertEquals(1, templates.size());
+        TemplateReference template = templates.get(0);
+        assertEquals("#tag", template.name);
+        assertTrue(template.isTag());
+        assertEquals(1, template.parameters.size());
+        assertEquals("{{#tag|span}}", template.text);
+    }
+
+    @Test
+    public void testFormattingTemplateName() throws IOException {
+        ArrayList<TemplateReference> templates = this.quickParse("{{lc:this text will all be treated|as|lowercase}}");
+        assertEquals(1, templates.size());
+        TemplateReference template = templates.get(0);
+        assertEquals("lc:this text will all be treated|as|lowercase", template.name);
+        assertTrue(template.isFormatting());
+        assertEquals(0, template.parameters.size());
+        assertEquals("{{lc:this text will all be treated|as|lowercase}}", template.text);
     }
 }
