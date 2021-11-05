@@ -177,4 +177,15 @@ public class TemplateParserTest {
         assertEquals(0, template.parameters.size());
         assertEquals("{{lc:this text will all be treated|as|lowercase}}", template.text);
     }
+
+    @Test
+    public void testTitleVariable() throws IOException {
+        ArrayList<TemplateReference> templates = this.quickParse("{{FULLPAGENAME}}");
+        assertEquals(1, templates.size());
+        TemplateReference template = templates.get(0);
+        assertEquals("FULLPAGENAME", template.name);
+        assertTrue(template.isTitleVariable());
+        assertEquals(0, template.parameters.size());
+        assertEquals("{{FULLPAGENAME}}", template.text);
+    }
 }
