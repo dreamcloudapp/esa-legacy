@@ -49,7 +49,19 @@ public class TemplateProcessor {
         for (TemplateReference templateReference: templateReferences) {
             String templateName = StringUtils.normalizeWikiTitle(templateReference.name);
             boolean templateExists = templateMap.containsKey(templateName);
-            if (templateExists && !templatesSeen.contains(templateName)) {
+            if (templateReference.isTitleVariable()) {
+                text = text.replace(templateReference.text, title);
+            } else if(templateReference.isFormatting() || templateReference.isTag()) {
+                char split = templateReference.isFormatting() ? ':' : '|';
+                int splitPos = templateReference.name.indexOf(split);
+                if (splitPos == -1 || templateReference.name.length() == splitPos + 1) {
+                    text = text.replace(templateReference.text, "");
+                } else {
+                    text = text.replace(templateReference.text, templateReference.name.substring(splitPos + 1));
+                }
+            } else if(templateReference.isMagic()) {
+                text = text.replace(templateReference.text, "");
+            } else if (templateExists && !templatesSeen.contains(templateName)) {
                 Map<String, TemplateParameter> templateParameterMap = new HashMap<>();
                 int parameterCount = 0;
                 for (TemplateParameter parameter: templateReference.parameters) {
@@ -94,17 +106,9 @@ public class TemplateProcessor {
                 templateText = substitute(templateText, title, templatesSeen, depth + 1);
                 templatesSeen.remove(templateName);
                 text = text.replaceFirst(Pattern.quote(templateReference.text), Matcher.quoteReplacement(templateText));
-            } else if(templateReference.name.startsWith("#")) {
-                //Nuke 'em!
-                nuked++;
-                text = text.replace(templateReference.text, "");
-            }
-            else {
+            } else {
                 StringBuilder replacement = new StringBuilder();
                 for (TemplateParameter parameter: templateReference.parameters) {
-                    if (parameter.name !=  null) {
-                        replacement.append(parameter.name).append(' ');
-                    }
                     if (parameter.value != null) {
                         replacement.append(parameter.value).append(' ');
                     }
@@ -112,7 +116,6 @@ public class TemplateProcessor {
                 text = text.replace(templateReference.text, replacement.toString());
             }
         }
-
         return text;
     }
 

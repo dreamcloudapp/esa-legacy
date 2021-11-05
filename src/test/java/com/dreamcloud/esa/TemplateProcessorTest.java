@@ -184,7 +184,7 @@ public class TemplateProcessorTest {
 
         String article = "{{a|letter=b}}";
         String processedArticle = processor.substitute(article, "");
-        assertEquals("letter b ", processedArticle);
+        assertEquals("b ", processedArticle);
     }
 
     @Test
@@ -196,7 +196,7 @@ public class TemplateProcessorTest {
 
         String article = "{{missing|cats=better|than=dogs}}";
         String processedArticle = processor.substitute(article, "");
-        assertEquals("cats better than dogs ", processedArticle);
+        assertEquals("better dogs ", processedArticle);
     }
 
     @Test
@@ -208,7 +208,7 @@ public class TemplateProcessorTest {
 
         String article = "I like {{lc:cats|and|also=dogs}}.";
         String processedArticle = processor.substitute(article, "");
-        assertEquals("I like cats and dogs.", processedArticle);
+        assertEquals("I like cats|and|also=dogs.", processedArticle);
     }
 
     @Test
@@ -244,6 +244,6 @@ public class TemplateProcessorTest {
 
         String article = "{{#tag:span|some|spanned text}}";
         String processedArticle = processor.substitute(article, "");
-        assertEquals("some|spanned text ", processedArticle);
+        assertEquals("some|spanned text", processedArticle);
     }
 }

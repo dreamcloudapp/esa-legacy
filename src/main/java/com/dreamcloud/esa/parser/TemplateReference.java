@@ -33,6 +33,6 @@ public class TemplateReference {
     }
 
     public boolean isMagic() {
-        return this.name.charAt(0) == '#';
+        return this.name.charAt(0) == '#' && !this.isTag();
     }
 }
