@@ -158,13 +158,13 @@ public class TemplateParserTest {
 
     @Test
     public void testTagTemplateName() throws IOException {
-        ArrayList<TemplateReference> templates = this.quickParse("{{#tag|span}}");
+        ArrayList<TemplateReference> templates = this.quickParse("{{#tag:span|spanned text}}");
         assertEquals(1, templates.size());
         TemplateReference template = templates.get(0);
-        assertEquals("#tag", template.name);
+        assertEquals("#tag:span|spanned text", template.name);
         assertTrue(template.isTag());
-        assertEquals(1, template.parameters.size());
-        assertEquals("{{#tag|span}}", template.text);
+        assertEquals(0, template.parameters.size());
+        assertEquals("{{#tag:span|spanned text}}", template.text);
     }
 
     @Test

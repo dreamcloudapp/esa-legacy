@@ -58,7 +58,7 @@ public class TemplateProcessorTest {
         TemplateProcessor processor = new TemplateProcessor(templateMap, options);
 
         String article = "{{foo}}";
-        String processedArticle = processor.substitute(article);
+        String processedArticle = processor.substitute(article, "");
         assertEquals("bar", processedArticle);
     }
 
@@ -71,7 +71,7 @@ public class TemplateProcessorTest {
         TemplateProcessor processor = new TemplateProcessor(templateMap, options);
 
         String article = "{{foo|world}}";
-        String processedArticle = processor.substitute(article);
+        String processedArticle = processor.substitute(article, "");
         assertEquals("hello world", processedArticle);
     }
 
@@ -84,7 +84,7 @@ public class TemplateProcessorTest {
         TemplateProcessor processor = new TemplateProcessor(templateMap, options);
 
         String article = "{{foo|bar=world}}";
-        String processedArticle = processor.substitute(article);
+        String processedArticle = processor.substitute(article, "");
         assertEquals("hello world", processedArticle);
     }
 
@@ -97,7 +97,7 @@ public class TemplateProcessorTest {
         TemplateProcessor processor = new TemplateProcessor(templateMap, options);
 
         String article = "{{foo|hello|bar=world|!}}";
-        String processedArticle = processor.substitute(article);
+        String processedArticle = processor.substitute(article, "");
         assertEquals("hello world!", processedArticle);
     }
 
@@ -111,7 +111,7 @@ public class TemplateProcessorTest {
         TemplateProcessor processor = new TemplateProcessor(templateMap, options);
 
         String article = "{{foo}}";
-        String processedArticle = processor.substitute(article);
+        String processedArticle = processor.substitute(article, "");
         assertEquals("hello world", processedArticle);
     }
 
@@ -125,7 +125,7 @@ public class TemplateProcessorTest {
         TemplateProcessor processor = new TemplateProcessor(templateMap, options);
 
         String article = "{{greeting|from=Bob|to=the world|!}}";
-        String processedArticle = processor.substitute(article);
+        String processedArticle = processor.substitute(article, "");
         assertEquals("Bob greets the world!", processedArticle);
     }
 
@@ -138,7 +138,7 @@ public class TemplateProcessorTest {
         TemplateProcessor processor = new TemplateProcessor(templateMap, options);
 
         String article = "{{greeting}}";
-        String processedArticle = processor.substitute(article);
+        String processedArticle = processor.substitute(article, "");
         assertEquals("hello {{{to}}}", processedArticle);
     }
 
@@ -151,7 +151,7 @@ public class TemplateProcessorTest {
         TemplateProcessor processor = new TemplateProcessor(templateMap, options);
 
         String article = "{{greeting}}";
-        String processedArticle = processor.substitute(article);
+        String processedArticle = processor.substitute(article, "");
         assertEquals("hello world", processedArticle);
     }
 
@@ -169,7 +169,7 @@ public class TemplateProcessorTest {
         TemplateProcessor processor = new TemplateProcessor(templateMap, options);
 
         String article = "{{a}}";
-        String processedArticle = processor.substitute(article);
+        String processedArticle = processor.substitute(article, "");
         assertEquals("{{f}}", processedArticle);
     }
 
@@ -183,7 +183,7 @@ public class TemplateProcessorTest {
         TemplateProcessor processor = new TemplateProcessor(templateMap, options);
 
         String article = "{{a|letter=b}}";
-        String processedArticle = processor.substitute(article);
+        String processedArticle = processor.substitute(article, "");
         assertEquals("letter b ", processedArticle);
     }
 
@@ -195,7 +195,55 @@ public class TemplateProcessorTest {
         TemplateProcessor processor = new TemplateProcessor(templateMap, options);
 
         String article = "{{missing|cats=better|than=dogs}}";
-        String processedArticle = processor.substitute(article);
+        String processedArticle = processor.substitute(article, "");
         assertEquals("cats better than dogs ", processedArticle);
+    }
+
+    @Test
+    public void testTemplateWithFormatting() throws IOException {
+        Map<String, String> templateMap = new HashMap<>();
+
+        TemplateResolutionOptions options = new TemplateResolutionOptions();
+        TemplateProcessor processor = new TemplateProcessor(templateMap, options);
+
+        String article = "I like {{lc:cats|and|also=dogs}}.";
+        String processedArticle = processor.substitute(article, "");
+        assertEquals("I like cats and dogs.", processedArticle);
+    }
+
+    @Test
+    public void testTemplateWithMagic() throws IOException {
+        Map<String, String> templateMap = new HashMap<>();
+
+        TemplateResolutionOptions options = new TemplateResolutionOptions();
+        TemplateProcessor processor = new TemplateProcessor(templateMap, options);
+
+        String article = "{{#magic: you know|never believe it's not so}}";
+        String processedArticle = processor.substitute(article, "");
+        assertEquals("", processedArticle);
+    }
+
+    @Test
+    public void testTemplateWithTitleVariable() throws IOException {
+        Map<String, String> templateMap = new HashMap<>();
+
+        TemplateResolutionOptions options = new TemplateResolutionOptions();
+        TemplateProcessor processor = new TemplateProcessor(templateMap, options);
+
+        String article = "I like {{FULLPAGENAME}}.";
+        String processedArticle = processor.substitute(article, "cats");
+        assertEquals("I like cats.", processedArticle);
+    }
+
+    @Test
+    public void testTemplateWithTag() throws IOException {
+        Map<String, String> templateMap = new HashMap<>();
+
+        TemplateResolutionOptions options = new TemplateResolutionOptions();
+        TemplateProcessor processor = new TemplateProcessor(templateMap, options);
+
+        String article = "{{#tag:span|some|spanned text}}";
+        String processedArticle = processor.substitute(article, "");
+        assertEquals("some|spanned text ", processedArticle);
     }
 }

@@ -102,7 +102,7 @@ public class TemplateMapper extends XmlReadingHandler {
         for (Map.Entry<String, String> entry: templateMap.entrySet()) {
             ArrayList<String> templatesSeen = new ArrayList<>();
             templatesSeen.add(entry.getKey());
-            String resolvedText = processor.substitute(entry.getValue(), templatesSeen);
+            String resolvedText = processor.substitute(entry.getValue(), entry.getKey(), templatesSeen);
             System.out.println("preprocessed template:\t" + (preprocessCount++) + "\t" + entry.getKey());
             templateMap.put(entry.getKey(), resolvedText);
         }

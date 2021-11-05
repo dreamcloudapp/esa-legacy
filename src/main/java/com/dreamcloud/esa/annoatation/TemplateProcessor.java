@@ -31,7 +31,7 @@ public class TemplateProcessor {
         this.options = options;
     }
 
-    public String substitute(String text, ArrayList<String> templatesSeen, int depth) throws IOException {
+    public String substitute(String text, String title, ArrayList<String> templatesSeen, int depth) throws IOException {
         if (depth > options.recursionDepth) {
             return text;
         }
@@ -91,7 +91,7 @@ public class TemplateProcessor {
                 }
 
                 templatesSeen.add(templateName);
-                templateText = substitute(templateText, templatesSeen, depth + 1);
+                templateText = substitute(templateText, title, templatesSeen, depth + 1);
                 templatesSeen.remove(templateName);
                 text = text.replaceFirst(Pattern.quote(templateReference.text), Matcher.quoteReplacement(templateText));
             } else if(templateReference.name.startsWith("#")) {
@@ -116,13 +116,13 @@ public class TemplateProcessor {
         return text;
     }
 
-    public String substitute(String text, ArrayList<String> templatesSeen) throws IOException {
-        return substitute(text, templatesSeen, 1);
+    public String substitute(String text, String title, ArrayList<String> templatesSeen) throws IOException {
+        return substitute(text, title, templatesSeen, 1);
     }
 
-    public String substitute(String text) throws IOException {
+    public String substitute(String text, String title) throws IOException {
         ArrayList<String> templatesSeen = new ArrayList<>();
-        return substitute(text, templatesSeen);
+        return substitute(text, title, templatesSeen);
     }
 
     public void displayInfo() {

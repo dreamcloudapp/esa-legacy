@@ -25,7 +25,7 @@ public class TemplateReference {
     }
 
     public boolean isTag() {
-        return "#tag".equals(name);
+        return name.startsWith("#tag");
     }
 
     public boolean isFormatting() {

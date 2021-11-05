@@ -167,8 +167,8 @@ public class TemplateParser {
             }
             templateText.append((char) c);
 
-            if (!inFormattingTemplate && (templateText.length() == 5 || templateText.length() == 10)) {
-                if (templateText.indexOf("{{lc:") == 0 || templateText.indexOf("{{uc:") == 0 || templateText.indexOf("{{lcfirst:") == 0 || templateText.indexOf("{{ucfirst:") == 0) {
+            if (!inFormattingTemplate) {
+                if (templateText.indexOf("{{lc:") == 0 || templateText.indexOf("{{uc:") == 0 || templateText.indexOf("{{lcfirst:") == 0 || templateText.indexOf("{{ucfirst:") == 0 || templateText.indexOf("{{#tag:") == 0) {
                     inFormattingTemplate = true;
                 }
             }
