@@ -110,6 +110,10 @@ public class TemplateParser {
     }
 
     public boolean isTemplateNameValid(String name) {
+        if (name == null) {
+            return false;
+        }
+
         if (name.length() == 0) {
             return false;
         }
@@ -227,7 +231,10 @@ public class TemplateParser {
             }
         }
 
-        template.name = template.name.trim();
+        if (template.name != null) {
+            template.name = template.name.trim();
+        }
+
         if (!isTemplateNameValid(template.name)) {
             return null;
         }
