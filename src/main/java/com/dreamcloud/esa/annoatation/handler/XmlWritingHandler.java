@@ -9,12 +9,13 @@ import java.io.*;
 
 abstract public class XmlWritingHandler extends XmlReadingHandler implements AutoCloseable {
     private XMLStreamWriter xmlWriter;
+    private OutputStream outputStream;
 
     public XmlWritingHandler() {
     }
 
     public void open(File outputFile) throws IOException, XMLStreamException {
-        OutputStream outputStream = new FileOutputStream(outputFile);
+        outputStream = new FileOutputStream(outputFile);
         outputStream = new BufferedOutputStream(outputStream, 4096 * 4);
         outputStream = new BZip2CompressorOutputStream(outputStream);
         this.xmlWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(outputStream, "UTF-8");
@@ -46,7 +47,12 @@ abstract public class XmlWritingHandler extends XmlReadingHandler implements Aut
 
     public void close() throws Exception {
         if (xmlWriter != null) {
+            xmlWriter.flush();
             xmlWriter.close();
+            outputStream.flush();
+            outputStream.close();
+            xmlWriter = null;
+            outputStream = null;
             super.close();
         }
     }

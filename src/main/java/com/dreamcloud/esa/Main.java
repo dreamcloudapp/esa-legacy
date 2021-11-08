@@ -512,8 +512,8 @@ public class Main {
 
                 TemplateMapper templateMapper = new TemplateMapper(templateResolutionOptions);
                 Map<String, String> templateMap = templateMapper.map(inputFile);
-                //TemplateResolver templateResolver = new TemplateResolver(templateMap);
-                //templateResolver.resolve(inputFile, outputFile);
+                TemplateResolver templateResolver = new TemplateResolver(templateMap);
+                templateResolver.resolve(inputFile, outputFile);
             }
 
             else if(hasLength(stripArgs, 2)) {

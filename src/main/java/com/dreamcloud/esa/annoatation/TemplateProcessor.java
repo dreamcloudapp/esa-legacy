@@ -46,7 +46,11 @@ public class TemplateProcessor {
         );
         templateReferenceCount += templateReferences.size();
 
+        int maxTemplates = depth > 1 ? options.maxTemplates : 0;
+        int templateCount = 0;
         for (TemplateReference templateReference: templateReferences) {
+            boolean templateMaxExceeded = maxTemplates > 0 && templateCount > maxTemplates;
+
             String templateName = StringUtils.normalizeWikiTitle(templateReference.name);
             boolean templateExists = templateMap.containsKey(templateName);
             if (templateReference.isTitleVariable()) {
@@ -61,7 +65,7 @@ public class TemplateProcessor {
                 }
             } else if(templateReference.isMagic()) {
                 text = text.replace(templateReference.text, "");
-            } else if (templateExists && !templatesSeen.contains(templateName)) {
+            } else if (templateExists && !templatesSeen.contains(templateName) && !templateMaxExceeded) {
                 Map<String, TemplateParameter> templateParameterMap = new HashMap<>();
                 int parameterCount = 0;
                 for (TemplateParameter parameter: templateReference.parameters) {
@@ -106,6 +110,7 @@ public class TemplateProcessor {
                 templateText = substitute(templateText, title, templatesSeen, depth + 1);
                 templatesSeen.remove(templateName);
                 text = text.replaceFirst(Pattern.quote(templateReference.text), Matcher.quoteReplacement(templateText));
+                templateCount++;
             } else {
                 StringBuilder replacement = new StringBuilder();
                 for (TemplateParameter parameter: templateReference.parameters) {

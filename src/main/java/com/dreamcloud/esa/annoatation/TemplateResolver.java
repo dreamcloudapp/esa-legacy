@@ -3,7 +3,6 @@ package com.dreamcloud.esa.annoatation;
 import com.dreamcloud.esa.annoatation.handler.XmlWritingHandler;
 import com.dreamcloud.esa.tools.BZipFileReader;
 import com.dreamcloud.esa.tools.StringUtils;
-import org.hibernate.sql.Template;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -32,7 +31,7 @@ public class TemplateResolver extends XmlWritingHandler {
     public void resolve(File inputFile, File outputFile) throws IOException, ParserConfigurationException, SAXException, XMLStreamException {
         reset();
         TemplateResolutionOptions options = new TemplateResolutionOptions();
-        options.recursionDepth = 0;
+        options.recursionDepth = 1;
         templateProcessor = new TemplateProcessor(templateMap, options);
         SAXParser saxParser = saxFactory.newSAXParser();
         Reader reader = BZipFileReader.getFileReader(inputFile);
