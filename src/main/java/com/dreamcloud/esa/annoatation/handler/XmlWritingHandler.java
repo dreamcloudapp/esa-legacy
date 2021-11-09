@@ -53,7 +53,7 @@ abstract public class XmlWritingHandler extends XmlReadingHandler implements Aut
             outputStream.close();
             xmlWriter = null;
             outputStream = null;
-            super.close();
         }
+        super.close();
     }
 }

@@ -501,8 +501,9 @@ public class Main {
             else if(hasLength(titleMapArgs, 2)) {
                 File inputFile = new File(titleMapArgs[0]);
                 File outputFile = new File(titleMapArgs[1]);
-                WikiTitleMapper titleMapper = new WikiTitleMapper(inputFile);
-                titleMapper.mapToXml(outputFile);
+                try (WikiTitleMapper titleMapper = new WikiTitleMapper(inputFile)) {
+                    titleMapper.mapToXml(outputFile);
+                }
             }
 
             else if(hasLength(resolveTemplateArgs, 2)) {
@@ -510,10 +511,12 @@ public class Main {
                 File outputFile = new File(resolveTemplateArgs[1]);
                 TemplateResolutionOptions templateResolutionOptions = new TemplateResolutionOptions();
 
-                TemplateMapper templateMapper = new TemplateMapper(templateResolutionOptions);
-                Map<String, String> templateMap = templateMapper.map(inputFile);
-                TemplateResolver templateResolver = new TemplateResolver(templateMap);
-                templateResolver.resolve(inputFile, outputFile);
+                try (TemplateMapper templateMapper = new TemplateMapper(templateResolutionOptions);) {
+                    Map<String, String> templateMap = templateMapper.map(inputFile);
+                    try (TemplateResolver templateResolver = new TemplateResolver(templateMap)) {
+                        templateResolver.resolve(inputFile, outputFile);
+                    }
+                }
             }
 
             else if(hasLength(stripArgs, 2)) {
@@ -521,8 +524,9 @@ public class Main {
                 File outputFile = new File(stripArgs[1]);
                 StripperOptions stripperOptions = new StripperOptions();
                 stripperOptions.titleExclusionRegExList = indexerOptions.titleExclusionRegExList;;
-                WikiStripper stripper = new WikiStripper(stripperOptions);
-                stripper.strip(inputFile, outputFile);
+                try(WikiStripper stripper = new WikiStripper(stripperOptions)) {
+                    stripper.strip(inputFile, outputFile);
+                }
             }
 
             else if (hasLength(countLinkArgs, 3)) {
@@ -532,8 +536,9 @@ public class Main {
                 WikiLinkAnnotatorOptions wikiLinkAnnotatorOptions = new WikiLinkAnnotatorOptions();
                 wikiLinkAnnotatorOptions.minimumIncomingLinks = indexerOptions.minimumIncomingLinks;
                 wikiLinkAnnotatorOptions.minimumOutgoingLinks = indexerOptions.minimumOutgoingLinks;
-                WikiLinkAnnotator annotator = new WikiLinkAnnotator(wikiLinkAnnotatorOptions);
-                annotator.annotate(strippedFile, titleMapFile, outputFile);
+                try(WikiLinkAnnotator annotator = new WikiLinkAnnotator(wikiLinkAnnotatorOptions)) {
+                    annotator.annotate(strippedFile, titleMapFile, outputFile);
+                }
             }
 
             else if (hasLength(countTermArgs, 2)) {
@@ -550,16 +555,18 @@ public class Main {
                     }
                 };
                 termCountOptions.analyzer = new EsaAnalyzer(analyzerOptions);
-                TermCountAnnotator termCountAnnotator = new TermCountAnnotator(termCountOptions);
-                termCountAnnotator.annotate(inputFile, outputFile);
+                try(TermCountAnnotator termCountAnnotator = new TermCountAnnotator(termCountOptions)) {
+                    termCountAnnotator.annotate(inputFile, outputFile);
+                }
             }
 
             else if (hasLength(writeRareWordArgs, 3)) {
                 File inputFile = new File(writeRareWordArgs[0]);
                 File outputFile = new File(writeRareWordArgs[1]);
                 int rareWordThreshold = Integer.parseInt(writeRareWordArgs[2]);
-                RareWordDictionary termCountMapper = new RareWordDictionary(analyzerFactory.getAnalyzer(), rareWordThreshold);
-                termCountMapper.mapToXml(inputFile, outputFile);
+                try(RareWordDictionary termCountMapper = new RareWordDictionary(analyzerFactory.getAnalyzer(), rareWordThreshold)) {
+                    termCountMapper.mapToXml(inputFile, outputFile);
+                }
             }
 
             //Indexing
