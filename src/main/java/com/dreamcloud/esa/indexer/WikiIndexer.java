@@ -11,7 +11,7 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 import com.dreamcloud.esa.analyzer.WikipediaArticle;
-import com.dreamcloud.esa.similarity.TrueTFIDFSimilarity;
+import com.dreamcloud.esa.annoatation.handler.XmlReadingHandler;
 import com.dreamcloud.esa.tools.BZipFileReader;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -19,10 +19,8 @@ import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import org.xml.sax.helpers.DefaultHandler;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -30,16 +28,12 @@ import java.util.concurrent.Executors;
  *
  * @author Philip van Oosten
  */
-public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexer {
-    private final SAXParserFactory saxFactory;
+public class WikiIndexer extends XmlReadingHandler implements Indexer {
+    protected final SAXParserFactory saxFactory;
     private ExecutorService executorService;
     WikipediaArticle[] fixedQueue;
     WikipediaArticle article;
     int queueSize = 0;
-    private boolean inDoc;
-    private String element;
-    private StringBuilder content = new StringBuilder();
-    private int numRead = 0;
     private int numIndexed = 0;
 
     IndexWriter indexWriter;
@@ -54,12 +48,12 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
         saxFactory.setXIncludeAware(true);
     }
 
-    void reset() {
-        numRead = 0;
-        inDoc = false;
-        content = new StringBuilder();
+    public void reset() {
+        super.reset();
+        numIndexed = 0;
+        queueSize = 0;
         article = null;
-        element = null;
+        this.fixedQueue = new WikipediaArticle[options.threadCount * options.batchSize];
     }
 
     public void index(File file) throws IOException {
@@ -85,10 +79,10 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
         //Show logs
         System.out.println("----------------------------------------");
         System.out.println("Articles Indexed:\t" + numIndexed);
-        System.out.println("Articles Skipped:\t" + (numRead - numIndexed));
+        System.out.println("Articles Skipped:\t" + (this.getDocsRead() - numIndexed));
         NumberFormat format = NumberFormat.getPercentInstance();
         format.setMinimumFractionDigits(1);
-        System.out.println("Acceptance Rate:\t" + format.format(((double) numIndexed) / ((double) numRead)));
+        System.out.println("Acceptance Rate:\t" + format.format(((double) numIndexed) / ((double) getDocsRead())));
         System.out.println("----------------------------------------");
     }
 
@@ -103,56 +97,6 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
         } catch (ParserConfigurationException | SAXException | IOException ex) {
             Logger.getLogger(WikiIndexer.class.getName()).log(Level.SEVERE, null, ex);
         }
-    }
-
-    public void startElement(String uri, String localName, String qName, Attributes attributes) {
-        if ("doc".equals(localName)) {
-            inDoc = true;
-            article = new WikipediaArticle();
-        } else if(inDoc) {
-            element = localName;
-            content = new StringBuilder();
-        }
-    }
-
-    public void endElement(String uri, String localName, String qName) {
-        if (inDoc && "doc".equals(localName)) {
-            inDoc = false;
-            //process document
-            numRead++;
-
-            if (article.canIndex(options)) {
-                fixedQueue[queueSize++] = article;
-            }
-
-            if (queueSize == options.batchSize * options.threadCount) {
-                this.processQueue();
-                queueSize = 0;
-            }
-        } else if (inDoc && element != null) {
-            String value = content.toString();
-            switch (element) {
-                case "title":
-                    article.title = value;
-                    break;
-                case "text":
-                    article.text = value;
-                    break;
-                case "incomingLinks":
-                    article.incomingLinks = Integer.parseInt(value);
-                    break;
-                case "outgoingLinks":
-                    article.outgoingLinks = Integer.parseInt(value);
-                    break;
-                case "terms":
-                    article.terms =  Integer.parseInt(value);
-                    break;
-            }
-        }
-    }
-
-    public void characters(char[] ch, int start, int length) {
-        content.append(ch, start, length);
     }
 
     void processQueue() {
@@ -184,7 +128,7 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
             fixedQueue[i] = null;
         }
         queueSize = 0;
-        System.out.println("Indexed articles\t[" + numIndexed + " | " + numRead + "]");
+        System.out.println("Indexed articles\t[" + numIndexed + " | " + getDocsRead() + "]");
     }
 
     Integer indexArticles (Vector<WikipediaArticle> articles) throws Exception {
@@ -207,5 +151,39 @@ public class WikiIndexer extends DefaultHandler implements AutoCloseable, Indexe
 
     public void close() throws IOException {
         indexWriter.close();
+    }
+
+    public void handleDocument(Map<String, String> xmlFields) throws SAXException {
+        try {
+            WikipediaArticle article = new WikipediaArticle();
+            article.title = xmlFields.get("title");
+            article.text = xmlFields.get("text");
+            article.incomingLinks = Integer.parseInt(xmlFields.get("incomingLinks"));
+            article.outgoingLinks = Integer.parseInt(xmlFields.get("outgoingLinks"));
+            article.terms = Integer.parseInt(xmlFields.get("terms"));
+
+            if (article.canIndex(options)) {
+                fixedQueue[queueSize++] = article;
+            }
+
+            if (this.getDocsRead() % 1000 == 0) {
+                for (Map.Entry<String, String> field: xmlFields.entrySet()) {
+                    if (!field.getKey().equals("text")) {
+                        System.out.println(field.getKey() + ":\t" + field.getValue());
+                    }
+                }
+            }
+
+            if (queueSize == options.batchSize * options.threadCount) {
+                this.processQueue();
+                queueSize = 0;
+            }
+        } catch (NumberFormatException e) {
+            for (Map.Entry<String, String> field: xmlFields.entrySet()) {
+                if (!field.getKey().equals("text")) {
+                    System.out.println(field.getKey() + ":\t" + field.getValue());
+                }
+            }
+        }
     }
 }

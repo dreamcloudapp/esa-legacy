@@ -9,7 +9,7 @@ public class BZipFileReader {
     public static Reader getFileReader(File file) throws IOException {
         InputStream wikiInputStream = new FileInputStream(file);
         InputStream bufferedInputStream = new BufferedInputStream(wikiInputStream);
-        InputStream bzipInputStream = new BZip2CompressorInputStream(bufferedInputStream, false);
+        InputStream bzipInputStream = new BZip2CompressorInputStream(bufferedInputStream, true);
         return new InputStreamReader(bzipInputStream, StandardCharsets.UTF_8);
     }
 }

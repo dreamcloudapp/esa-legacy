@@ -2,7 +2,6 @@ package com.dreamcloud.esa.annoatation;
 
 import com.dreamcloud.esa.annoatation.handler.XmlWritingHandler;
 import com.dreamcloud.esa.tools.BZipFileReader;
-import com.dreamcloud.esa.tools.StringUtils;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -31,14 +30,12 @@ import java.util.regex.Pattern;
  * </docs>
  */
 public class WikiStripper extends XmlWritingHandler {
-    protected String redirectRegex = "^#REDIRECT \\[\\[(.+)]]$";
-    protected Pattern redirectPattern;
+    protected Pattern redirectPattern = Pattern.compile("^.*#REDIRECT[^\\[]+\\[\\[(.+)]].*$");
     protected final SAXParserFactory saxFactory;
     protected int docsStripped = 0;
     ArrayList<Pattern> titleExclusionPatterns;
 
     public WikiStripper(StripperOptions options) {
-        this.setDocumentTag("page");
         saxFactory = SAXParserFactory.newInstance();
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);
@@ -50,7 +47,6 @@ public class WikiStripper extends XmlWritingHandler {
                 this.titleExclusionPatterns.add(Pattern.compile(titleExclusionRegEx));
             }
         }
-        redirectPattern = Pattern.compile(redirectRegex);
     }
 
     public void strip(File inputFile, File outputFile) throws IOException, ParserConfigurationException, SAXException, XMLStreamException {
@@ -62,7 +58,7 @@ public class WikiStripper extends XmlWritingHandler {
 
         //Begin the XML document
         this.open(outputFile);
-        this.writeDocumentBegin("doc");
+        this.writeDocumentBegin("docs");
 
         saxParser.parse(is, this);
         reader.close();
@@ -111,7 +107,7 @@ public class WikiStripper extends XmlWritingHandler {
 
         //Write to the file
         try {
-            this.writeDocument(StringUtils.normalizeWikiTitle(title), text);
+            this.writeDocument(title, text);
         } catch (XMLStreamException | IOException e) {
             e.printStackTrace();
             System.exit(1);

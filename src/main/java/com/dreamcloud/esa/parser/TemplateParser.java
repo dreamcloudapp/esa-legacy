@@ -171,14 +171,6 @@ public class TemplateParser {
             }
             templateText.append((char) c);
 
-            if (!inFormattingTemplate) {
-                if (templateText.indexOf("{{lc:") == 0 || templateText.indexOf("{{uc:") == 0 || templateText.indexOf("{{lcfirst:") == 0 || templateText.indexOf("{{ucfirst:") == 0 || templateText.indexOf("{{#tag:") == 0) {
-                    inFormattingTemplate = true;
-                }
-            }
-
-            boolean ignoreTemplateChars = depth != 2 || inFormattingTemplate;
-
             switch (c) {
                 case '{':
                 case '[':
@@ -195,8 +187,15 @@ public class TemplateParser {
                     }
                     depth--;
                     break;
+                case ':':
+                    if (depth == 2 && parameter == null && !inFormattingTemplate) {
+                        if (templateText.indexOf("{{lc:") == 0 || templateText.indexOf("{{uc:") == 0 || templateText.indexOf("{{lcfirst:") == 0 || templateText.indexOf("{{ucfirst:") == 0 || templateText.indexOf("{{#tag:") == 0) {
+                            inFormattingTemplate = true;
+                        }
+                    }
+                    //missing break intentional
                 default:
-                    if (!ignoreTemplateChars) {
+                    if (depth == 2 && !inFormattingTemplate) {
                         switch (c) {
                             case '|':
                                 if (parameter != null) {

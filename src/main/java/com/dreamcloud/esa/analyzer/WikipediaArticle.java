@@ -2,8 +2,6 @@ package com.dreamcloud.esa.analyzer;
 
 import com.dreamcloud.esa.indexer.WikiIndexerOptions;
 
-import java.util.ArrayList;
-
 public class WikipediaArticle {
     public String title;
     public String text;

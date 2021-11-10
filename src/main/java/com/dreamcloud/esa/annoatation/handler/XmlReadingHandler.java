@@ -29,6 +29,7 @@ abstract public class XmlReadingHandler extends DefaultHandler implements AutoCl
         this.allowedTags.add("incomingLinks");
         this.allowedTags.add("outgoingLinks");
         this.allowedTags.add("terms");
+        this.allowedTags.add("redirect");
     }
 
     public void allowTag(String tag) {
@@ -87,10 +88,9 @@ abstract public class XmlReadingHandler extends DefaultHandler implements AutoCl
 
     public void characters(char[] ch, int start, int length) {
         if (content != null) {
-            content.append(ch, start, length);
             //Probably not needed, but if you had <td>foo</td><td>bar</td> you'd end up with "foobar" as a token
             //since we don't create a new string builder unless we see a tag we are looking for (title/text/etc)
-            content.append(' ');
+            content.append(ch, start, length);
         }
     }
 

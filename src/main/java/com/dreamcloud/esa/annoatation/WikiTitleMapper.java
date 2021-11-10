@@ -35,13 +35,12 @@ import java.util.regex.Pattern;
  * </docs>
  */
 public class WikiTitleMapper extends XmlWritingHandler {
-    protected Pattern redirectPattern = Pattern.compile("^#REDIRECT[^\\[]+\\[\\[(.+)]]$");
+    protected Pattern redirectPattern = Pattern.compile("^.*#REDIRECT[^\\[]+\\[\\[(.+)]].*$");
     protected File inputFile;
     protected final SAXParserFactory saxFactory;
     protected int numRedirects = 0;
 
     public WikiTitleMapper(File inputFile) {
-        this.setDocumentTag("page");
         this.inputFile = inputFile;
         saxFactory = SAXParserFactory.newInstance();
         saxFactory.setNamespaceAware(true);

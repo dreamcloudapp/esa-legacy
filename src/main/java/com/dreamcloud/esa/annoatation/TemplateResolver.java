@@ -40,7 +40,7 @@ public class TemplateResolver extends XmlWritingHandler {
 
         //Begin the XML document
         this.open(outputFile);
-        this.writeDocumentBegin("doc");
+        this.writeDocumentBegin("docs");
 
         saxParser.parse(is, this);
         reader.close();
