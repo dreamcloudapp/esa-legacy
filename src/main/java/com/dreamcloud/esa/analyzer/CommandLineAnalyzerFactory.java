@@ -4,13 +4,11 @@ import com.dreamcloud.esa.*;
 import org.apache.commons.cli.CommandLine;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.Tokenizer;
-import org.apache.lucene.analysis.en.EnglishMinimalStemFilter;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.analysis.wikipedia.WikipediaTokenizer;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.Callable;
 
 public class CommandLineAnalyzerFactory implements AnalyzerFactory {
     EsaOptions esaOptions;

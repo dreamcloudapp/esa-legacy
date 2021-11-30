@@ -154,36 +154,20 @@ public class WikiIndexer extends XmlReadingHandler implements Indexer {
     }
 
     public void handleDocument(Map<String, String> xmlFields) throws SAXException {
-        try {
-            WikipediaArticle article = new WikipediaArticle();
-            article.title = xmlFields.get("title");
-            article.text = xmlFields.get("text");
-            article.incomingLinks = Integer.parseInt(xmlFields.get("incomingLinks"));
-            article.outgoingLinks = Integer.parseInt(xmlFields.get("outgoingLinks"));
-            article.terms = Integer.parseInt(xmlFields.get("terms"));
+        WikipediaArticle article = new WikipediaArticle();
+        article.title = xmlFields.get("title");
+        article.text = xmlFields.get("text");
+        article.incomingLinks = Integer.parseInt(xmlFields.get("incomingLinks"));
+        article.outgoingLinks = Integer.parseInt(xmlFields.get("outgoingLinks"));
+        article.terms = Integer.parseInt(xmlFields.get("terms"));
 
-            if (article.canIndex(options)) {
-                fixedQueue[queueSize++] = article;
-            }
+        if (article.canIndex(options)) {
+            fixedQueue[queueSize++] = article;
+        }
 
-            if (this.getDocsRead() % 1000 == 0) {
-                for (Map.Entry<String, String> field: xmlFields.entrySet()) {
-                    if (!field.getKey().equals("text")) {
-                        System.out.println(field.getKey() + ":\t" + field.getValue());
-                    }
-                }
-            }
-
-            if (queueSize == options.batchSize * options.threadCount) {
-                this.processQueue();
-                queueSize = 0;
-            }
-        } catch (NumberFormatException e) {
-            for (Map.Entry<String, String> field: xmlFields.entrySet()) {
-                if (!field.getKey().equals("text")) {
-                    System.out.println(field.getKey() + ":\t" + field.getValue());
-                }
-            }
+        if (queueSize == options.batchSize * options.threadCount) {
+            this.processQueue();
+            queueSize = 0;
         }
     }
 }

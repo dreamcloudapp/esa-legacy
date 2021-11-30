@@ -2,16 +2,14 @@ package com.dreamcloud.esa;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.text.DecimalFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import com.dreamcloud.esa.analyzer.AnalyzerOptions;
-import com.dreamcloud.esa.analyzer.CommandLineAnalyzerFactory;
-import com.dreamcloud.esa.analyzer.EsaAnalyzer;
-import com.dreamcloud.esa.analyzer.TokenizerFactory;
+import com.dreamcloud.esa.analyzer.*;
 import com.dreamcloud.esa.annoatation.*;
 import com.dreamcloud.esa.debug.ArticleFinder;
 import com.dreamcloud.esa.debug.DebugArticle;
@@ -19,26 +17,29 @@ import com.dreamcloud.esa.documentPreprocessor.ChainedPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessorFactory;
 import com.dreamcloud.esa.documentPreprocessor.NullPreprocessor;
-import com.dreamcloud.esa.indexer.DreamIndexer;
-import com.dreamcloud.esa.indexer.Indexer;
-import com.dreamcloud.esa.indexer.IndexerFactory;
-import com.dreamcloud.esa.indexer.WikiIndexerOptions;
+import com.dreamcloud.esa.indexer.*;
 import com.dreamcloud.esa.server.EsaHttpServer;
 import com.dreamcloud.esa.tools.*;
 import com.dreamcloud.esa.vectorizer.ConceptVector;
 import com.dreamcloud.esa.vectorizer.TextVectorizer;
 import com.dreamcloud.esa.vectorizer.Vectorizer;
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.apache.lucene.analysis.wikipedia.WikipediaTokenizer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.commons.cli.*;
+import org.apache.lucene.util.BytesRef;
 
 //Reading input files
 import java.nio.file.Files;
@@ -234,6 +235,20 @@ public class Main {
         indexPathOption.setRequired(false);
         options.addOption(indexPathOption);
 
+        //Prune index option
+        Option pruneOption = new Option(null, "prune", true, "index path, pruned index path / Creates an inverse index mapping pruned to include only relevant concepts");
+        pruneOption.setRequired(false);
+        pruneOption.setArgs(2);
+        options.addOption(pruneOption);
+
+        Option pruneWindowSizeOption = new Option(null, "prune-window-size", true, "int [100] / The size of the concept window used for pruning.");
+        pruneWindowSizeOption.setRequired(false);
+        options.addOption(pruneWindowSizeOption);
+
+        Option pruneDropOffOption = new Option(null, "prune-dropoff", true, "double [0.05] / The dropoff used to limit concepts during pruning.");
+        pruneDropOffOption.setRequired(false);
+        options.addOption(pruneDropOffOption);
+
         //Server options
         Option serverOption = new Option(null, "server", true, "port / Starts a vectorizing server using the specified port.");
         serverOption.setRequired(false);
@@ -258,11 +273,14 @@ public class Main {
             String[] countTermArgs = cmd.getOptionValues("count-terms");
             String[] writeRareWordArgs = cmd.getOptionValues("write-rare-words");
             String[] pearsonArgs = cmd.getOptionValues("pearson");
+            String[] pruneArgs = cmd.getOptionValues("prune");
             String docType = cmd.getOptionValue("doctype");
             String stopWords = cmd.getOptionValue("stopwords");
             String rareWords = cmd.getOptionValue("rare-words");
             String dictionary = cmd.getOptionValue("dictionary");
             String indexPath = cmd.getOptionValue("index-path");
+            String pruneWindowSize = cmd.getOptionValue("prune-window-size");
+            String pruneDropOff = cmd.getOptionValue("prune-dropoff");
 
             EsaOptions esaOptions = new EsaOptions();
 
@@ -573,6 +591,18 @@ public class Main {
             else if(nonEmpty(index)) {
                 System.out.println("Indexing " + index + "...");
                 indexFile(esaOptions, indexerOptions);
+            } else if(hasLength(pruneArgs, 2)) {
+              int windowSize = nonEmpty(pruneWindowSize) ? Integer.parseInt(pruneWindowSize) : 0;
+              double dropOff = nonEmpty(pruneDropOff) ? Double.parseDouble(pruneDropOff) : 0;
+              Path inputPath = Path.of(pruneArgs[0]);
+              Path outputPath = Path.of(pruneArgs[1]);
+              IndexPruner pruner;
+              if (windowSize > 0 && dropOff > 0) {
+                   pruner = new IndexPruner(windowSize, dropOff);
+              } else {
+                  pruner = new IndexPruner();
+              }
+              pruner.prune(inputPath, outputPath);
             } else if(nonEmpty(server)) {
                 EsaHttpServer esaServer = new EsaHttpServer(esaOptions);
                 esaServer.start(Integer.parseInt(server));
