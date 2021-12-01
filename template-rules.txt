@@ -1,0 +1,57 @@
+strip all but params:
+stub
+disambiguation
+user 
+cleanup
+wrongtitle
+copy-edit
+copyedit
+page
+article
+/meta
+/doc
+category
+documentation
+cite
+css
+See below
+See at
+Aka
+See above
+image
+/format
+disambig
+wiki
+Disputed
+Please do not change this line 
+Please leave this line alone 
+Wrongtitle
+^.*color[^a-zA-Z].*$
+font
+lang-
+time zone
+icon
+todo
+style/
+unit of
+1-3 characters
+warn-
+page
+template
+discussion
+usertalk
+column
+col-
+age
+Did you know
+/Style
+Uw-
+see also
+this is
+don't
+word
+split
+styles
+[A-Z]+
+citation
+str 
