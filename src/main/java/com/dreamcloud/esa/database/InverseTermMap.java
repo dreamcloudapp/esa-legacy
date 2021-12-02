@@ -19,13 +19,21 @@ public class InverseTermMap {
 
     public void saveTermScores(TermScores termScores) throws SQLException {
         //Create term
-        PreparedStatement termStatement = con.prepareStatement("insert into dc.term(`term`) values(?)", Statement.NO_GENERATED_KEYS);
+        PreparedStatement termStatement = con.prepareStatement("insert into dc.term(`term`) values(?)", Statement.RETURN_GENERATED_KEYS);
         termStatement.setString(1, termScores.term.utf8ToString());
-        long termId = termStatement.executeUpdate();
+        termStatement.executeUpdate();
+        int termId;
+        ResultSet genKeys = termStatement.getGeneratedKeys();
+        if ( genKeys.next() ) {
+            termId = genKeys.getInt( 1 );
+        } else {
+            throw new SQLException("Failed to fetch generated keys.");
+        }
+        System.out.println("term id: " + termId);
 
         PreparedStatement  statement = getStatement();
         for(TermScore score: termScores.scores) {
-            statement.setLong(1, termId);
+            statement.setInt(1, termId);
             statement.setLong(2, score.docId);
             statement.setFloat(3, score.score);
             statement.executeUpdate();

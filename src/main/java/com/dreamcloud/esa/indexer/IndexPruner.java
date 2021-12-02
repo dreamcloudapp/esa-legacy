@@ -39,6 +39,10 @@ public class IndexPruner {
             System.out.println("leaf: " + l);
             TermsEnum terms = termDocReader.leaves().get(l).reader().terms("text").iterator();
             for (BytesRef bytesRef = terms.term(); terms.next() != null; ) {
+                if (bytesRef.length > 32) {
+                    //todo: move to length limit filter
+                    continue;
+                }
                 TermScores scores = new TermScores(terms.term());
                 System.out.println("term: " + bytesRef.utf8ToString());
                 TopDocs td = SearchTerm(scores.term, docSearcher);
