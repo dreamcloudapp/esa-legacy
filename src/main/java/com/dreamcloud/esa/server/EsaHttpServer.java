@@ -3,6 +3,7 @@ package com.dreamcloud.esa.server;
 import com.dreamcloud.esa.EsaOptions;
 import com.dreamcloud.esa.database.ConceptWeight;
 import com.dreamcloud.esa.database.DocumentVector;
+import com.dreamcloud.esa.database.MySQLConnection;
 import com.dreamcloud.esa.database.VectorRepository;
 import com.dreamcloud.esa.indexer.DreamIndexer;
 import com.dreamcloud.esa.tools.WeighedDocumentQueryBuilder;
@@ -34,7 +35,6 @@ import java.util.Map;
  */
 public class EsaHttpServer {
     EsaOptions options;
-    static String ODBC_ENVIRONMENT_VARIABLE = "DC_ESA_ODBC_CONNECTION_STRING";
 
     public static boolean nonEmpty(String s) {
         return s != null && !s.equals("");
@@ -50,11 +50,7 @@ public class EsaHttpServer {
         WeighedDocumentQueryBuilder builder = new WeighedDocumentQueryBuilder(options.analyzer, docSearcher);
         TextVectorizer textVectorizer = new Vectorizer(options);
         //Connect to MySQL
-        Map<String, String> env = System.getenv();
-        if (!env.containsKey(ODBC_ENVIRONMENT_VARIABLE)) {
-            throw new SQLException("The ODBC connection string was empty: set the " + ODBC_ENVIRONMENT_VARIABLE + " and try again.");
-        }
-        Connection con = DriverManager.getConnection("jdbc:" + env.get(ODBC_ENVIRONMENT_VARIABLE));
+        Connection con = MySQLConnection.getConnection();
         VectorRepository repository = new VectorRepository(con);
 
         Gson gson = new Gson();

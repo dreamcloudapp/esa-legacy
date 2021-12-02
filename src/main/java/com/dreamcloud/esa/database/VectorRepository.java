@@ -4,14 +4,14 @@ import java.sql.*;
 import java.util.ArrayList;
 
 public class VectorRepository {
-    PreparedStatement  statement;
+    PreparedStatement statement;
     Connection con;
 
-    public VectorRepository(Connection con) throws SQLException {
+    public VectorRepository(Connection con) {
         this.con = con;
     }
 
-    protected PreparedStatement  getStatement() throws SQLException {
+    protected PreparedStatement getStatement() throws SQLException {
         if (statement == null) {
             statement = con.prepareStatement("insert into vector(`id`, `concept`, `weight`) values(?, ?, ?)");
         }
