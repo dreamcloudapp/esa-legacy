@@ -22,7 +22,6 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class IndexPruner {
-    protected LargeNumHitsTopDocsCollector collector;
     protected int windowSize;
     protected double maximumDrop;
     protected AtomicInteger processedTerms = new AtomicInteger(0);
@@ -40,6 +39,7 @@ public class IndexPruner {
     public void prune(Path indexPath, Path prunedPath) throws IOException, SQLException {
         Directory termDocDirectory = FSDirectory.open(indexPath);
         IndexReader termDocReader = DirectoryReader.open(termDocDirectory);
+        int termLimit = termDocReader.numDocs();
         IndexSearcher docSearcher = new IndexSearcher(termDocReader);
         ExecutorService executorService = Executors.newFixedThreadPool(termDocReader.leaves().size());
         ArrayList<Callable<Integer>> processors = new ArrayList<>();
@@ -57,7 +57,7 @@ public class IndexPruner {
 
         for (int i=0; i<termDocReader.leaves().size(); i++) {
             TermsEnum terms = termDocReader.leaves().get(i).reader().terms("text").iterator();
-            processors.add(() -> this.pruneTerms(terms, docSearcher));
+            processors.add(() -> this.pruneTerms(terms, docSearcher, termLimit));
         }
 
         try{
@@ -73,7 +73,7 @@ public class IndexPruner {
         }
     }
 
-    private Integer pruneTerms(TermsEnum terms, IndexSearcher docSearcher) throws IOException, SQLException {
+    private Integer pruneTerms(TermsEnum terms, IndexSearcher docSearcher, int limit) throws IOException, SQLException {
         InverseTermMap termMap = new InverseTermMap();
         for (BytesRef bytesRef = terms.term(); terms.next() != null; ) {
             if (bytesRef.length > 32) {
@@ -81,7 +81,7 @@ public class IndexPruner {
                 continue;
             }
             TermScores scores = new TermScores(terms.term());
-            TopDocs td = SearchTerm(scores.term, docSearcher);
+            TopDocs td = SearchTerm(scores.term, docSearcher, limit);
             for (ScoreDoc scoreDoc: td.scoreDocs) {
                 if (scoreDoc.score <= 0) {
                     continue;
@@ -98,10 +98,8 @@ public class IndexPruner {
         return 0;
     }
 
-    private TopDocs SearchTerm(BytesRef bytesRef, IndexSearcher docSearcher) throws IOException {
-        if (this.collector == null) {
-            this.collector = new LargeNumHitsTopDocsCollector(docSearcher.getIndexReader().numDocs());
-        }
+    private TopDocs SearchTerm(BytesRef bytesRef, IndexSearcher docSearcher, int limit) throws IOException {
+        LargeNumHitsTopDocsCollector collector = new LargeNumHitsTopDocsCollector(limit);
         Term term = new Term("text", bytesRef);
         Query query = new TermQuery(term);
         docSearcher.search(query, collector);
