@@ -35,7 +35,7 @@ public class IndexPruner {
         Connection con = MySQLConnection.getConnection();
         InverseTermMap termMap = new InverseTermMap(con);
 
-        int termCount = 0;
+        int totalTerms = 0;
         for(int l = 0; l < termDocReader.leaves().size(); l++) {
             TermsEnum terms = termDocReader.leaves().get(l).reader().terms("text").iterator();
             for (BytesRef bytesRef = terms.term(); terms.next() != null; ) {
@@ -43,13 +43,11 @@ public class IndexPruner {
                     //todo: move to length limit filter
                     continue;
                 }
-                termCount++;
+                totalTerms++;
             }
         }
 
-        System.out.println("Total terms: " + termCount);
-
-        termCount = 0;
+        int termCount = 0;
         for(int l = 0; l < termDocReader.leaves().size(); l++) {
             System.out.println("leaf: " + l);
             TermsEnum terms = termDocReader.leaves().get(l).reader().terms("text").iterator();
@@ -65,11 +63,9 @@ public class IndexPruner {
                 }
                 termMap.saveTermScores(scores);
 
-                if (termCount % 100 == 0) {
-                    System.out.println("processed term " + bytesRef.utf8ToString());
+                if (termCount++ % 100 == 0) {
+                    System.out.println("processed term" + "\t[" + termCount + " / " + totalTerms + "] (" + bytesRef.utf8ToString() + ")");
                 }
-
-                termCount++;
             }
         }
     }
