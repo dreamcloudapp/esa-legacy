@@ -7,8 +7,8 @@ public class InverseTermMap {
     PreparedStatement statement;
     Connection con;
 
-    public InverseTermMap(Connection con) {
-        this.con = con;
+    public InverseTermMap() {
+
     }
 
     protected static byte hexToByte(String hexString) {
@@ -52,6 +52,8 @@ public class InverseTermMap {
     }
 
     public void saveTermScores(TermScores termScores) throws SQLException {
+        this.con = MySQLConnection.getConnection();
+
         //Create term
         PreparedStatement termStatement = con.prepareStatement("insert into dc.term(`id`, `term`) values(?, ?)");
         byte[] id = generateUuid();
