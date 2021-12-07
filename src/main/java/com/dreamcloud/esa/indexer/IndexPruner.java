@@ -1,8 +1,6 @@
 package com.dreamcloud.esa.indexer;
 
-import com.dreamcloud.esa.analyzer.WikipediaArticle;
 import com.dreamcloud.esa.database.InverseTermMap;
-import com.dreamcloud.esa.database.MySQLConnection;
 import com.dreamcloud.esa.database.TermScore;
 import com.dreamcloud.esa.database.TermScores;
 import org.apache.lucene.index.*;
@@ -13,8 +11,6 @@ import org.apache.lucene.util.BytesRef;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -88,7 +84,7 @@ public class IndexPruner {
         }
     }
 
-    private Integer pruneTerms(TermsEnum terms, IndexSearcher docSearcher, int threadNum) throws IOException, SQLException {
+    private Integer pruneTerms(TermsEnum terms, IndexSearcher docSearcher, int threadNum) throws IOException {
         InverseTermMap termMap = new InverseTermMap();
         for (BytesRef bytesRef = terms.term(); terms.next() != null; ) {
             if (bytesRef.length > 32) {
@@ -105,18 +101,29 @@ public class IndexPruner {
 
             TermScores scores = new TermScores(bytesRef);
             TopDocs td = SearchTerm(scores.term, docSearcher);
-            if (td.totalHits.value < 3) {
-                //Remove rare stuff
-                //System.out.println("Thread " + threadNum + ": Skipped term/<3 " + term);
-                //continue;
+            if (td.scoreDocs.length == 0) {
+                continue;
             }
-            for (ScoreDoc scoreDoc: td.scoreDocs) {
-                scores.scores.add(new TermScore(scoreDoc.doc, scoreDoc.score));
+
+            float firstScore = td.scoreDocs[0].score;
+            for (int i=0; i<td.scoreDocs.length; i += windowSize) {
+                ScoreDoc[] windowDocs = Arrays.copyOfRange(td.scoreDocs, i, Math.min(i + windowSize, td.scoreDocs.length));
+
+                for (ScoreDoc windowDoc: windowDocs) {
+                    scores.scores.add(new TermScore(windowDoc.doc, windowDoc.score));
+                }
+
+                //Check to see if the diff between first and last is less than 5% of the first score
+                float windowFirstScore = windowDocs[0].score;
+                float windowLastScore = windowDocs[windowDocs.length - 1].score;
+                if ((windowFirstScore - windowLastScore) > (firstScore * this.maximumDrop)) {
+                    break;
+                }
             }
             termMap.saveTermScores(scores);
 
             int termCount = processedTerms.getAndIncrement();
-            if (termCount % 100 == 0) {
+            if (termCount % 1000 == 0) {
                 System.out.println("processed term" + "\t[" + termCount + " / " + totalTerms + "] (" + term + ")");
             }
         }
