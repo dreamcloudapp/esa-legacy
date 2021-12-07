@@ -51,22 +51,31 @@ public class InverseTermMap {
         return decodeHexString(id.toString().replace("-", ""));
     }
 
-    public void saveTermScores(TermScores termScores) throws SQLException {
-        this.con = MySQLConnection.getConnection();
+    public void saveTermScores(TermScores termScores) {
+        try {
+            if (this.con == null) {
+                this.con = MySQLConnection.getConnection();
+            }
 
-        //Create term
-        PreparedStatement termStatement = con.prepareStatement("insert into dc.term(`id`, `term`) values(?, ?)");
-        byte[] id = generateUuid();
-        termStatement.setBytes(1, id);
-        termStatement.setString(2, termScores.term.utf8ToString());
-        termStatement.executeUpdate();
+            //Create term
+            PreparedStatement termStatement = con.prepareStatement("insert into dc.term(`id`, `term`) values(?, ?)");
+            byte[] id = generateUuid();
+            termStatement.setBytes(1, id);
+            termStatement.setString(2, termScores.term.utf8ToString());
 
-        PreparedStatement  statement = getStatement();
-        for(TermScore score: termScores.scores) {
-            statement.setBytes(1, id);
-            statement.setLong(2, score.docId);
-            statement.setFloat(3, score.score);
-            statement.executeUpdate();
+            termStatement.executeUpdate();
+
+            PreparedStatement statement = getStatement();
+            for (TermScore score : termScores.scores) {
+                statement.setBytes(1, id);
+                statement.setLong(2, score.docId);
+                statement.setFloat(3, score.score);
+                statement.executeUpdate();
+            }
+        }
+        catch (Exception e) {
+            System.out.println("MySQL is unhappy about something:");
+            e.printStackTrace();
         }
     }
 }
