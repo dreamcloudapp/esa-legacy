@@ -21,6 +21,7 @@ import com.dreamcloud.esa.indexer.*;
 import com.dreamcloud.esa.server.EsaHttpServer;
 import com.dreamcloud.esa.tools.*;
 import com.dreamcloud.esa.vectorizer.ConceptVector;
+import com.dreamcloud.esa.vectorizer.SqlVectorizer;
 import com.dreamcloud.esa.vectorizer.TextVectorizer;
 import com.dreamcloud.esa.vectorizer.Vectorizer;
 import org.apache.lucene.analysis.Analyzer;
@@ -423,7 +424,8 @@ public class Main {
                 if ("en-wordsim353".equals(spearman)) {
                     spearman = "./src/data/en-wordsim353.csv";
                 }
-                TextVectorizer textVectorizer = new Vectorizer(esaOptions);
+                TextVectorizer textVectorizer = new SqlVectorizer(esaOptions.analyzer); //new Vectorizer(esaOptions);
+                //TextVectorizer textVectorizer = new Vectorizer(esaOptions);
                 SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
                 PValueCalculator calculator = new PValueCalculator(new File(spearman));
                 System.out.println("Calculating P-value using Spearman correlation...");
@@ -597,6 +599,8 @@ public class Main {
               Path inputPath = Path.of(pruneArgs[0]);
               Path outputPath = Path.of(pruneArgs[1]);
               IndexPruner pruner;
+              System.out.println("Window Size: " + windowSize);
+              System.out.println("Drop Off: " + dropOff);
               if (windowSize > 0 && dropOff > 0) {
                    pruner = new IndexPruner(windowSize, dropOff);
               } else {

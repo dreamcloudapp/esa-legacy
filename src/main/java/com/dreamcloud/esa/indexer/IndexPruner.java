@@ -19,7 +19,7 @@ public class IndexPruner {
     protected int windowSize;
     protected double maximumDrop;
     protected AtomicInteger processedTerms = new AtomicInteger(0);
-    Set<String> termSet = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    final Set<String> termSet = Collections.newSetFromMap(new ConcurrentHashMap<>());
     protected int totalTerms = 0;
 
     public IndexPruner(int windowSize, double maximumDrop) {
@@ -85,49 +85,62 @@ public class IndexPruner {
     }
 
     private Integer pruneTerms(TermsEnum terms, IndexSearcher docSearcher, int threadNum) throws IOException {
-        InverseTermMap termMap = new InverseTermMap();
-        for (BytesRef bytesRef = terms.term(); terms.next() != null; ) {
-            if (bytesRef.length > 32) {
-                //todo: move to length limit filter
-                continue;
-            }
-
-            String term = bytesRef.utf8ToString();
-            if (!termSet.contains(term)) {
-                termSet.add(term);
-            } else {
-                continue;
-            }
-
-            TermScores scores = new TermScores(bytesRef);
-            TopDocs td = SearchTerm(scores.term, docSearcher);
-            if (td.scoreDocs.length == 0) {
-                continue;
-            }
-
-            float firstScore = td.scoreDocs[0].score;
-            for (int i=0; i<td.scoreDocs.length; i += windowSize) {
-                ScoreDoc[] windowDocs = Arrays.copyOfRange(td.scoreDocs, i, Math.min(i + windowSize, td.scoreDocs.length));
-
-                for (ScoreDoc windowDoc: windowDocs) {
-                    scores.scores.add(new TermScore(windowDoc.doc, windowDoc.score));
+        try {
+            InverseTermMap termMap = new InverseTermMap();
+            for (BytesRef bytesRef = terms.term(); terms.next() != null; ) {
+                if (bytesRef.length > 32) {
+                    //todo: move to length limit filter
+                    continue;
                 }
 
-                //Check to see if the diff between first and last is less than 5% of the first score
-                float windowFirstScore = windowDocs[0].score;
-                float windowLastScore = windowDocs[windowDocs.length - 1].score;
-                if ((windowFirstScore - windowLastScore) > (firstScore * this.maximumDrop)) {
-                    break;
+                String term = bytesRef.utf8ToString();
+
+                synchronized (termSet) {
+                    if (!termSet.contains(term)) {
+                        termSet.add(term);
+                    } else {
+                        continue;
+                    }
+                }
+
+                TermScores scores = new TermScores(bytesRef);
+                TopDocs td = SearchTerm(scores.term, docSearcher);
+                if (td.scoreDocs.length == 0) {
+                    continue;
+                }
+
+                float firstScore = td.scoreDocs[0].score;
+                for (int i=0; i<td.scoreDocs.length; i += windowSize) {
+                    ScoreDoc[] windowDocs = Arrays.copyOfRange(td.scoreDocs, i, Math.min(i + windowSize, td.scoreDocs.length - 1));
+
+                    if (windowDocs.length == 0) {
+                        continue;
+                    }
+
+                    for (ScoreDoc windowDoc: windowDocs) {
+                        scores.scores.add(new TermScore(windowDoc.doc, windowDoc.score));
+                    }
+
+                    //Check to see if the diff between first and last is less than 5% of the first score
+                    float windowFirstScore = windowDocs[0].score;
+                    float windowLastScore = windowDocs[windowDocs.length - 1].score;
+                    if ((windowFirstScore - windowLastScore) > (firstScore * this.maximumDrop)) {
+                        break;
+                    }
+                }
+                termMap.saveTermScores(scores);
+
+                int termCount = processedTerms.getAndIncrement();
+                if (termCount % 1000 == 0) {
+                    System.out.println("processed term" + "\t[" + termCount + " / " + totalTerms + "] (" + term + ")");
                 }
             }
-            termMap.saveTermScores(scores);
-
-            int termCount = processedTerms.getAndIncrement();
-            if (termCount % 1000 == 0) {
-                System.out.println("processed term" + "\t[" + termCount + " / " + totalTerms + "] (" + term + ")");
-            }
+            return 0;
+        } catch (Exception e) {
+            System.out.println("Error in thread " + threadNum + ":");
+            e.printStackTrace();
+            return -1;
         }
-        return 0;
     }
 
     private TopDocs SearchTerm(BytesRef bytesRef, IndexSearcher docSearcher) throws IOException {

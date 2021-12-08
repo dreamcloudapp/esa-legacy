@@ -1,6 +1,13 @@
 package com.dreamcloud.esa.database;
 
+import com.dreamcloud.esa.vectorizer.ConceptVector;
+import org.apache.commons.collections15.map.LazyMap;
+
+import java.io.IOException;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 public class InverseTermMap {
@@ -49,6 +56,36 @@ public class InverseTermMap {
     protected static byte[] generateUuid() {
         UUID id = UUID.randomUUID();
         return decodeHexString(id.toString().replace("-", ""));
+    }
+
+    public ConceptVector getTermVector(String term) throws SQLException, IOException {
+        if (this.con == null) {
+            this.con = MySQLConnection.getConnection();
+        }
+
+        byte[] termId = null;
+        PreparedStatement termIdStatement = con.prepareStatement("select id from dc.term where term = ?");
+        termIdStatement.setString(1, term);
+        ResultSet resultSet = termIdStatement.executeQuery();
+        while(resultSet.next()) {
+             termId = resultSet.getBytes(1);
+            break;
+        }
+
+        Map<String, Float> conceptWeights = new HashMap<>();
+        ConceptVector conceptVector = new ConceptVector(conceptWeights);
+        if (termId != null) {
+            PreparedStatement termScoreStatement = con.prepareStatement("select concept_id, score from dc.term_map where term_id = ?");
+            termScoreStatement.setBytes(1, termId);
+
+            resultSet = termScoreStatement.executeQuery();
+            while(resultSet.next()) {
+                String conceptId = String.valueOf(resultSet.getInt(1));
+                float score = resultSet.getFloat(2);
+                conceptWeights.put(conceptId, score);
+            }
+        }
+        return conceptVector;
     }
 
     public void saveTermScores(TermScores termScores) {

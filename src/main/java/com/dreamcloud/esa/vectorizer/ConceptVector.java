@@ -21,6 +21,27 @@ public class ConceptVector {
         }
     }
 
+    public ConceptVector(Map<String, Float> conceptWeights) {
+        this.conceptWeights = conceptWeights;
+    }
+
+    public ConceptVector() {
+        this.conceptWeights = new HashMap<>();
+    }
+
+    public void merge(ConceptVector other) {
+        for (Map.Entry<String, Float> weightEntry: other.getConceptWeights().entrySet()) {
+            String concept = weightEntry.getKey();
+            float score = weightEntry.getValue();
+
+            if (this.conceptWeights.containsKey(concept)) {
+                this.conceptWeights.put(concept, this.conceptWeights.get(concept) + score);
+            } else {
+                this.conceptWeights.put(concept, score);
+            }
+        }
+    }
+
     public float dotProduct(ConceptVector other) {
         Set<String> commonConcepts = new HashSet<>(other.conceptWeights.keySet());
         commonConcepts.retainAll(conceptWeights.keySet());
