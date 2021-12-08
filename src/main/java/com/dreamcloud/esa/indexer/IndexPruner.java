@@ -121,7 +121,7 @@ public class IndexPruner {
                         scores.scores.add(new TermScore(windowDoc.doc, windowDoc.score));
                     }
 
-                    //Check to see if the diff between first and last is less than 5% of the first score
+                    //Check to see if the diff between first and last is more than 5% of the first score
                     float windowFirstScore = windowDocs[0].score;
                     float windowLastScore = windowDocs[windowDocs.length - 1].score;
                     if ((windowFirstScore - windowLastScore) > (firstScore * this.maximumDrop)) {

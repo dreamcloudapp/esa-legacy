@@ -20,10 +20,7 @@ import com.dreamcloud.esa.documentPreprocessor.NullPreprocessor;
 import com.dreamcloud.esa.indexer.*;
 import com.dreamcloud.esa.server.EsaHttpServer;
 import com.dreamcloud.esa.tools.*;
-import com.dreamcloud.esa.vectorizer.ConceptVector;
-import com.dreamcloud.esa.vectorizer.SqlVectorizer;
-import com.dreamcloud.esa.vectorizer.TextVectorizer;
-import com.dreamcloud.esa.vectorizer.Vectorizer;
+import com.dreamcloud.esa.vectorizer.*;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
@@ -285,6 +282,14 @@ public class Main {
 
             EsaOptions esaOptions = new EsaOptions();
 
+            PruneOptions pruneOptions = new PruneOptions();
+            if (nonEmpty(pruneWindowSize)) {
+                pruneOptions.windowSize = Integer.parseInt(pruneWindowSize);
+            }
+            if (nonEmpty(pruneDropOff)) {
+                pruneOptions.dropOff = Float.parseFloat(pruneDropOff);
+            }
+
             if (!nonEmpty(docType)) {
                 docType = "wiki";
             }
@@ -413,9 +418,9 @@ public class Main {
                 TextVectorizer textVectorizer = new Vectorizer(esaOptions);
                 ConceptVector vector = textVectorizer.vectorize(sourceText);
                 Iterator<String> topTenConcepts = vector.topConcepts();
-                for (; topTenConcepts.hasNext(); ) {
+                while (topTenConcepts.hasNext()) {
                     String concept = topTenConcepts.next();
-                    System.out.println(concept + ": " + decimalFormat.format(vector.getConceptWeights().get(concept)));
+                    System.out.println(decimalFormat.format(concept + ": " + vector.getConceptWeights().get(concept)));
                 }
             }
 
@@ -426,7 +431,7 @@ public class Main {
                 }
                 //TextVectorizer textVectorizer = new SqlVectorizer(esaOptions.analyzer);
                 TextVectorizer textVectorizer = new Vectorizer(esaOptions);
-                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
+                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer, pruneOptions);
                 PValueCalculator calculator = new PValueCalculator(new File(spearman));
                 System.out.println("Calculating P-value using Spearman correlation...");
                 System.out.println("----------------------------------------");

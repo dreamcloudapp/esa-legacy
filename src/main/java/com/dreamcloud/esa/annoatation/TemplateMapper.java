@@ -4,9 +4,6 @@ import com.dreamcloud.esa.analyzer.AnalyzerOptions;
 import com.dreamcloud.esa.analyzer.EsaAnalyzer;
 import com.dreamcloud.esa.analyzer.TokenizerFactory;
 import com.dreamcloud.esa.annoatation.handler.XmlReadingHandler;
-import com.dreamcloud.esa.parser.TemplateParameter;
-import com.dreamcloud.esa.parser.TemplateParser;
-import com.dreamcloud.esa.parser.TemplateReference;
 import com.dreamcloud.esa.tools.BZipFileReader;
 import com.dreamcloud.esa.tools.StringUtils;
 import org.apache.lucene.analysis.Analyzer;
@@ -58,13 +55,6 @@ public class TemplateMapper extends XmlReadingHandler {
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);
         saxFactory.setXIncludeAware(true);
-    }
-
-    protected static WikiTitleMatcher getTitleMatcher() {
-        if (matcher == null) {
-            matcher = WikiTitleMatcher.createForTemplateStripping();
-        }
-        return matcher;
     }
 
     public void reset() {

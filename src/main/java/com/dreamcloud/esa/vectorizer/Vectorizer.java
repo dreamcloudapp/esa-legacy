@@ -10,9 +10,7 @@ import com.dreamcloud.esa.EsaOptions;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
@@ -46,7 +44,10 @@ public class Vectorizer implements AutoCloseable, TextVectorizer {
             }
 
             Query query = queryParser.parse(text);
+            //TopScoreDocCollector collector = TopScoreDocCollector.create(indexReader.numDocs(), indexReader.numDocs());
+            //searcher.search(query, collector);
             TopDocs td = searcher.search(query, options.documentLimit);
+            //TopDocs td = collector.topDocs();
             this.conceptVectorCache.put(text, new ConceptVector(td, indexReader));
         }
         return this.conceptVectorCache.get(text);

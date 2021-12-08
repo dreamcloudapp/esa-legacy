@@ -7,7 +7,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 
 public class ConceptVector {
@@ -40,6 +39,43 @@ public class ConceptVector {
                 this.conceptWeights.put(concept, score);
             }
         }
+    }
+
+    public ConceptVector prune(int windowSize, float dropOff) {
+        if (this.conceptWeights.size() == 0) {
+            return this;
+        }
+
+        ConceptVector pruned = new ConceptVector();
+
+        int w = 0;
+        float topScore = -1;
+        float firstScore = -1;
+        for (Iterator<String> it = this.topConcepts(); it.hasNext(); w++) {
+            String concept = it.next();
+            float score = this.conceptWeights.get(concept);
+            pruned.conceptWeights.put(concept, score);
+
+            if (topScore == -1) {
+                topScore = score;
+            } else {
+                if (score < topScore * dropOff) {
+                    break;
+                }
+            }
+            /*if (w == 0) {
+                firstScore = score;
+            }
+
+            if (w == windowSize) {
+                //Process the window
+                if (firstScore - score > dropOff * topScore) {
+                    break;
+                }
+                w = -1;
+            }*/
+        }
+        return pruned;
     }
 
     public float dotProduct(ConceptVector other) {
