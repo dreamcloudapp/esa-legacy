@@ -144,11 +144,10 @@ public class IndexPruner {
     }
 
     private TopDocs SearchTerm(BytesRef bytesRef, IndexSearcher docSearcher) throws IOException {
-        LargeNumHitsTopDocsCollector collector = new LargeNumHitsTopDocsCollector(docSearcher.getIndexReader().numDocs());
+        TopScoreDocCollector collector = TopScoreDocCollector.create(docSearcher.getIndexReader().numDocs(), docSearcher.getIndexReader().numDocs());
         Term term = new Term("text", bytesRef);
         Query query = new TermQuery(term);
         docSearcher.search(query, collector);
         return collector.topDocs();
-        //return docSearcher.search(query, 1000);
     }
 }

@@ -163,8 +163,8 @@ public class TemplateParser {
         StringBuilder content = new StringBuilder();
         TemplateParameter parameter = null;
 
+        int last = -1;
         while (depth > 0) {
-
             int c = reader.read();
             if (c == -1) {
                 return null;
@@ -174,11 +174,17 @@ public class TemplateParser {
             switch (c) {
                 case '{':
                 case '[':
-                    depth++;
+                    if (last == c) {
+                        depth++;
+                        last = -1;
+                    }
                     content.append((char) c);
                     break;
                 case ']':
-                    depth--;
+                    if (last == c) {
+                        depth--;
+                        last = -1;
+                    }
                     content.append((char) c);
                     break;
                 case '}':
@@ -220,6 +226,7 @@ public class TemplateParser {
                         content.append((char) c);
                     }
             }
+            last = c;
         }
         if (content.length() > 0) {
             if (parameter != null) {
