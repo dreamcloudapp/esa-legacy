@@ -424,8 +424,8 @@ public class Main {
                 if ("en-wordsim353".equals(spearman)) {
                     spearman = "./src/data/en-wordsim353.csv";
                 }
-                TextVectorizer textVectorizer = new SqlVectorizer(esaOptions.analyzer); //new Vectorizer(esaOptions);
-                //TextVectorizer textVectorizer = new Vectorizer(esaOptions);
+                //TextVectorizer textVectorizer = new SqlVectorizer(esaOptions.analyzer);
+                TextVectorizer textVectorizer = new Vectorizer(esaOptions);
                 SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
                 PValueCalculator calculator = new PValueCalculator(new File(spearman));
                 System.out.println("Calculating P-value using Spearman correlation...");
@@ -441,7 +441,8 @@ public class Main {
                     pearsonFile = "./src/data/en-lp50.csv";
                     documentFile = new File("./src/data/en-lp50-documents.csv");
                 }
-                TextVectorizer textVectorizer = new Vectorizer(esaOptions);
+                //TextVectorizer textVectorizer = new Vectorizer(esaOptions);
+                TextVectorizer textVectorizer = new SqlVectorizer(esaOptions.analyzer);
                 SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
                 PValueCalculator calculator = new PValueCalculator(new File(pearsonFile));
                 System.out.println("Calculating P-value using Pearson correlation...");

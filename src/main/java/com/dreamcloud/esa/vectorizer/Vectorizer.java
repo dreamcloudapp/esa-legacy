@@ -1,12 +1,12 @@
 package com.dreamcloud.esa.vectorizer;
 
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.dreamcloud.esa.EsaOptions;
-import com.dreamcloud.esa.similarity.TrueTFIDFSimilarity;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryparser.classic.QueryParser;
@@ -27,6 +27,7 @@ public class Vectorizer implements AutoCloseable, TextVectorizer {
     IndexReader indexReader;
     IndexSearcher searcher;
     QueryParser queryParser;
+    protected Map<String, ConceptVector> conceptVectorCache;
 
     public Vectorizer(EsaOptions options) throws IOException {
         this.options = options;
@@ -35,16 +36,20 @@ public class Vectorizer implements AutoCloseable, TextVectorizer {
         searcher = new IndexSearcher(indexReader);
         //searcher.setSimilarity(new TrueTFIDFSimilarity());
         queryParser = new QueryParser("text", options.analyzer);
+        conceptVectorCache = new HashMap<>();
     }
 
     public ConceptVector vectorize(String text) throws Exception {
-        if (options.preprocessor != null) {
-            text = options.preprocessor.process(text);
-        }
+        if (!this.conceptVectorCache.containsKey(text)) {
+            if (options.preprocessor != null) {
+                text = options.preprocessor.process(text);
+            }
 
-        Query query = queryParser.parse(text);
-        TopDocs td = searcher.search(query, options.documentLimit);
-        return new ConceptVector(td, indexReader);
+            Query query = queryParser.parse(text);
+            TopDocs td = searcher.search(query, options.documentLimit);
+            this.conceptVectorCache.put(text, new ConceptVector(td, indexReader));
+        }
+        return this.conceptVectorCache.get(text);
     }
 
     public void close() {
