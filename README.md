@@ -96,7 +96,7 @@ On Mac:
 7. Rare Words: `./esa.sh --write-rare-words index/simple-links-terms-repeated.xml.bz2 index/simple-rare-words.txt 3 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default`
 8. Index!: `./esa.sh --index index/simple-links-terms-repeated.xml.bz2 --threads 8 --batch-size 1000 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default --rare-words index/simple-rare-words.txt --min-incoming-links 1 --min-outgoing-links 1 --min-word-length 3`
 9. Spearman: `./esa.sh --spearman en-wordsim353 --filter classic ascii lower singular stemmer --stemmer-depth 3 --vector-limit 450`
-10. Pearson: `./esa.sh --pearson en-lp50 --filter classic ascii lower singular stemmer --stemmer-depth 3 --preprocessor standard --min-word-length 3 --stopwords en-default --rare-words index\simple-rare-words.txt --vector-limit 450`
+10. Pearson: `./esa.sh --pearson en-lp50 --filter classic ascii lower singular stemmer --stemmer-depth 3 --preprocessor standard --min-word-length 3 --stopwords en-default --rare-words index/simple-rare-words.txt --vector-limit 450`
 
 On Windows:
 
