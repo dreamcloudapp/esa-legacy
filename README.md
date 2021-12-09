@@ -81,50 +81,44 @@ Take your downloaded Wikipedia database dump (a zipped file in .bz2 format, e.g.
 
 ### 6) Build the index
 
-This can take some time, depending on your system:
-On Mac:
+#### Pre-processing
 
-- Make the `esa.sh` file executable: `chmod +x esa.sh`
+This can take some time, depending on your system:
+
+- Make the `esa` file executable: `chmod +x esa`
 - Run the script:
 
-1. Resolve templates: `./esa.sh --resolve-templates enwiki/simplewiki-20211201-pages-articles-multistream.xml.bz2 index/simple-templates.xml.bz2` (Make sure you reference the dump file you just put in the folder)
-2. Map titles: `./esa.sh --map-titles index/simple-templates.xml.bz2 index/simple-titles.xml.bz2`
-3. Strip articles: `./esa.sh --strip index/simple-templates.xml.bz2 index/simple-stripped.xml.bz2 --title-exclusion-regex "^[^:]+:[^ ].+$" "^(january)|(february)|(march)|(april)|(may)|(june)|(july)|(august)|(september)|(november)|(december)] .+" "[0-9]{1,4}(s)?( bc)?" disambiguation wikiproject wikipedia`
-4. Count links: `./esa.sh --count-links index/simple-stripped.xml.bz2 index/simple-titles.xml.bz2 index/simple-stripped-links.xml.bz2`
-5. Count Terms: `./esa.sh --count-terms index/simple-stripped-links.xml.bz2 index/simple-stripped-links-terms.xml.bz2 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default`
-6. Repeat words: `./esa.sh --repeat-content index/simple-stripped-links-terms.xml.bz2 index/simple-links-terms-repeated.xml.bz2 --repeat-title 4 --repeat-link 2`
-7. Rare Words: `./esa.sh --write-rare-words index/simple-links-terms-repeated.xml.bz2 index/simple-rare-words.txt 3 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default`
-8. Index!: `./esa.sh --index index/simple-links-terms-repeated.xml.bz2 --threads 8 --batch-size 1000 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default --rare-words index/simple-rare-words.txt --min-incoming-links 1 --min-outgoing-links 1 --min-word-length 3`
-9. Spearman: `./esa.sh --spearman en-wordsim353 --filter classic ascii lower singular stemmer --stemmer-depth 3 --vector-limit 450`
-10. Pearson: `./esa.sh --pearson en-lp50 --filter classic ascii lower singular stemmer --stemmer-depth 3 --preprocessor standard --min-word-length 3 --stopwords en-default --rare-words index/simple-rare-words.txt --vector-limit 450`
+1. Resolve templates: `./esa --resolve-templates enwiki/simplewiki-20211201-pages-articles-multistream.xml.bz2 index/simple-templates.xml.bz2` (Make sure you reference the dump file you just put in the folder)
+2. Map titles: `./esa --map-titles index/simple-templates.xml.bz2 index/simple-titles.xml.bz2`
+3. Strip articles: `./esa --strip index/simple-templates.xml.bz2 index/simple-stripped.xml.bz2 --title-exclusion-regex "^[^:]+:[^ ].+$" "^(january)|(february)|(march)|(april)|(may)|(june)|(july)|(august)|(september)|(november)|(december)] .+" "[0-9]{1,4}(s)?( bc)?" disambiguation wikiproject wikipedia`
+4. Count links: `./esa --count-links index/simple-stripped.xml.bz2 index/simple-titles.xml.bz2 index/simple-stripped-links.xml.bz2`
+5. Count Terms: `./esa --count-terms index/simple-stripped-links.xml.bz2 index/simple-stripped-links-terms.xml.bz2 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default`
+6. Repeat words: `./esa --repeat-content index/simple-stripped-links-terms.xml.bz2 index/simple-links-terms-repeated.xml.bz2 --repeat-title 4 --repeat-link 2`
+7. Rare Words: `./esa --write-rare-words index/simple-links-terms-repeated.xml.bz2 index/simple-rare-words.txt 3 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default`
 
-On Windows:
+#### Create the Lucene index
 
-./esa.bat --resolve-templates enwiki\simplewiki-20210101-pages-articles-multistream.xml.bz2 index\simple-templates.xml.bz2
+Now that the Wikipedia dump is downloaded and pre-processed, it must be indexed. 
 
-./esa.bat --map-titles index\simple-templates.xml.bz2 index\simple-titles.xml.bz2
+```bash
+./esa --index index/simple-links-terms-repeated.xml.bz2 --threads 8 --batch-size 1000 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default --rare-words index/simple-rare-words.txt --min-incoming-links 1 --min-outgoing-links 1 --min-word-length 3
+```
 
-./esa.bat --strip index\simple-templates.xml.bz2 index\simple-stripped.xml.bz2 --title-exclusion-regex "^[^:]+:[^ ].+$" "^(january)|(february)|(march)|(april)|(may)|(june)|(july)|(august)|(september)|(november)|(december)] .+" "[0-9]{1,4}(s)?( bc)?" disambiguation wikiproject wikipedia
+#### Check specific scores against standard datasets
 
-./esa.bat --count-links index\simple-stripped.xml.bz2 index\simple-titles.xml.bz2 index\simple-stripped-links.xml.bz2
 
-./esa.bat --count-terms index\simple-stripped-links.xml.bz2 index\simple-stripped-links-terms.xml.bz2 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default
+_Spearman (word similarity/relatedness using Wordsim 353 dataset)_
 
-./esa.bat --repeat-content index\simple-stripped-links-terms.xml.bz2 index\simple-links-terms-repeated.xml.bz2 --repeat-title 4 --repeat-link 2
+```
+./esa.sh --spearman en-wordsim353 --filter classic ascii lower singular stemmer --stemmer-depth 3 --vector-limit 1800 --prune-dropoff 0.73
+```
 
-./esa.bat --write-rare-words index\simple-links-terms-repeated.xml.bz2 index\simple-rare-words.txt 3 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default
+_Pearson (document relatedness using LP50 dataset)_
+```
+./esa --pearson en-lp50 --filter classic ascii lower singular stemmer --stemmer-depth 3 --preprocessor standard --min-word-length 3 --stopwords en-default --rare-words index/simple-rare-words.txt --vector-limit 450
+```
+### About indexing
 
-./esa.bat --index index\simple-links-terms-repeated.xml.bz2 --threads 8 --batch-size 1000 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default --rare-words index\simple-rare-words.txt --min-incoming-links 1 --min-outgoing-links 1 --min-word-length 3
-
-./esa.bat --spearman en-wordsim353 --filter classic ascii lower singular stemmer --stemmer-depth 3 --vector-limit 450
-
-./esa.bat --pearson en-lp50 --filter classic ascii lower singular stemmer --stemmer-depth 3 --preprocessor standard --min-word-length 3 --stopwords en-default --rare-words index\simple-rare-words.txt --vector-limit 450
-
-### Indexing
-
-This also takes several hours.
-
-Now that the Wikipedia dump is downloaded, it must be indexed.
 Indexing is done with Lucene in two steps.
 
 First, all articles are indexed to a term-to-document index.
