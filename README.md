@@ -94,8 +94,8 @@ On Mac:
 5. Count Terms: `./esa.sh --count-terms index/simple-stripped-links.xml.bz2 index/simple-stripped-links-terms.xml.bz2 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default`
 6. Repeat words: `./esa.sh --repeat-content index/simple-stripped-links-terms.xml.bz2 index/simple-links-terms-repeated.xml.bz2 --repeat-title 4 --repeat-link 2`
 7. Rare Words: `./esa.sh --write-rare-words index/simple-links-terms-repeated.xml.bz2 index/simple-rare-words.txt 3 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default`
-8. Index!: `./esa.sh --index index/simple-links-terms-repeated.xml.bz2 --threads 8 --batch-size 1000 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default --rare-words index/simple-rare-words.txt --min-incoming-links 1 --min-outgoing-links 1 --min-word-length 3`
-9. Spearman: `./esa.sh --spearman en-wordsim353 --filter classic ascii lower singular stemmer --stemmer-depth 3 --vector-limit 450`
+8. Index! (If you're doing this multiple times, delete the index file): `./esa.sh --index index/simple-links-terms-repeated.xml.bz2 --threads 8 --batch-size 1000 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default --rare-words index/simple-rare-words.txt --min-incoming-links 1 --min-outgoing-links 1 --min-word-length 3`
+9. Spearman: `./esa.sh --spearman en-wordsim353 --filter classic ascii lower singular stemmer --stemmer-depth 3 --vector-limit 1800 --prune-dropoff 0.73`
 10. Pearson: `./esa.sh --pearson en-lp50 --filter classic ascii lower singular stemmer --stemmer-depth 3 --preprocessor standard --min-word-length 3 --stopwords en-default --rare-words index/simple-rare-words.txt --vector-limit 450`
 
 On Windows:
