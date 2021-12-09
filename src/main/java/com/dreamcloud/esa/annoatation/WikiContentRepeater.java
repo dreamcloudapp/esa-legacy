@@ -68,6 +68,12 @@ public class WikiContentRepeater extends XmlWritingHandler {
     }
 
     public void repeatContent(File inputFile, File outputFile) throws ParserConfigurationException, SAXException, XMLStreamException, IOException {
+        System.out.println("Content Repeat:");
+        System.out.println("---------------------------------------");
+        System.out.println("Link Repeat: " + options.linkRepeat);
+        System.out.println("Title Repeat: " + options.titleRepeat);
+        System.out.println("---------------------------------------");
+
         SAXParser saxParser = saxFactory.newSAXParser();
         Reader reader = BZipFileReader.getFileReader(inputFile);
         InputSource is = new InputSource(reader);
