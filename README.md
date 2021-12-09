@@ -89,7 +89,8 @@ On Mac:
 
 1. Resolve templates: `./esa.sh --resolve-templates enwiki/simplewiki-20211201-pages-articles-multistream.xml.bz2 index/simple-templates.xml.bz2` (Make sure you reference the dump file you just put in the folder)
 2. Map titles: `./esa.sh --map-titles index/simple-templates.xml.bz2 index/simple-titles.xml.bz2`
-3. Strip articles: `./esa.sh --strip enwiki/simplewiki-20211201-pages-articles-multistream.xml.bz2 index/simple-stripped.xml.bz2 --title-exclusion-regex "^[^:]+:[^ ].+$" "^(january)|(february)|(march)|(april)|(may)|(june)|(july)|(august)|(september)|(november)|(december)] .+" "[0-9]{1,4}(s)?( bc)?" disambiguation wikiproject wikipedia`
+3. Strip articles: `./esa.sh --strip index/simple-templates.xml.bz2 index/simple-stripped.xml.bz2 --title-exclusion-regex "^[^:]+:[^ ].+$" "^(january)|(february)|(march)|(april)|(may)|(june)|(july)|(august)|(september)|(november)|(december)] .+" "[0-9]{1,4}(s)?( bc)?" disambiguation wikiproject wikipedia`
+4. Count Terms: `./esa.sh --count-links index/simple-stripped.xml.bz2 index/simple-titles.xml.bz2 index/simple-stripped-links.xml.bz2`
 
 On Windows:
 
