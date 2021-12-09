@@ -71,7 +71,7 @@ class WikiTitleMapper extends XmlWritingHandler {
 
     @Override
     public void handleDocument(Map<String, String> xmlFields) {
-        String title = xmlFields.get("title");
+        String title = StringUtils.normalizeWikiTitle(xmlFields.get("title"));
         String text = xmlFields.get("text");
         String redirect = title;
         Matcher matcher = redirectPattern.matcher(text);
