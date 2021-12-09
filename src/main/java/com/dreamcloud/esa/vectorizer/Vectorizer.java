@@ -44,7 +44,8 @@ public class Vectorizer implements AutoCloseable, TextVectorizer {
             }
 
             Query query = queryParser.parse(text);
-            TopScoreDocCollector collector = TopScoreDocCollector.create(indexReader.numDocs(), indexReader.numDocs());
+            int maxDocs = options.documentLimit > 0 ? options.documentLimit : indexReader.numDocs();
+            TopScoreDocCollector collector = TopScoreDocCollector.create(maxDocs, maxDocs);
             searcher.search(query, collector);
             TopDocs td = collector.topDocs();
             this.conceptVectorCache.put(text, new ConceptVector(td, indexReader));

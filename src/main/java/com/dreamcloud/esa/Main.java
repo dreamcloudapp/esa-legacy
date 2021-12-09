@@ -462,9 +462,9 @@ public class Main {
                     pearsonFile = "./src/data/en-lp50.csv";
                     documentFile = new File("./src/data/en-lp50-documents.csv");
                 }
-                //TextVectorizer textVectorizer = new Vectorizer(esaOptions);
-                TextVectorizer textVectorizer = new SqlVectorizer(esaOptions.analyzer);
-                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
+                TextVectorizer textVectorizer = new Vectorizer(esaOptions);
+                //TextVectorizer textVectorizer = new SqlVectorizer(esaOptions.analyzer);
+                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer, pruneOptions);
                 PValueCalculator calculator = new PValueCalculator(new File(pearsonFile));
                 System.out.println("Calculating P-value using Pearson correlation...");
                 System.out.println("----------------------------------------");
