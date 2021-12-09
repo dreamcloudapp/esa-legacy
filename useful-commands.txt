@@ -29,6 +29,8 @@
 
 
 # Runnable
+./esa.bat --preprocess enwiki\simplewiki-20210101-pages-articles-multistream.xml.bz2 index\simple-templates.xml.bz2 index\simple-titles.xml.bz2 --title-exclusion-regex "^[^:]+:[^ ].+$" "^(january)|(february)|(march)|(april)|(may)|(june)|(july)|(august)|(september)|(november)|(december)] .+" "[0-9]{1,4}(s)?( bc)?" disambiguation wikiproject wikipedia
+
 ./esa.bat --resolve-templates enwiki\simplewiki-20210101-pages-articles-multistream.xml.bz2 index\simple-templates.xml.bz2
 
 ./esa.bat --map-titles index\simple-templates.xml.bz2 index\simple-titles.xml.bz2

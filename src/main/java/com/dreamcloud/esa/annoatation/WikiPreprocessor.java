@@ -31,7 +31,6 @@ public class WikiPreprocessor extends XmlWritingHandler {
     protected Pattern redirectPattern = Pattern.compile("^.*#REDIRECT[^\\[]+\\[\\[(.+)]].*$");
     ArrayList<Pattern> titleExclusionPatterns;
     protected final SAXParserFactory saxFactory;
-    protected int templates = 0;
     protected int docsStripped = 0;
     protected int numRedirects = 0;
 
@@ -41,6 +40,7 @@ public class WikiPreprocessor extends XmlWritingHandler {
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);
         saxFactory.setXIncludeAware(true);
+        this.titleExclusionPatterns = new ArrayList<>();
         if (options.titleExclusionRegExList != null) {
             for(String titleExclusionRegEx: options.titleExclusionRegExList) {
                 this.titleExclusionPatterns.add(Pattern.compile(titleExclusionRegEx));
@@ -50,7 +50,7 @@ public class WikiPreprocessor extends XmlWritingHandler {
 
     public void preprocess(File inputFile, File outputFile, File titleOutputFile) throws Exception {
         //Create a map of normalized titles
-        try(WikiTitleMapper titleMapper = new WikiTitleMapper(titleExclusionPatterns, outputFile)) {
+        try(WikiTitleMapper titleMapper = new WikiTitleMapper(titleExclusionPatterns, inputFile)) {
             titleMapper.mapToXml(titleOutputFile);
         }
 
@@ -81,7 +81,6 @@ public class WikiPreprocessor extends XmlWritingHandler {
         //Show logs
         System.out.println("----------------------------------------");
         System.out.println("Articles Read:\t" + this.getDocsRead());
-        System.out.println("Templates Refs:\t" + templates);
         System.out.println("Articles Stripped:\t" + docsStripped);
         NumberFormat format = NumberFormat.getPercentInstance();
         format.setMinimumFractionDigits(1);
@@ -126,7 +125,7 @@ public class WikiPreprocessor extends XmlWritingHandler {
 
         int docsRead = this.getDocsRead();
         if (docsRead % 1000 == 0) {
-            System.out.println("preprocessed article\t[" + templates + " | " + docsRead + "]");
+            System.out.println("preprocessed article\t[" + docsStripped + " | " + docsRead + "]");
         }
     }
 

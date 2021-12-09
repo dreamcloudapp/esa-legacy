@@ -36,6 +36,7 @@ class WikiTitleMapper extends XmlWritingHandler {
     protected int numRedirects = 0;
 
     protected WikiTitleMapper(ArrayList<Pattern> titleExclusionPatterns, File inputFile) {
+        this.setDocumentTag("page");
         this.inputFile = inputFile;
         this.titleExclusionPatterns = titleExclusionPatterns;
         saxFactory = SAXParserFactory.newInstance();
