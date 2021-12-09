@@ -31,11 +31,16 @@ get up and running much faster.
 
 ### 1) Install Java
 
+If you haven't set up Java on your computer, you'll need that.
+
 **On Mac**
 Using Homebrew,
 `brew install java`
 then install Maven:
 `brew install maven`
+Also, you'll need the Java Development Kit:
+[https://www.oracle.com/java/technologies/downloads/#jdk17-mac](https://www.oracle.com/java/technologies/downloads/#jdk17-mac)
+Use the `Arm 64 DMG Installer` or `x64 DMG Installer`, depending on your system.
 
 ### 2) Install packages using Maven
 
@@ -75,10 +80,12 @@ Take your downloaded Wikipedia database dump (a zipped file in .bz2 format, e.g.
 
 ### 6) Build the index
 
-This takes some time.
+This can take some time, depending on your system:
 On Mac:
-Make the `esa.sh` file executable: `chmod +x esa.sh`
-`./esa.sh --resolve-templates enwiki\simplewiki-20210101-pages-articles-multistream.xml.bz2 index\simple-templates.xml.bz2`
+
+- Make the `esa.sh` file executable: `chmod +x esa.sh`
+- Run the script: `./esa.sh --resolve-templates enwiki/simplewiki-20211201-pages-articles-multistream.xml.bz2 index/simple-templates.xml.bz2` (Make sure you reference the dump file you just put in the folder)
+
 On Windows:
 `./esa.bat --resolve-templates enwiki\simplewiki-20210101-pages-articles-multistream.xml.bz2 index\simple-templates.xml.bz2`
 
