@@ -2,14 +2,16 @@ package com.dreamcloud.esa.annoatation;
 
 import com.dreamcloud.esa.annoatation.handler.XmlWritingHandler;
 import com.dreamcloud.esa.tools.BZipFileReader;
+import com.dreamcloud.esa.tools.StringUtils;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.stream.XMLStreamException;
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.Reader;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Map;
@@ -17,31 +19,28 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Takes a Wikimedia dump file and strips out all of the extra information.
- * It also applies basic title exclusions to reduce the file size.
- * Wikipedia redirect articles are further removed.
- *
- * Output structure is:
- * <docs>
- *     <doc>
- *         <title>Cat</title>
- *         <text>Cats are small, furry, and cute mammals.</text>
- *     </doc>
- * </docs>
+ * Combines previous annotators into one for efficiency.
+ * 1. Template resolution (no parameters, hard-coded for 5 template depth and 30 word threshold)
+ * 2. Title mapping (normalizing Wiki titles and handling redirects)
+ * 3. Article stripping (Removing articles via regex)
+ *  set via --title-exclusion-regex "regex1" "regex2"
  */
-public class WikiStripper extends XmlWritingHandler {
+public class WikiPreprocessor extends XmlWritingHandler {
+    Map<String, String> templateMap;
+    protected TemplateProcessor templateProcessor;
     protected Pattern redirectPattern = Pattern.compile("^.*#REDIRECT[^\\[]+\\[\\[(.+)]].*$");
-    protected final SAXParserFactory saxFactory;
-    protected int docsStripped = 0;
     ArrayList<Pattern> titleExclusionPatterns;
+    protected final SAXParserFactory saxFactory;
+    protected int templates = 0;
+    protected int docsStripped = 0;
+    protected int numRedirects = 0;
 
-    public WikiStripper(StripperOptions options) {
+    public WikiPreprocessor(WikiPreprocessorOptions options) {
+        this.setDocumentTag("page");
         saxFactory = SAXParserFactory.newInstance();
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);
         saxFactory.setXIncludeAware(true);
-
-        this.titleExclusionPatterns = new ArrayList<>();
         if (options.titleExclusionRegExList != null) {
             for(String titleExclusionRegEx: options.titleExclusionRegExList) {
                 this.titleExclusionPatterns.add(Pattern.compile(titleExclusionRegEx));
@@ -49,14 +48,27 @@ public class WikiStripper extends XmlWritingHandler {
         }
     }
 
-    public void strip(File inputFile, File outputFile) throws IOException, ParserConfigurationException, SAXException, XMLStreamException {
+    public void preprocess(File inputFile, File outputFile, File titleOutputFile) throws Exception {
+        //Create a map of normalized titles
+        try(WikiTitleMapper titleMapper = new WikiTitleMapper(titleExclusionPatterns, outputFile)) {
+            titleMapper.mapToXml(titleOutputFile);
+        }
+
+        //Generate a normalized template map
+        try(TemplateMapper mapper = new TemplateMapper(new TemplateResolutionOptions())) {
+            templateMap = mapper.map(inputFile);
+        }
+
+        //Perform the template substitution
         reset();
-        SAXParser saxParser = saxFactory.newSAXParser();
+        TemplateResolutionOptions options = new TemplateResolutionOptions();
+        options.recursionDepth = 1;
+        templateProcessor = new TemplateProcessor(templateMap, options);
         Reader reader = BZipFileReader.getFileReader(inputFile);
         InputSource is = new InputSource(reader);
         is.setEncoding("UTF-8");
+        SAXParser saxParser = saxFactory.newSAXParser();
 
-        //Begin the XML document
         this.open(outputFile);
         this.writeDocumentBegin("docs");
 
@@ -69,29 +81,28 @@ public class WikiStripper extends XmlWritingHandler {
         //Show logs
         System.out.println("----------------------------------------");
         System.out.println("Articles Read:\t" + this.getDocsRead());
+        System.out.println("Templates Refs:\t" + templates);
         System.out.println("Articles Stripped:\t" + docsStripped);
         NumberFormat format = NumberFormat.getPercentInstance();
         format.setMinimumFractionDigits(1);
         System.out.println("Strip Rate:\t" + format.format(((double) docsStripped) / ((double) this.getDocsRead())));
+        templateProcessor.displayInfo();
         System.out.println("----------------------------------------");
     }
 
-    public void handleDocument(Map<String, String> xmlFields) {
-        int docsRead = this.getDocsRead();
-        if (docsRead % 1000 == 0) {
-            System.out.println("processed article\t[" + docsStripped + " | " + docsRead + "]");
-        }
-
+    @Override
+    public void handleDocument(Map<String, String> xmlFields) throws SAXException {
         String title = xmlFields.get("title");
         String text = xmlFields.get("text");
-        if (title == null || text == null) {
+
+        if (!StringUtils.nonEmpty(title) || !StringUtils.nonEmpty(text)) {
             this.docsStripped++;
             return;
         }
 
         //Exclude titles by regex
         for (Pattern pattern: this.titleExclusionPatterns) {
-            Matcher matcher = pattern.matcher(title);
+            Matcher matcher = pattern.matcher(title.toLowerCase());
             if (matcher.find()) {
                 this.docsStripped++;
                 return;
@@ -105,12 +116,17 @@ public class WikiStripper extends XmlWritingHandler {
             return;
         }
 
-        //Write to the file
         try {
-            this.writeDocument(title, text);
+            text = templateProcessor.substitute(text, title);
+            this.writeDocument(StringUtils.normalizeWikiTitle(title), text);
         } catch (XMLStreamException | IOException e) {
             e.printStackTrace();
             System.exit(1);
+        }
+
+        int docsRead = this.getDocsRead();
+        if (docsRead % 1000 == 0) {
+            System.out.println("preprocessed article\t[" + templates + " | " + docsRead + "]");
         }
     }
 

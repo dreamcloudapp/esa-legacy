@@ -3,22 +3,16 @@ package com.dreamcloud.esa.annoatation;
 import com.dreamcloud.esa.annoatation.handler.XmlWritingHandler;
 import com.dreamcloud.esa.tools.BZipFileReader;
 import com.dreamcloud.esa.tools.StringUtils;
-import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
-import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream;
-import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import org.xml.sax.helpers.DefaultHandler;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
-import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,14 +28,16 @@ import java.util.regex.Pattern;
  *     </doc>
  * </docs>
  */
-public class WikiTitleMapper extends XmlWritingHandler {
+class WikiTitleMapper extends XmlWritingHandler {
+    ArrayList<Pattern> titleExclusionPatterns;
     protected Pattern redirectPattern = Pattern.compile("^.*#REDIRECT[^\\[]+\\[\\[(.+)]].*$");
     protected File inputFile;
     protected final SAXParserFactory saxFactory;
     protected int numRedirects = 0;
 
-    public WikiTitleMapper(File inputFile) {
+    protected WikiTitleMapper(ArrayList<Pattern> titleExclusionPatterns, File inputFile) {
         this.inputFile = inputFile;
+        this.titleExclusionPatterns = titleExclusionPatterns;
         saxFactory = SAXParserFactory.newInstance();
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);

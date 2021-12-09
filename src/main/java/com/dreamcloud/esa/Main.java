@@ -21,23 +21,17 @@ import com.dreamcloud.esa.indexer.*;
 import com.dreamcloud.esa.server.EsaHttpServer;
 import com.dreamcloud.esa.tools.*;
 import com.dreamcloud.esa.vectorizer.*;
-import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.apache.lucene.analysis.wikipedia.WikipediaTokenizer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.StoredField;
-import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.commons.cli.*;
-import org.apache.lucene.util.BytesRef;
 
 //Reading input files
 import java.nio.file.Files;
@@ -203,10 +197,10 @@ public class Main {
         titleMapOption.setArgs(2);
         options.addOption(titleMapOption);
 
-        Option resolveTemplatesOption = new Option(null, "resolve-templates", true, "inputFile outputFile / Resolves templates");
-        resolveTemplatesOption.setRequired(false);
-        resolveTemplatesOption.setArgs(2);
-        options.addOption(resolveTemplatesOption);
+        Option wikiPreprocessorOption = new Option(null, "preprocess", true, "inputFile outputFile titleMapOutputFile / Wiki preprocessing: template resolution, title normalization, article stripping");
+        wikiPreprocessorOption.setRequired(false);
+        wikiPreprocessorOption.setArgs(3);
+        options.addOption(wikiPreprocessorOption);
 
         Option linkCountOption = new Option(null, "count-links", true, "wikiInputFile titleMapFile outputFile / Creates an annotated XML file with link counts.");
         linkCountOption.setRequired(false);
@@ -276,9 +270,7 @@ public class Main {
             String[] topFile = cmd.getOptionValues("tf");
             String[] relevanceArgs = cmd.getOptionValues("relevance");
             String[] weightArgs = cmd.getOptionValues("weight");
-            String[] stripArgs = cmd.getOptionValues("strip");
-            String[] titleMapArgs = cmd.getOptionValues("map-titles");
-            String[] resolveTemplateArgs = cmd.getOptionValues("resolve-templates");
+            String[] wikiPreprocessorArgs = cmd.getOptionValues("preprocess");
             String[] findArticleArgs = cmd.getOptionValues("find-article");
             String[] countLinkArgs = cmd.getOptionValues("count-links");
             String[] countTermArgs = cmd.getOptionValues("count-terms");
@@ -539,35 +531,15 @@ public class Main {
                 System.out.println("Relevance: " + relevance.score(term));
             }
 
-            //Annotating
-            else if(hasLength(titleMapArgs, 2)) {
-                File inputFile = new File(titleMapArgs[0]);
-                File outputFile = new File(titleMapArgs[1]);
-                try (WikiTitleMapper titleMapper = new WikiTitleMapper(inputFile)) {
-                    titleMapper.mapToXml(outputFile);
-                }
-            }
-
-            else if(hasLength(resolveTemplateArgs, 2)) {
-                File inputFile = new File(resolveTemplateArgs[0]);
-                File outputFile = new File(resolveTemplateArgs[1]);
-                TemplateResolutionOptions templateResolutionOptions = new TemplateResolutionOptions();
-
-                try (TemplateMapper templateMapper = new TemplateMapper(templateResolutionOptions);) {
-                    Map<String, String> templateMap = templateMapper.map(inputFile);
-                    try (TemplateResolver templateResolver = new TemplateResolver(templateMap)) {
-                        templateResolver.resolve(inputFile, outputFile);
-                    }
-                }
-            }
-
-            else if(hasLength(stripArgs, 2)) {
-                File inputFile = new File(stripArgs[0]);
-                File outputFile = new File(stripArgs[1]);
-                StripperOptions stripperOptions = new StripperOptions();
-                stripperOptions.titleExclusionRegExList = indexerOptions.titleExclusionRegExList;;
-                try(WikiStripper stripper = new WikiStripper(stripperOptions)) {
-                    stripper.strip(inputFile, outputFile);
+            else if(hasLength(wikiPreprocessorArgs, 3)) {
+                File inputFile = new File(wikiPreprocessorArgs[0]);
+                File outputFile = new File(wikiPreprocessorArgs[1]);
+                File titleMapOutputFile = new File(wikiPreprocessorArgs[2]);
+                WikiPreprocessorOptions wikiPreprocessorOptions = new WikiPreprocessorOptions();
+                wikiPreprocessorOptions.titleExclusionRegExList = indexerOptions.titleExclusionRegExList;
+                try (WikiPreprocessor wikiPreprocessor = new WikiPreprocessor(wikiPreprocessorOptions);) { wikiPreprocessor.preprocess(inputFile, outputFile, titleMapOutputFile);
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
 

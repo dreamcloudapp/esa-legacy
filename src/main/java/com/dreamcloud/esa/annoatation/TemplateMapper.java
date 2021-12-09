@@ -26,10 +26,10 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class TemplateMapper extends XmlReadingHandler {
-    private static WikiTitleMatcher matcher = WikiTitleMatcher.createForTemplateStripping();
-    private static Pattern noIncludeTagPattern = Pattern.compile("<noinclude>.+</noinclude>", Pattern.DOTALL);
-    private static Pattern onlyIncludeTagPattern = Pattern.compile("<onlyinclude>(.+)</onlyinclude>", Pattern.DOTALL);
+class TemplateMapper extends XmlReadingHandler {
+    private static final WikiTitleMatcher matcher = WikiTitleMatcher.createForTemplateStripping();
+    private static final Pattern noIncludeTagPattern = Pattern.compile("<noinclude>.+</noinclude>", Pattern.DOTALL);
+    private static final Pattern onlyIncludeTagPattern = Pattern.compile("<onlyinclude>(.+)</onlyinclude>", Pattern.DOTALL);
 
     Analyzer analyzer;
     TemplateResolutionOptions options;
