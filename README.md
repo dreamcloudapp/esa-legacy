@@ -138,7 +138,7 @@ _Spearman (word similarity/relatedness using Wordsim 353 dataset)_
 
 _Pearson (document relatedness using LP50 dataset)_
 ```
-./esa --pearson en-lp50 --filter classic ascii lower singular stemmer --stemmer-depth 3 --preprocessor standard --min-word-length 3 --stopwords en-default --rare-words index/simple-rare-words.txt --vector-limit 450
+./esa --pearson en-lp50 --filter classic ascii lower singular stemmer --stemmer-depth 3 --preprocessor standard --min-word-length 3 --stopwords en-default --rare-words index/simple-rare-words.txt --vector-limit 1800 --prune-dropoff 0.73
 ```
 ### About indexing
 
