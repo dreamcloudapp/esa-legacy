@@ -46,6 +46,7 @@ Use the `Arm 64 DMG Installer` or `x64 DMG Installer`, depending on your system.
 
 In the home folder of the repo, run:
 `mvn package`
+Remember on any code changes or branch switches, you'll need to re-run this command.
 
 ### 3) Make folders for Wikipedia data
 
@@ -84,10 +85,33 @@ This can take some time, depending on your system:
 On Mac:
 
 - Make the `esa.sh` file executable: `chmod +x esa.sh`
-- Run the script: `./esa.sh --resolve-templates enwiki/simplewiki-20211201-pages-articles-multistream.xml.bz2 index/simple-templates.xml.bz2` (Make sure you reference the dump file you just put in the folder)
+- Run the script:
+
+1. Resolve templates: `./esa.sh --resolve-templates enwiki/simplewiki-20211201-pages-articles-multistream.xml.bz2 index/simple-templates.xml.bz2` (Make sure you reference the dump file you just put in the folder)
+2. Map titles: `./esa.sh --map-titles index/simple-templates.xml.bz2 index/simple-titles.xml.bz2`
+3. Strip articles: `./esa.sh --strip enwiki/simplewiki-20211201-pages-articles-multistream.xml.bz2 index/simple-stripped.xml.bz2 --title-exclusion-regex "^[^:]+:[^ ].+$" "^(january)|(february)|(march)|(april)|(may)|(june)|(july)|(august)|(september)|(november)|(december)] .+" "[0-9]{1,4}(s)?( bc)?" disambiguation wikiproject wikipedia`
 
 On Windows:
-`./esa.bat --resolve-templates enwiki\simplewiki-20210101-pages-articles-multistream.xml.bz2 index\simple-templates.xml.bz2`
+
+./esa.bat --resolve-templates enwiki\simplewiki-20210101-pages-articles-multistream.xml.bz2 index\simple-templates.xml.bz2
+
+./esa.bat --map-titles index\simple-templates.xml.bz2 index\simple-titles.xml.bz2
+
+./esa.bat --strip index\simple-templates.xml.bz2 index\simple-stripped.xml.bz2 --title-exclusion-regex "^[^:]+:[^ ].+$" "^(january)|(february)|(march)|(april)|(may)|(june)|(july)|(august)|(september)|(november)|(december)] .+" "[0-9]{1,4}(s)?( bc)?" disambiguation wikiproject wikipedia
+
+./esa.bat --count-links index\simple-stripped.xml.bz2 index\simple-titles.xml.bz2 index\simple-stripped-links.xml.bz2
+
+./esa.bat --count-terms index\simple-stripped-links.xml.bz2 index\simple-stripped-links-terms.xml.bz2 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default
+
+./esa.bat --repeat-content index\simple-stripped-links-terms.xml.bz2 index\simple-links-terms-repeated.xml.bz2 --repeat-title 4 --repeat-link 2
+
+./esa.bat --write-rare-words index\simple-links-terms-repeated.xml.bz2 index\simple-rare-words.txt 3 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default
+
+./esa.bat --index index\simple-links-terms-repeated.xml.bz2 --threads 8 --batch-size 1000 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default --rare-words index\simple-rare-words.txt --min-incoming-links 1 --min-outgoing-links 1 --min-word-length 3
+
+./esa.bat --spearman en-wordsim353 --filter classic ascii lower singular stemmer --stemmer-depth 3 --vector-limit 450
+
+./esa.bat --pearson en-lp50 --filter classic ascii lower singular stemmer --stemmer-depth 3 --preprocessor standard --min-word-length 3 --stopwords en-default --rare-words index\simple-rare-words.txt --vector-limit 450
 
 ### Indexing
 
