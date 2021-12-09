@@ -91,6 +91,7 @@ On Mac:
 2. Map titles: `./esa.sh --map-titles index/simple-templates.xml.bz2 index/simple-titles.xml.bz2`
 3. Strip articles: `./esa.sh --strip index/simple-templates.xml.bz2 index/simple-stripped.xml.bz2 --title-exclusion-regex "^[^:]+:[^ ].+$" "^(january)|(february)|(march)|(april)|(may)|(june)|(july)|(august)|(september)|(november)|(december)] .+" "[0-9]{1,4}(s)?( bc)?" disambiguation wikiproject wikipedia`
 4. Count Terms: `./esa.sh --count-links index/simple-stripped.xml.bz2 index/simple-titles.xml.bz2 index/simple-stripped-links.xml.bz2`
+5. Rare Words: `./esa.sh --write-rare-words index/simple-stripped-links-terms.xml.bz2 index/simple-rare-words.txt 3 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default`
 
 On Windows:
 
