@@ -90,8 +90,10 @@ On Mac:
 1. Resolve templates: `./esa.sh --resolve-templates enwiki/simplewiki-20211201-pages-articles-multistream.xml.bz2 index/simple-templates.xml.bz2` (Make sure you reference the dump file you just put in the folder)
 2. Map titles: `./esa.sh --map-titles index/simple-templates.xml.bz2 index/simple-titles.xml.bz2`
 3. Strip articles: `./esa.sh --strip index/simple-templates.xml.bz2 index/simple-stripped.xml.bz2 --title-exclusion-regex "^[^:]+:[^ ].+$" "^(january)|(february)|(march)|(april)|(may)|(june)|(july)|(august)|(september)|(november)|(december)] .+" "[0-9]{1,4}(s)?( bc)?" disambiguation wikiproject wikipedia`
-4. Count Terms: `./esa.sh --count-links index/simple-stripped.xml.bz2 index/simple-titles.xml.bz2 index/simple-stripped-links.xml.bz2`
-5. Rare Words: `./esa.sh --write-rare-words index/simple-stripped-links-terms.xml.bz2 index/simple-rare-words.txt 3 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default`
+4. Count links: `./esa.sh --count-links index/simple-stripped.xml.bz2 index/simple-titles.xml.bz2 index/simple-stripped-links.xml.bz2`
+5. Count Terms: `./esa.sh --count-terms index/simple-stripped-links.xml.bz2 index/simple-stripped-links-terms.xml.bz2 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default`
+6. Repeat words: `./esa.sh --repeat-content index\simple-stripped-links-terms.xml.bz2 index\simple-links-terms-repeated.xml.bz2 --repeat-title 4 --repeat-link 2`
+7. Rare Words: `./esa.sh --write-rare-words index/simple-links-terms-repeated.xml.bz2 index/simple-rare-words.txt 3 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default`
 
 On Windows:
 
