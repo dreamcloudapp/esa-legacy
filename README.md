@@ -27,12 +27,40 @@ The English wikipedia dump is very large and each step in the process of setting
 A language with a smaller Wikipedia dump may not work as good as English, because there is just less data, but you will
 get up and running much faster.
 
-### Download a Wikipedia dump
+## Quick start
 
-This takes several hours.
+### 1) Install Java
+
+**On Mac**
+Using Homebrew,
+`brew install java`
+then install Maven:
+`brew install maven`
+
+### 2) Install packages using Maven
+
+In the home folder of the repo, run:
+`mvn package`
+
+### 3) Make folders for Wikipedia data
+
+In the home folder of the repo:
+`mkdir index` (for the Lucene index)
+`mkdir enwiki` (to store your English Wikipedia download. You could use a different folder name and then different commands if you like).
+
+### 4) Download a Wikipedia dump
 
 A list of all available database dumps is available here: <https://dumps.wikimedia.org/backup-index-bydb.html>.
-Choose a download which contains all current articles without history.
+
+Click on a Wikipedia version, it's good to start with a Simple Wikipedia version if you're using English:
+
+![image](https://user-images.githubusercontent.com/14936307/145384562-2431a7d5-bd36-454c-8779-241414e1f5a9.png)
+
+On the next page, choose a download which contains all current articles without history, such as this:
+
+![image](https://user-images.githubusercontent.com/14936307/145387013-26238b20-8be5-4803-9775-281231ac1c45.png)
+
+**Direct links to older versions:**
 For English ([enwiki](https://dumps.wikimedia.org/enwiki/20160801/enwiki-20160801-pages-articles-multistream.xml.bz2)), the download size is 13 GB at the time of writing, for Dutch ([nlwiki](https://dumps.wikimedia.org/nlwiki/20160801/nlwiki-20160801-pages-articles-multistream.xml.bz2)) it is 1.3 GB.
 Note that Wikipedia is constantly updated, so old dumps may not contain new concepts that could be interesting for your application.
 
@@ -40,6 +68,19 @@ The Wikipedia article dump consists of a multi-stream BZipped xml file.
 That means that a straightforward way to read the bzip stream ends somewhere near the beginning of the file.
 You need to read the whole dump, not just the beginning.
 This implementation takes care of that.
+
+### 5) Put the dump in the folder
+
+Take your downloaded Wikipedia database dump (a zipped file in .bz2 format, e.g. `simplewiki-20211201-pages-articles-multistream.xml.bz2`), and put it in the folder you just made, e.g. `enwiki`.
+
+### 6) Build the index
+
+This takes some time.
+On Mac:
+Make the `esa.sh` file executable: `chmod +x esa.sh`
+`./esa.sh --resolve-templates enwiki\simplewiki-20210101-pages-articles-multistream.xml.bz2 index\simple-templates.xml.bz2`
+On Windows:
+`./esa.bat --resolve-templates enwiki\simplewiki-20210101-pages-articles-multistream.xml.bz2 index\simple-templates.xml.bz2`
 
 ### Indexing
 
@@ -99,4 +140,3 @@ http://en.wikipedia.org/wiki/Explicit_semantic_analysis
 http://www.cs.technion.ac.il/~gabr/resources/code/esa/esa.html
 
 http://www.cs.technion.ac.il/~gabr/papers/ijcai-2007-sim.pdf
-
