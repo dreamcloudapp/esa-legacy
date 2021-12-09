@@ -218,6 +218,19 @@ public class Main {
         termCountOption.setArgs(2);
         options.addOption(termCountOption);
 
+        Option repeatContentOption = new Option(null, "repeat-content", true, "inputFile outputFile / Repeats titles and links to weight them more highly.");
+        repeatContentOption.setRequired(false);
+        repeatContentOption.setArgs(2);
+        options.addOption(repeatContentOption);
+
+        Option repeatTitleOption = new Option(null, "repeat-title", true, "int | The number of times to repeat titles.");
+        repeatTitleOption.setRequired(false);
+        options.addOption(repeatTitleOption);
+
+        Option repeatLinkOption = new Option(null, "repeat-link", true, "int | The number of times to repeat links.");
+        repeatLinkOption.setRequired(false);
+        options.addOption(repeatLinkOption);
+
         Option writeRareWordsOption = new Option(null, "write-rare-words", true, "inputFile outputFile rareWordCount / Creates a text file of rare words to later be used for stopwords.");
         writeRareWordsOption.setRequired(false);
         writeRareWordsOption.setArgs(3);
@@ -269,6 +282,7 @@ public class Main {
             String[] findArticleArgs = cmd.getOptionValues("find-article");
             String[] countLinkArgs = cmd.getOptionValues("count-links");
             String[] countTermArgs = cmd.getOptionValues("count-terms");
+            String[] repeatContentArgs = cmd.getOptionValues("repeat-content");
             String[] writeRareWordArgs = cmd.getOptionValues("write-rare-words");
             String[] pearsonArgs = cmd.getOptionValues("pearson");
             String[] pruneArgs = cmd.getOptionValues("prune");
@@ -279,6 +293,8 @@ public class Main {
             String indexPath = cmd.getOptionValue("index-path");
             String pruneWindowSize = cmd.getOptionValue("prune-window-size");
             String pruneDropOff = cmd.getOptionValue("prune-dropoff");
+            String titleRepeat = cmd.getOptionValue("repeat-title");
+            String linkRepeat = cmd.getOptionValue("repeat-link");
 
             EsaOptions esaOptions = new EsaOptions();
 
@@ -583,6 +599,21 @@ public class Main {
                 termCountOptions.analyzer = new EsaAnalyzer(analyzerOptions);
                 try(TermCountAnnotator termCountAnnotator = new TermCountAnnotator(termCountOptions)) {
                     termCountAnnotator.annotate(inputFile, outputFile);
+                }
+            }
+
+            else if (hasLength(repeatContentArgs, 2)) {
+                File inputFile = new File(repeatContentArgs[0]);
+                File outputFile = new File(repeatContentArgs[1]);
+                WikiContentRepeatOptions repeatOptions = new WikiContentRepeatOptions();
+                if (nonEmpty(titleRepeat)) {
+                    repeatOptions.titleRepeat = Integer.parseInt(titleRepeat);
+                }
+                if (nonEmpty(linkRepeat)) {
+                    repeatOptions.linkRepeat = Integer.parseInt(linkRepeat);
+                }
+                try(WikiContentRepeater repeater = new WikiContentRepeater(repeatOptions)) {
+                    repeater.repeatContent(inputFile, outputFile);
                 }
             }
 

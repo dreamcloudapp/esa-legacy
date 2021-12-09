@@ -64,8 +64,7 @@ public class WikiLinkAnnotator extends XmlWritingHandler {
             System.out.println(title + "\t->\t" + redirect);
         }*/
         System.out.println("---------------------------------------");
-        File tempFile = File.createTempFile("wiki-link", "-sj-test");
-        analyzeDocuments(strippedFile, tempFile);
+        analyzeDocuments(strippedFile);
         System.out.println("Annotations: " + annotations.size());
         float totalIncomingLinks = 0;
         float totalOutgoingLinks = 0;
@@ -79,7 +78,7 @@ public class WikiLinkAnnotator extends XmlWritingHandler {
         System.out.println("Average Outgoing Links: " + (totalOutgoingLinks / annotations.size()));
         System.out.println("---------------------------------------");
 
-        writeAnnotatedXml(tempFile, outputFile);
+        writeAnnotatedXml(strippedFile, outputFile);
     }
 
     protected void buildTitleMap(File titleMapFile) throws IOException, ParserConfigurationException, SAXException {
@@ -91,12 +90,12 @@ public class WikiLinkAnnotator extends XmlWritingHandler {
         reader.close();
     }
 
-    protected void analyzeDocuments(File strippedFile, File outputFile) throws IOException, SAXException, ParserConfigurationException, XMLStreamException {
+    protected void analyzeDocuments(File strippedFile) throws IOException, SAXException, ParserConfigurationException {
         SAXParser saxParser = saxFactory.newSAXParser();
         Reader reader = BZipFileReader.getFileReader(strippedFile);
         InputSource is = new InputSource(reader);
         is.setEncoding("UTF-8");
-        saxParser.parse(is, new WikiLinkHandler(titleMap, annotations, outputFile));
+        saxParser.parse(is, new WikiLinkHandler(titleMap, annotations));
         reader.close();
     }
 
