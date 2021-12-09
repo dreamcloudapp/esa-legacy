@@ -71,7 +71,7 @@ public class TemplateResolver extends XmlWritingHandler {
         String text = xmlFields.get("text");
 
         try {
-            //text = templateProcessor.substitute(text, title);
+            text = templateProcessor.substitute(text, title);
             this.writeDocument(StringUtils.normalizeWikiTitle(title), text);
         } catch (XMLStreamException | IOException e) {
             e.printStackTrace();

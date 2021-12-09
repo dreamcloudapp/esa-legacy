@@ -102,6 +102,10 @@ public class TemplateProcessor {
                     }
                     if (replacement != null) {
                         variableReplacements++;
+                        if (replacement.contains(variable.text)) {
+                            System.out.println("recursion checked");
+                            replacement = "";
+                        }
                         templateText = templateText.replace(variable.text, replacement);
                     }
                 }
