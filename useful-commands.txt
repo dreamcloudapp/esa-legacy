@@ -39,9 +39,11 @@
 
 ./esa.bat --count-terms index\simple-stripped-links.xml.bz2 index\simple-stripped-links-terms.xml.bz2 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default
 
-./esa.bat --write-rare-words index\simple-stripped-links-terms.xml.bz2 index\simple-rare-words.txt 3 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default
+./esa.bat --repeat-content index\simple-stripped-links-terms.xml.bz2 index\simple-links-terms-repeated.xml.bz2 --repeat-title 4 --repeat-link 2
 
-./esa.bat --index index\simple-stripped-links-terms.xml.bz2 --threads 8 --batch-size 1000 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default --rare-words index\simple-rare-words.txt --min-incoming-links 1 --min-outgoing-links 1 --min-word-length 3
+./esa.bat --write-rare-words index\simple-links-terms-repeated.xml.bz2 index\simple-rare-words.txt 3 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default
+
+./esa.bat --index index\simple-links-terms-repeated.xml.bz2 --threads 8 --batch-size 1000 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default --rare-words index\simple-rare-words.txt --min-incoming-links 1 --min-outgoing-links 1 --min-word-length 3
 
 ./esa.bat --spearman en-wordsim353 --filter classic ascii lower singular stemmer --stemmer-depth 3 --vector-limit 450
 
