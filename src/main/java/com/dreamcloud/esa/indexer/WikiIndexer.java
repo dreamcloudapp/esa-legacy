@@ -10,10 +10,8 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
-import com.dreamcloud.esa.analyzer.TrueBM25Similarity;
 import com.dreamcloud.esa.analyzer.WikipediaArticle;
 import com.dreamcloud.esa.annoatation.handler.XmlReadingHandler;
-import com.dreamcloud.esa.similarity.TrueTFIDFSimilarity;
 import com.dreamcloud.esa.tools.BZipFileReader;
 import com.dreamcloud.esa.tools.StringUtils;
 import org.apache.lucene.document.*;
@@ -153,6 +151,9 @@ public class WikiIndexer extends XmlReadingHandler implements Indexer {
         while (matcher.find()) {
             String normalizedLink = StringUtils.normalizeWikiTitle(matcher.group(1));
             doc.add(new StoredField("outgoingLink", normalizedLink));
+        }
+        if (title.startsWith("category")) {
+            doc.add(new DoubleDocValuesField("boost", 3.0));
         }
         indexWriter.addDocument(doc);
     }

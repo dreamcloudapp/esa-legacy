@@ -6,6 +6,7 @@ import com.dreamcloud.esa.database.DocumentVector;
 import com.dreamcloud.esa.database.MySQLConnection;
 import com.dreamcloud.esa.database.VectorRepository;
 import com.dreamcloud.esa.indexer.DreamIndexer;
+import com.dreamcloud.esa.similarity.SimilarityFactory;
 import com.dreamcloud.esa.tools.WeighedDocumentQueryBuilder;
 import com.dreamcloud.esa.vectorizer.ConceptVector;
 import com.dreamcloud.esa.vectorizer.TextVectorizer;
@@ -47,6 +48,7 @@ public class EsaHttpServer {
         Directory dir = FSDirectory.open(options.indexPath);
         IndexReader docReader = DirectoryReader.open(dir);
         IndexSearcher docSearcher = new IndexSearcher(docReader);
+        docSearcher.setSimilarity(SimilarityFactory.getSimilarity());
         WeighedDocumentQueryBuilder builder = new WeighedDocumentQueryBuilder(options.analyzer, docSearcher);
         TextVectorizer textVectorizer = new Vectorizer(options);
         //Connect to MySQL

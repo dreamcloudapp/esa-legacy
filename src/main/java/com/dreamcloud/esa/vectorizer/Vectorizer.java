@@ -7,10 +7,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.dreamcloud.esa.EsaOptions;
-import com.dreamcloud.esa.analyzer.TrueBM25Similarity;
+import com.dreamcloud.esa.similarity.SimilarityFactory;
 import com.dreamcloud.esa.similarity.TrueTFIDFSimilarity;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.queries.function.FunctionScoreQuery;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
@@ -34,7 +35,7 @@ public class Vectorizer implements AutoCloseable, TextVectorizer {
         termToConceptDirectory = FSDirectory.open(options.indexPath);
         indexReader = DirectoryReader.open(termToConceptDirectory);
         searcher = new IndexSearcher(indexReader);
-        searcher.setSimilarity(new TrueTFIDFSimilarity());
+        searcher.setSimilarity(SimilarityFactory.getSimilarity());
         queryParser = new QueryParser("text", options.analyzer);
         conceptVectorCache = new HashMap<>();
     }
@@ -46,9 +47,10 @@ public class Vectorizer implements AutoCloseable, TextVectorizer {
             }
 
             Query query = queryParser.parse(text);
+            Query boostQuery = FunctionScoreQuery.boostByValue(query, DoubleValuesSource.fromDoubleField("boost"));
             int maxDocs = options.documentLimit > 0 ? options.documentLimit : indexReader.numDocs();
             TopScoreDocCollector collector = TopScoreDocCollector.create(maxDocs, maxDocs);
-            searcher.search(query, collector);
+            searcher.search(boostQuery, collector);
             TopDocs td = collector.topDocs();
             this.conceptVectorCache.put(text, new ConceptVector(td, indexReader));
         }

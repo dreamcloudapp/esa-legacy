@@ -31,7 +31,7 @@ public class SqlVectorizer implements TextVectorizer {
                 vector.merge(termVector);
             }
             tokenStream.close();
-            this.conceptVectorCache.put(text, this.getTop450(vector));
+            this.conceptVectorCache.put(text, vector);
         }
         return this.conceptVectorCache.get(text);
     }

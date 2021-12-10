@@ -12,7 +12,7 @@ public class ConceptVector {
     Map<String, Float> conceptWeights;
 
     ConceptVector(TopDocs td, IndexReader indexReader) throws IOException {
-        /*Map<String, Integer> linkCounts = new HashMap<>();
+        Map<String, Integer> linkCounts = new HashMap<>();
         for (ScoreDoc linkDoc : td.scoreDocs) {
             Document doc = indexReader.document(linkDoc.doc);
             IndexableField[] linkFields = doc.getFields("outgoingLink");
@@ -20,17 +20,19 @@ public class ConceptVector {
                 String link = linkField.stringValue();
                 linkCounts.put(link, linkCounts.getOrDefault(link, 0) + 1);
             }
-        }*/
+        }
 
         conceptWeights = new HashMap<>();
         for (ScoreDoc scoreDoc : td.scoreDocs) {
             String concept = indexReader.document(scoreDoc.doc).get("title");
             float baseScore = scoreDoc.score;
-            float backRubScore = 0; //linkCounts.getOrDefault(concept, 0); // (float) Math.log(1 + linkCounts.getOrDefault(concept, 0));
+            /*float backRubScore = (float) Math.log(1 + linkCounts.getOrDefault(concept, 0));
+            float backRubScore = (float) Math.log(1 + linkCounts.getOrDefault(concept, 0));
             if (concept.startsWith("category")) {
-                backRubScore += 0.0;
-            }
-            conceptWeights.put(concept, baseScore + backRubScore);
+                System.out.println("Found a category page!");
+                backRubScore += 5;
+            }*/
+            conceptWeights.put(concept, baseScore /*+ backRubScore*/);
         }
 
         /*int i = 0;
@@ -64,7 +66,8 @@ public class ConceptVector {
     }
 
     public ConceptVector prune(int windowSize, float dropOff) {
-        if (this.conceptWeights.size() == 0) {
+        return this;
+        /*if (this.conceptWeights.size() == 0) {
             return this;
         }
 
@@ -85,7 +88,7 @@ public class ConceptVector {
                     break;
                 }
             }*/
-            if (w == 0) {
+            /*if (w == 0) {
                 firstScore = score;
             }
 
@@ -97,7 +100,7 @@ public class ConceptVector {
                 w = -1;
             }
         }
-        return pruned;
+        return pruned;*/
     }
 
     public float dotProduct(ConceptVector other) {

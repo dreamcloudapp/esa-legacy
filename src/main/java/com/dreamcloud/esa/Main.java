@@ -19,6 +19,7 @@ import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessorFactory;
 import com.dreamcloud.esa.documentPreprocessor.NullPreprocessor;
 import com.dreamcloud.esa.indexer.*;
 import com.dreamcloud.esa.server.EsaHttpServer;
+import com.dreamcloud.esa.similarity.SimilarityFactory;
 import com.dreamcloud.esa.tools.*;
 import com.dreamcloud.esa.vectorizer.*;
 import org.apache.lucene.analysis.TokenStream;
@@ -109,6 +110,10 @@ public class Main {
         Option maximumDocumentCountOption = new Option(null, "max-docs", true, "int / (indexing)\tThe maximum number of documents we can process before throwing an error (defaults to 512,000).");
         maximumDocumentCountOption.setRequired(false);
         options.addOption(maximumDocumentCountOption);
+
+        Option similarityOption = new Option(null, "similarity", true, "string | The similarity algorithm to use (TFIDF,BM25,trueTFIDF,trueBM25.");
+        similarityOption.setRequired(false);
+        options.addOption(similarityOption);
 
         //Wiki specific indexing options
         Option minimumIncomingLinksOption = new Option(null, "min-incoming-links", true, "int / (indexing:wiki)\tThe minimum number of incoming links.");
@@ -268,6 +273,7 @@ public class Main {
             String[] pearsonArgs = cmd.getOptionValues("pearson");
             String[] pruneArgs = cmd.getOptionValues("prune");
             String docType = cmd.getOptionValue("doctype");
+            String similarityAlgorithm = cmd.getOptionValue("similarity");
             String stopWords = cmd.getOptionValue("stopwords");
             String rareWords = cmd.getOptionValue("rare-words");
             String dictionary = cmd.getOptionValue("dictionary");
@@ -296,6 +302,9 @@ public class Main {
             }
             esaOptions.indexPath = Paths.get(nonEmpty(indexPath) ? indexPath : "./index/" + docType + "_index");
 
+            if (nonEmpty(similarityAlgorithm)) {
+                SimilarityFactory.algorithm = similarityAlgorithm;
+            }
 
             String limit = cmd.getOptionValue("vector-limit");
             int documentLimit = 100;
@@ -499,7 +508,7 @@ public class Main {
                 Directory dir = FSDirectory.open(esaOptions.indexPath);
                 IndexReader docReader = DirectoryReader.open(dir);
                 IndexSearcher docSearcher = new IndexSearcher(docReader);
-
+                docSearcher.setSimilarity(SimilarityFactory.getSimilarity());
                 Term idTerm = new Term(DreamIndexer.ID_FIELD, documentId);
                 WeighedDocumentQueryBuilder builder = new WeighedDocumentQueryBuilder(esaOptions.analyzer, docSearcher);
                 System.out.println("Weighted Query: " + builder.weight(idTerm, documentText));
@@ -512,7 +521,7 @@ public class Main {
                 Directory dir = FSDirectory.open(esaOptions.indexPath);
                 IndexReader docReader = DirectoryReader.open(dir);
                 IndexSearcher docSearcher = new IndexSearcher(docReader);
-
+                docSearcher.setSimilarity(SimilarityFactory.getSimilarity());
                 //Must include the term
                 Term term = new Term("text", termString);
                 Term idTerm = new Term("id", documentId);

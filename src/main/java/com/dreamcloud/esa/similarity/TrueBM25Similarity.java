@@ -1,4 +1,4 @@
-package com.dreamcloud.esa.analyzer;
+package com.dreamcloud.esa.similarity;
 
 import org.apache.lucene.search.similarities.BM25Similarity;
 
