@@ -152,9 +152,16 @@ public class WikiIndexer extends XmlReadingHandler implements Indexer {
             String normalizedLink = StringUtils.normalizeWikiTitle(matcher.group(1));
             doc.add(new StoredField("outgoingLink", normalizedLink));
         }
+
+        float boost = 1;
         if (title.startsWith("category")) {
-            doc.add(new DoubleDocValuesField("boost", 3.0));
+            boost += 1.5;
         }
+        if (title.startsWith("list of")) {
+            boost += 0.70;
+        }
+        //best = 1.5/0.70: 0.7339807027778464
+        doc.add(new DoubleDocValuesField("boost", boost));
         indexWriter.addDocument(doc);
     }
 
