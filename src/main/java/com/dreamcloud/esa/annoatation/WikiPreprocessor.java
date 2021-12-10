@@ -57,10 +57,10 @@ public class WikiPreprocessor extends XmlWritingHandler {
             titleMapper.mapToXml(titleOutputFile);
         }
 
-        /* todo: debug //Generate a normalized template map
+        //Generate a normalized template map
         try(TemplateMapper mapper = new TemplateMapper(new TemplateResolutionOptions())) {
             templateMap = mapper.map(inputFile);
-        }*/
+        }
 
         //Perform the template substitution
         reset();
@@ -119,10 +119,10 @@ public class WikiPreprocessor extends XmlWritingHandler {
         }
 
         try {
-            //todo: debug text = templateProcessor.substitute(text, title);
+            text = templateProcessor.substitute(text, title);
 
             //We've handled templates, so let's strip out HTML tags and CSS stuff
-            text = Jsoup.clean(text, "", Safelist.none());
+            //text = Jsoup.clean(text, "", Safelist.none());
             text = htmlAttributePattern.matcher(text).replaceAll(" ");
             this.writeDocument(StringUtils.normalizeWikiTitle(title), text);
         } catch (XMLStreamException | IOException e) {

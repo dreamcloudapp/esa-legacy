@@ -3,6 +3,7 @@ package com.dreamcloud.esa.indexer;
 import com.dreamcloud.esa.database.InverseTermMap;
 import com.dreamcloud.esa.database.TermScore;
 import com.dreamcloud.esa.database.TermScores;
+import com.dreamcloud.esa.similarity.TrueTFIDFSimilarity;
 import org.apache.lucene.index.*;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
@@ -35,6 +36,7 @@ public class IndexPruner {
         Directory termDocDirectory = FSDirectory.open(indexPath);
         IndexReader termDocReader = DirectoryReader.open(termDocDirectory);
         IndexSearcher docSearcher = new IndexSearcher(termDocReader);
+        //docSearcher.setSimilarity(new TrueTFIDFSimilarity());
         ExecutorService executorService = Executors.newFixedThreadPool(termDocReader.leaves().size());
         ArrayList<Callable<Integer>> processors = new ArrayList<>();
 
@@ -48,10 +50,8 @@ public class IndexPruner {
                 String term = bytesRef.utf8ToString();
                 if (!termSet.contains(term)) {
                     termSet.add(term);
-                } else {
-                    continue;
+                    totalTerms++;
                 }
-                totalTerms++;
             }
         }
         termSet.clear();
@@ -94,6 +94,9 @@ public class IndexPruner {
                 }
 
                 String term = bytesRef.utf8ToString();
+                if (!term.equals("link") && !term.equals("number")) {
+                   continue;
+                }
 
                 synchronized (termSet) {
                     if (!termSet.contains(term)) {
@@ -109,26 +112,28 @@ public class IndexPruner {
                     continue;
                 }
 
-                float firstScore = td.scoreDocs[0].score;
-                for (int i=0; i<td.scoreDocs.length; i += windowSize) {
-                    ScoreDoc[] windowDocs = Arrays.copyOfRange(td.scoreDocs, i, Math.min(i + windowSize, td.scoreDocs.length - 1));
-
-                    if (windowDocs.length == 0) {
-                        continue;
+                float topScore = td.scoreDocs[0].score;
+                float firstScore = 0;
+                int w = 0;
+                for (ScoreDoc scoreDoc: td.scoreDocs) {
+                    scores.scores.add(new TermScore(scoreDoc.doc, scoreDoc.score));
+                    if (w == 0) {
+                        firstScore = scoreDoc.score;
                     }
-
-                    for (ScoreDoc windowDoc: windowDocs) {
-                        scores.scores.add(new TermScore(windowDoc.doc, windowDoc.score));
+                    if (w == windowSize - 1) {
+                        float lastScore = scoreDoc.score;
+                        if ((firstScore - lastScore) < (topScore * this.maximumDrop)) {
+                            break;
+                        } else {
+                            w = -1;
+                        }
                     }
-
-                    //Check to see if the diff between first and last is more than 5% of the first score
-                    float windowFirstScore = windowDocs[0].score;
-                    float windowLastScore = windowDocs[windowDocs.length - 1].score;
-                    if ((windowFirstScore - windowLastScore) > (firstScore * this.maximumDrop)) {
-                        break;
-                    }
+                    w++;
                 }
-                termMap.saveTermScores(scores);
+                //termMap.saveTermScores(scores);
+                if (term.equals("link") || term.equals("number")) {
+                    System.out.println("Term '" + term + "' has " + td.scoreDocs.length + " concepts pruned to " + scores.scores.size());
+                }
 
                 int termCount = processedTerms.getAndIncrement();
                 if (termCount % 1000 == 0) {

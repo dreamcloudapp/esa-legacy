@@ -34,7 +34,7 @@ public class Vectorizer implements AutoCloseable, TextVectorizer {
         termToConceptDirectory = FSDirectory.open(options.indexPath);
         indexReader = DirectoryReader.open(termToConceptDirectory);
         searcher = new IndexSearcher(indexReader);
-        //searcher.setSimilarity(new TrueTFIDFSimilarity());
+        searcher.setSimilarity(new TrueTFIDFSimilarity());
         queryParser = new QueryParser("text", options.analyzer);
         conceptVectorCache = new HashMap<>();
     }

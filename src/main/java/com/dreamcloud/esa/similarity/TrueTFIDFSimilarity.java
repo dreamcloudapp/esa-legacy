@@ -11,7 +11,7 @@ public class TrueTFIDFSimilarity  extends TFIDFSimilarity {
         return (docCount - docFreq) / (float) docFreq;
     }
     public float lengthNorm(int numTerms) {
-        return 1.0f / numTerms;
+        return 1.0f;
     }
     //return (float)(1.0D / Math.sqrt((double)numTerms))
 }

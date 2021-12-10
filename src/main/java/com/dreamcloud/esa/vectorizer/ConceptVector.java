@@ -27,6 +27,9 @@ public class ConceptVector {
             String concept = indexReader.document(scoreDoc.doc).get("title");
             float baseScore = scoreDoc.score;
             float backRubScore = 0; //linkCounts.getOrDefault(concept, 0); // (float) Math.log(1 + linkCounts.getOrDefault(concept, 0));
+            if (concept.startsWith("category")) {
+                backRubScore += 0.0;
+            }
             conceptWeights.put(concept, baseScore + backRubScore);
         }
 
@@ -77,12 +80,12 @@ public class ConceptVector {
 
             if (topScore == -1) {
                 topScore = score;
-            } else {
+            } /*else {
                 if (score < topScore * dropOff) {
                     break;
                 }
-            }
-            /*if (w == 0) {
+            }*/
+            if (w == 0) {
                 firstScore = score;
             }
 
@@ -92,7 +95,7 @@ public class ConceptVector {
                     break;
                 }
                 w = -1;
-            }*/
+            }
         }
         return pruned;
     }
