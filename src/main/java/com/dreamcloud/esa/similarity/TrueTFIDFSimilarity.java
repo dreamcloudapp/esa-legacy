@@ -8,12 +8,10 @@ public class TrueTFIDFSimilarity  extends TFIDFSimilarity {
     }
 
     public float idf(long docFreq, long docCount) {
-        return (float) docCount / docFreq;
+        return (docCount - docFreq) / (float) docFreq;
     }
-
     public float lengthNorm(int numTerms) {
-        //TF-IDF doesn't have a length norm does it?
-        //try 1.0 and see what happens next
         return 1.0f / numTerms;
     }
+    //return (float)(1.0D / Math.sqrt((double)numTerms))
 }

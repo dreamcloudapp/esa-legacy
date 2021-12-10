@@ -10,19 +10,21 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import com.dreamcloud.esa.analyzer.TrueBM25Similarity;
 import com.dreamcloud.esa.analyzer.WikipediaArticle;
 import com.dreamcloud.esa.annoatation.handler.XmlReadingHandler;
+import com.dreamcloud.esa.similarity.TrueTFIDFSimilarity;
 import com.dreamcloud.esa.tools.BZipFileReader;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.StoredField;
-import org.apache.lucene.document.TextField;
+import com.dreamcloud.esa.tools.StringUtils;
+import org.apache.lucene.document.*;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  *
@@ -35,6 +37,7 @@ public class WikiIndexer extends XmlReadingHandler implements Indexer {
     WikipediaArticle article;
     int queueSize = 0;
     private int numIndexed = 0;
+    static Pattern linkRegexPattern = Pattern.compile("\\[\\[(?!File:|Image:)([^|#\\]]+)[^]]*]]");
 
     IndexWriter indexWriter;
     WikiIndexerOptions options;
@@ -146,6 +149,11 @@ public class WikiIndexer extends XmlReadingHandler implements Indexer {
         Document doc = new Document();
         doc.add(new StoredField("title", title));
         doc.add(new TextField("text", wikiText, Field.Store.NO));
+        Matcher matcher = linkRegexPattern.matcher(wikiText);
+        while (matcher.find()) {
+            String normalizedLink = StringUtils.normalizeWikiTitle(matcher.group(1));
+            doc.add(new StoredField("outgoingLink", normalizedLink));
+        }
         indexWriter.addDocument(doc);
     }
 

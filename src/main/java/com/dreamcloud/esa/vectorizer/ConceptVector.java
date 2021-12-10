@@ -1,23 +1,42 @@
 package com.dreamcloud.esa.vectorizer;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+
+import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.*;
 
 public class ConceptVector {
     Map<String, Float> conceptWeights;
 
     ConceptVector(TopDocs td, IndexReader indexReader) throws IOException {
+        /*Map<String, Integer> linkCounts = new HashMap<>();
+        for (ScoreDoc linkDoc : td.scoreDocs) {
+            Document doc = indexReader.document(linkDoc.doc);
+            IndexableField[] linkFields = doc.getFields("outgoingLink");
+            for (IndexableField linkField: linkFields) {
+                String link = linkField.stringValue();
+                linkCounts.put(link, linkCounts.getOrDefault(link, 0) + 1);
+            }
+        }*/
+
         conceptWeights = new HashMap<>();
         for (ScoreDoc scoreDoc : td.scoreDocs) {
             String concept = indexReader.document(scoreDoc.doc).get("title");
-            conceptWeights.put(concept, scoreDoc.score);
+            float baseScore = scoreDoc.score;
+            float backRubScore = 0; //linkCounts.getOrDefault(concept, 0); // (float) Math.log(1 + linkCounts.getOrDefault(concept, 0));
+            conceptWeights.put(concept, baseScore + backRubScore);
         }
+
+        /*int i = 0;
+        Map<String, Float> cutoffWeights = new HashMap<>();
+        for(Iterator<String> it = this.topConcepts(); it.hasNext() && i++ < 450;) {
+            String concept = it.next();
+            cutoffWeights.put(concept, conceptWeights.get(concept));
+        }
+        conceptWeights = cutoffWeights;*/
     }
 
     public ConceptVector(Map<String, Float> conceptWeights) {

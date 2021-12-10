@@ -3,6 +3,8 @@ package com.dreamcloud.esa.annoatation;
 import com.dreamcloud.esa.annoatation.handler.XmlWritingHandler;
 import com.dreamcloud.esa.tools.BZipFileReader;
 import com.dreamcloud.esa.tools.StringUtils;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -29,6 +31,7 @@ public class WikiPreprocessor extends XmlWritingHandler {
     Map<String, String> templateMap;
     protected TemplateProcessor templateProcessor;
     protected Pattern redirectPattern = Pattern.compile("^.*#REDIRECT[^\\[]+\\[\\[(.+)]].*$");
+    protected Pattern htmlAttributePattern = Pattern.compile("\\|\\s*[a-zA-Z_-]+\\s*=\\s*[^|]+\\|", Pattern.CASE_INSENSITIVE);
     ArrayList<Pattern> titleExclusionPatterns;
     protected final SAXParserFactory saxFactory;
     protected int docsStripped = 0;
@@ -54,10 +57,10 @@ public class WikiPreprocessor extends XmlWritingHandler {
             titleMapper.mapToXml(titleOutputFile);
         }
 
-        //Generate a normalized template map
+        /* todo: debug //Generate a normalized template map
         try(TemplateMapper mapper = new TemplateMapper(new TemplateResolutionOptions())) {
             templateMap = mapper.map(inputFile);
-        }
+        }*/
 
         //Perform the template substitution
         reset();
@@ -116,7 +119,11 @@ public class WikiPreprocessor extends XmlWritingHandler {
         }
 
         try {
-            text = templateProcessor.substitute(text, title);
+            //todo: debug text = templateProcessor.substitute(text, title);
+
+            //We've handled templates, so let's strip out HTML tags and CSS stuff
+            text = Jsoup.clean(text, "", Safelist.none());
+            text = htmlAttributePattern.matcher(text).replaceAll(" ");
             this.writeDocument(StringUtils.normalizeWikiTitle(title), text);
         } catch (XMLStreamException | IOException e) {
             e.printStackTrace();

@@ -7,6 +7,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.dreamcloud.esa.EsaOptions;
+import com.dreamcloud.esa.analyzer.TrueBM25Similarity;
+import com.dreamcloud.esa.similarity.TrueTFIDFSimilarity;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryparser.classic.QueryParser;

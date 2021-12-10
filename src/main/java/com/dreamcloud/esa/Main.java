@@ -36,7 +36,6 @@ import org.apache.commons.cli.*;
 //Reading input files
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Map;
 
 public class Main {
     public static String readInputFile(String path, String encoding) throws IOException {
@@ -187,16 +186,6 @@ public class Main {
         options.addOption(debugOption);
 
         //Annotating
-        Option stripOption = new Option(null, "strip", true, "inputFile outputFile / Creates a stripped-down version of a Wikimedia dump file");
-        stripOption.setRequired(false);
-        stripOption.setArgs(2);
-        options.addOption(stripOption);
-
-        Option titleMapOption = new Option(null, "map-titles", true, "inputFile outputFile / Creates a mapping of titles mapped to their redirects.");
-        titleMapOption.setRequired(false);
-        titleMapOption.setArgs(2);
-        options.addOption(titleMapOption);
-
         Option wikiPreprocessorOption = new Option(null, "preprocess", true, "inputFile outputFile titleMapOutputFile / Wiki preprocessing: template resolution, title normalization, article stripping");
         wikiPreprocessorOption.setRequired(false);
         wikiPreprocessorOption.setArgs(3);
@@ -428,7 +417,7 @@ public class Main {
                 Iterator<String> topTenConcepts = vector.topConcepts();
                 while (topTenConcepts.hasNext()) {
                     String concept = topTenConcepts.next();
-                    System.out.println(decimalFormat.format(concept + ": " + vector.getConceptWeights().get(concept)));
+                    System.out.println(concept + ": " + decimalFormat.format(vector.getConceptWeights().get(concept)));
                 }
             }
 
