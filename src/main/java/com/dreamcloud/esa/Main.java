@@ -61,6 +61,10 @@ public class Main {
         docTypeOption.setRequired(false);
         options.addOption(docTypeOption);
 
+        Option vectorizerOption = new Option(null, "vectorizer", true, "string / The type of vectorizer to use (lucene|sql).");
+        vectorizerOption.setRequired(false);
+        options.addOption(vectorizerOption);
+
         //Main action options
         Option compareTextOption = new Option("ct", "compare-texts", true, "\"string one\" \"string two\" / Compare two texts.");
         compareTextOption.setRequired(false);
@@ -273,6 +277,7 @@ public class Main {
             String[] pearsonArgs = cmd.getOptionValues("pearson");
             String[] pruneArgs = cmd.getOptionValues("prune");
             String docType = cmd.getOptionValue("doctype");
+            String vectorizerType = cmd.getOptionValue("vectorizer");
             String similarityAlgorithm = cmd.getOptionValue("similarity");
             String stopWords = cmd.getOptionValue("stopwords");
             String rareWords = cmd.getOptionValue("rare-words");
@@ -301,6 +306,12 @@ public class Main {
                 throw new IllegalArgumentException("Document type " + docType + " is not recognized.");
             }
             esaOptions.indexPath = Paths.get(nonEmpty(indexPath) ? indexPath : "./index/" + docType + "_index");
+
+            if (nonEmpty(vectorizerType)) {
+                esaOptions.vectorizerType = vectorizerType;
+            } else {
+                esaOptions.vectorizerType = "lucene";
+            }
 
             if (nonEmpty(similarityAlgorithm)) {
                 SimilarityFactory.algorithm = similarityAlgorithm;
@@ -363,6 +374,9 @@ public class Main {
             CommandLineAnalyzerFactory analyzerFactory = new CommandLineAnalyzerFactory(cmd, esaOptions);
             esaOptions.analyzer = analyzerFactory.getAnalyzer();
 
+            CommandLineVectorizerFactory vectorizerFactory = new CommandLineVectorizerFactory(esaOptions);
+
+
             //Load indexer options from command line and ESA options
             WikiIndexerOptions indexerOptions = new WikiIndexerOptions();
             loadIndexerOptions(indexerOptions, esaOptions, cmd);
@@ -402,7 +416,7 @@ public class Main {
                     compareDesc += "...";
                 }
                System.out.println("Comparing '" + sourceDesc + "' to '" + compareDesc + "':");
-                TextVectorizer textVectorizer = new Vectorizer(esaOptions);
+                TextVectorizer textVectorizer = vectorizerFactory.getVectorizer();
                 SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
                 System.out.println("Vector relatedness: " + decimalFormat.format(similarityTool.findSemanticSimilarity(sourceText, compareText))
                 );
@@ -421,7 +435,7 @@ public class Main {
                     sourceDesc += "...";
                 }
                 System.out.println("Getting top concepts for '" + sourceDesc + "':");
-                TextVectorizer textVectorizer = new Vectorizer(esaOptions);
+                TextVectorizer textVectorizer = vectorizerFactory.getVectorizer();
                 ConceptVector vector = textVectorizer.vectorize(sourceText);
                 Iterator<String> topTenConcepts = vector.topConcepts();
                 while (topTenConcepts.hasNext()) {
@@ -435,8 +449,7 @@ public class Main {
                 if ("en-wordsim353".equals(spearman)) {
                     spearman = "./src/data/en-wordsim353.csv";
                 }
-                //TextVectorizer textVectorizer = new SqlVectorizer(esaOptions.analyzer);
-                TextVectorizer textVectorizer = new Vectorizer(esaOptions);
+                TextVectorizer textVectorizer = vectorizerFactory.getVectorizer();
                 SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer, pruneOptions);
                 PValueCalculator calculator = new PValueCalculator(new File(spearman));
                 System.out.println("Calculating P-value using Spearman correlation...");
@@ -452,8 +465,7 @@ public class Main {
                     pearsonFile = "./src/data/en-lp50.csv";
                     documentFile = new File("./src/data/en-lp50-documents.csv");
                 }
-                TextVectorizer textVectorizer = new Vectorizer(esaOptions);
-                //TextVectorizer textVectorizer = new SqlVectorizer(esaOptions.analyzer);
+                TextVectorizer textVectorizer = vectorizerFactory.getVectorizer();
                 SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer, pruneOptions);
                 PValueCalculator calculator = new PValueCalculator(new File(pearsonFile));
                 System.out.println("Calculating P-value using Pearson correlation...");

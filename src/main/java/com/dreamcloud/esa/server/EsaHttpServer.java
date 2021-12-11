@@ -13,6 +13,7 @@ import com.dreamcloud.esa.vectorizer.TextVectorizer;
 import com.dreamcloud.esa.vectorizer.Vectorizer;
 import com.google.gson.Gson;
 import io.javalin.Javalin;
+import io.javalin.core.util.Header;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
@@ -104,6 +105,7 @@ public class EsaHttpServer {
 
         //Scores two documents relatedness via their texts, supporting all options
         app.post("/similarity", ctx -> {
+            ctx.header(Header.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
             DocumentSimilarityRequestBody requestBody = gson.fromJson(ctx.body(), DocumentSimilarityRequestBody.class);
             DocumentSimilarityScorer scorer = new DocumentSimilarityScorer(textVectorizer);
             ctx.json(scorer.score(requestBody));

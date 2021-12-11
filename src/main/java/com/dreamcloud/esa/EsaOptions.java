@@ -9,6 +9,7 @@ import java.nio.file.Path;
 public class EsaOptions {
     public DocumentType documentType;
     public Analyzer analyzer;
+    public String vectorizerType;
     public DictionaryRepository dictionaryRepository;
     public StopWordRepository stopWordRepository;
     public DocumentPreprocessor preprocessor;

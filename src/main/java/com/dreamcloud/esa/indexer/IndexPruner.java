@@ -96,6 +96,10 @@ public class IndexPruner {
 
                 String term = bytesRef.utf8ToString();
 
+                if (!term.equals("link") && !term.equals("number")) {
+                    //continue;
+                }
+
                 synchronized (termSet) {
                     if (!termSet.contains(term)) {
                         termSet.add(term);
@@ -125,6 +129,10 @@ public class IndexPruner {
                     w++;
                 }
                 termMap.saveTermScores(scores);
+
+                //System.out.println("Term: " + term);
+                //System.out.println("Total Hits: " + td.scoreDocs.length);
+                //System.out.println("Pruned Hits: " + scores.scores.size());
 
                 int termCount = processedTerms.getAndIncrement();
                 if (termCount % 1000 == 0) {

@@ -41,11 +41,11 @@ public class Vectorizer implements AutoCloseable, TextVectorizer {
     }
 
     public ConceptVector vectorize(String text) throws Exception {
-        if (!this.conceptVectorCache.containsKey(text)) {
-            if (options.preprocessor != null) {
-                text = options.preprocessor.process(text);
-            }
+        if (options.preprocessor != null) {
+            text = options.preprocessor.process(text);
+        }
 
+        if (!this.conceptVectorCache.containsKey(text)) {
             Query query = queryParser.parse(text);
             Query boostQuery = FunctionScoreQuery.boostByValue(query, DoubleValuesSource.fromDoubleField("boost"));
             int maxDocs = options.documentLimit > 0 ? options.documentLimit : indexReader.numDocs();
