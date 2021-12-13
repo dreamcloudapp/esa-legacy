@@ -2,6 +2,7 @@ package com.dreamcloud.esa.analyzer;
 
 import com.dreamcloud.esa.DictionaryFilter;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.core.LowerCaseFilter;
 import org.apache.lucene.analysis.core.StopFilter;
 import org.apache.lucene.analysis.TokenStream;
@@ -57,18 +58,18 @@ public class EsaAnalyzer extends Analyzer {
             }
         }
 
-        if (options.porterStemmerFilter) {
-            for(int i=0; i<options.porterStemmerFilterDepth; i++) {
-                result = new PorterStemFilter(result);
-            }
-        }
-
         if (options.rareWordsRepository != null) {
             try {
                 result = new StopFilter(result, options.rareWordsRepository.getStopWords());
             } catch (IOException e) {
                 System.out.println("ESA warning: failed to load stop word dictionary; " + e.getMessage());
                 System.exit(1);
+            }
+        }
+
+        if (options.porterStemmerFilter) {
+            for(int i=0; i<options.porterStemmerFilterDepth; i++) {
+                result = new PorterStemFilter(result);
             }
         }
 

@@ -20,6 +20,7 @@ import com.dreamcloud.esa.documentPreprocessor.NullPreprocessor;
 import com.dreamcloud.esa.indexer.*;
 import com.dreamcloud.esa.server.EsaHttpServer;
 import com.dreamcloud.esa.similarity.SimilarityFactory;
+import com.dreamcloud.esa.tfidf.TfIdfWriter;
 import com.dreamcloud.esa.tools.*;
 import com.dreamcloud.esa.vectorizer.*;
 import org.apache.lucene.analysis.TokenStream;
@@ -691,12 +692,15 @@ public class Main {
     }
 
     public static void indexFile(EsaOptions options, WikiIndexerOptions wikiIndexerOptions) {
-        IndexerFactory indexerFactory = new IndexerFactory();
+        TfIdfWriter writer = new TfIdfWriter(wikiIndexerOptions);
+        writer.parseXmlDump(new File(options.indexFile));
+        writer.parseXmlDump(new File(options.indexFile));
+        /*IndexerFactory indexerFactory = new IndexerFactory();
         Indexer indexer = indexerFactory.getIndexer(options.documentType, wikiIndexerOptions);
         try{
             indexer.index(new File(options.indexFile));
         } catch (Exception e) {
             e.printStackTrace();
-        }
+        }*/
     }
 }

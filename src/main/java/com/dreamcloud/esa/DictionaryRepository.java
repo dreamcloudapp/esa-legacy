@@ -2,10 +2,8 @@ package com.dreamcloud.esa;
 
 import org.apache.lucene.analysis.CharArraySet;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 
 public class DictionaryRepository {
     protected CharArraySet source;
@@ -43,8 +41,9 @@ public class DictionaryRepository {
 
     public CharArraySet readDictionaryFromFile(File sourceFile) throws IOException {
         CharArraySet stopWords = new CharArraySet(1024, true);
-        BufferedReader reader;
-        reader = new BufferedReader(new FileReader(sourceFile));
+        InputStream fileInputStream = new FileInputStream(sourceFile);
+        InputStreamReader inputStream = new InputStreamReader(fileInputStream, StandardCharsets.UTF_8);
+        BufferedReader reader = new BufferedReader(inputStream);
         String line = reader.readLine();
         while (line != null) {
             if (!"".equals(line)) {

@@ -1,54 +1,46 @@
-package com.dreamcloud.esa.indexer;
+package com.dreamcloud.esa.tfidf;
 
-import java.io.*;
+import com.dreamcloud.esa.analyzer.WikipediaArticle;
+import com.dreamcloud.esa.annoatation.handler.XmlReadingHandler;
+import com.dreamcloud.esa.database.TfIdfScoreRepository;
+import com.dreamcloud.esa.indexer.Indexer;
+import com.dreamcloud.esa.indexer.WikiIndexerOptions;
+import com.dreamcloud.esa.tools.BZipFileReader;
+
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+import java.io.File;
+import java.io.IOException;
+import java.io.Reader;
 import java.text.NumberFormat;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
 
-import com.dreamcloud.esa.analyzer.WikipediaArticle;
-import com.dreamcloud.esa.annoatation.handler.XmlReadingHandler;
-import com.dreamcloud.esa.similarity.SimilarityFactory;
-import com.dreamcloud.esa.tools.BZipFileReader;
-import com.dreamcloud.esa.tools.StringUtils;
-import de.tudarmstadt.ukp.wikipedia.api.Wikipedia;
-import org.apache.lucene.document.*;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-/**
- *
- * @author Philip van Oosten
- */
-public class WikiIndexer extends XmlReadingHandler implements Indexer {
+public class TfIdfWriter extends XmlReadingHandler implements Indexer {
     protected final SAXParserFactory saxFactory;
     private ExecutorService executorService;
     WikipediaArticle[] fixedQueue;
     WikipediaArticle article;
     int queueSize = 0;
     private int numIndexed = 0;
-    static Pattern linkRegexPattern = Pattern.compile("\\[\\[(?!File:|Image:)([^|#\\]]+)[^]]*]]");
-
-    IndexWriter indexWriter;
     WikiIndexerOptions options;
+    boolean analyzed = false;
+    final TfIdfAnalyzer tfIdfAnalyzer;
 
-    public WikiIndexer(WikiIndexerOptions options) {
+    public TfIdfWriter(WikiIndexerOptions options) {
         this.options = options;
         this.fixedQueue = new WikipediaArticle[options.threadCount * options.batchSize];
         saxFactory = SAXParserFactory.newInstance();
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);
         saxFactory.setXIncludeAware(true);
+        tfIdfAnalyzer = new TfIdfAnalyzer(options.analyzerFactory.getAnalyzer(), "1tc");
     }
 
     public void reset() {
@@ -62,16 +54,11 @@ public class WikiIndexer extends XmlReadingHandler implements Indexer {
     public void index(File file) throws IOException {
         reset();
         executorService = Executors.newFixedThreadPool(options.threadCount);
-        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(options.analyzerFactory.getAnalyzer());
-        indexWriterConfig.setSimilarity(SimilarityFactory.getSimilarity());
-        indexWriter = new IndexWriter(options.indexDirectory, indexWriterConfig);
         parseXmlDump(file);
         //There may be queue items left over
         if (queueSize > 0) {
             this.processQueue();
         }
-
-        indexWriter.commit();
         executorService.shutdown();
         try {
             executorService.awaitTermination(12, TimeUnit.HOURS);
@@ -97,8 +84,9 @@ public class WikiIndexer extends XmlReadingHandler implements Indexer {
             is.setEncoding("UTF-8");
             saxParser.parse(is, this);
             reader.close();
+            analyzed = !analyzed;
         } catch (ParserConfigurationException | SAXException | IOException ex) {
-            Logger.getLogger(WikiIndexer.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(com.dreamcloud.esa.indexer.WikiIndexer.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -135,46 +123,30 @@ public class WikiIndexer extends XmlReadingHandler implements Indexer {
     }
 
     Integer indexArticles (Vector<WikipediaArticle> articles) throws Exception {
+        TfIdfScoreRepository scoreRepository = new TfIdfScoreRepository();
         for (WikipediaArticle article: articles) {
-            indexDocument(article);
+            indexDocument(article, scoreRepository);
         }
         return articles.size();
     }
 
-    void indexDocument(WikipediaArticle article) throws Exception {
+    void indexDocument(WikipediaArticle article, TfIdfScoreRepository scoreRepository) throws Exception {
         String wikiText = article.text;
         if (options.preprocessor != null) {
             wikiText = options.preprocessor.process(wikiText);
         }
 
-        Document doc = new Document();
-        doc.add(new StoredField("title", article.title));
-        doc.add(new TextField("text", wikiText, Field.Store.NO));
-        Matcher matcher = linkRegexPattern.matcher(wikiText);
-        Set<String> uniqueLinks = new HashSet<>();
-        while (matcher.find()) {
-            String normalizedLink = StringUtils.normalizeWikiTitle(matcher.group(1));
-            if (!uniqueLinks.contains(normalizedLink)) {
-                uniqueLinks.add(normalizedLink);
-                doc.add(new StoredField("outgoingLink", normalizedLink));
+        if (!analyzed) {
+            synchronized (tfIdfAnalyzer) {
+                tfIdfAnalyzer.prepareDocument(wikiText);
             }
+        } else {
+            TfIdfScore[] scores = tfIdfAnalyzer.getTfIdfScores(wikiText);
+            scoreRepository.saveTfIdfScores(article.title, scores);
         }
-        doc.add(new StoredField("incomingLinks", article.incomingLinks));
-
-        float boost = 1;
-        if (article.title.startsWith("category")) {
-            boost += 1.5;
-        }
-        if (article.title.startsWith("list of")) {
-            boost += 0.70;
-        }
-        //best = 1.5/0.70: 0.7339807027778464
-        doc.add(new DoubleDocValuesField("boost", boost));
-        indexWriter.addDocument(doc);
     }
 
     public void close() throws IOException {
-        indexWriter.close();
     }
 
     public void handleDocument(Map<String, String> xmlFields) throws SAXException {

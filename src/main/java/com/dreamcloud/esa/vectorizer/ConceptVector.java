@@ -9,39 +9,91 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.*;
 
 public class ConceptVector {
+    private static HashMap<String, Float> allConceptWeights = null;
+    private static HashMap<String, Integer> allIncomingLinks =  null;
     Map<String, Float> conceptWeights;
 
+    private static void init(IndexReader reader) throws IOException {
+        if (allConceptWeights == null || allIncomingLinks == null) {
+            allConceptWeights = new HashMap<>();
+            allIncomingLinks = new HashMap<>();
+            int maxDoc = reader.maxDoc();
+            for (int i=0; i<maxDoc; i++) {
+                Document doc = reader.document(i);
+                IndexableField concept = doc.getField("title");
+                allConceptWeights.put(concept.stringValue(), 0.0f);
+                IndexableField incomingLinks = doc.getField("incomingLinks");
+                allIncomingLinks.put(concept.stringValue(), incomingLinks.numericValue().intValue());
+            }
+        }
+    }
+
+    public void initConcepts(IndexReader reader) throws IOException {
+        //init(reader);
+        this.conceptWeights = new HashMap<>();
+        //this.conceptWeights.putAll(allConceptWeights);
+    }
+
     ConceptVector(TopDocs td, IndexReader indexReader) throws IOException {
-        Map<String, Integer> linkCounts = new HashMap<>();
-        for (ScoreDoc linkDoc : td.scoreDocs) {
-            Document doc = indexReader.document(linkDoc.doc);
-            IndexableField[] linkFields = doc.getFields("outgoingLink");
-            for (IndexableField linkField: linkFields) {
-                String link = linkField.stringValue();
-                linkCounts.put(link, linkCounts.getOrDefault(link, 0) + 1);
+        initConcepts(indexReader);
+
+        //Add initial scores and incoming link counts
+        for (ScoreDoc scoreDoc : td.scoreDocs) {
+            Document doc = indexReader.document(scoreDoc.doc);
+            String concept = doc.get("title");
+            conceptWeights.put(concept, scoreDoc.score);
+        }
+
+        //Backrub
+        int topDocCount = Math.round(td.scoreDocs.length * 0.00f);
+        int currentDoc = 0;
+        for (ScoreDoc scoreDoc : td.scoreDocs) {
+            if (++currentDoc >= topDocCount) {
+                break;
+            }
+            Document doc = indexReader.document(scoreDoc.doc);
+            String topConcept = doc.get("title");
+            int topIncomingLinks = allIncomingLinks.getOrDefault(topConcept, 0);
+            IndexableField[] outgoingLinks = doc.getFields("outgoingLink");
+            for (IndexableField outgoingLink: outgoingLinks) {
+                String concept = outgoingLink.stringValue();
+                int conceptIncomingLinks = allIncomingLinks.getOrDefault(concept, 0);
+                if (conceptWeights.containsKey(concept)) {
+                    System.out.println("Link from '" + topConcept + "' to '" + concept + "':");
+                    System.out.println("==================================================");
+                    float score = conceptWeights.get(concept);
+                    if (score == 0) {
+                        System.out.println("0-score: latter concept must be more general");
+                        System.out.println("Links: " + topIncomingLinks + ", " + conceptIncomingLinks);
+                        float logDiff = (float) (Math.log10(conceptIncomingLinks) - Math.log10(topIncomingLinks));
+                        System.out.println("Log difference: " + logDiff);
+                        if (logDiff > 1) {
+                            System.out.println("Increasing score from " + score + " to " + (0.5f * scoreDoc.score));
+                            score += (0.5f * scoreDoc.score);
+                        } else {
+                            System.out.println("Not increasing score, diff too low");
+                        }
+                    } else {
+                        System.out.println("Increasing score from " + score + " to " + (0.5f * scoreDoc.score));
+                        score += (0.5f * scoreDoc.score);
+                    }
+                    System.out.println("==================================================" +
+                            "\n");
+                    conceptWeights.put(concept, score);
+                }
             }
         }
 
-        conceptWeights = new HashMap<>();
-        for (ScoreDoc scoreDoc : td.scoreDocs) {
-            String concept = indexReader.document(scoreDoc.doc).get("title");
-            float baseScore = scoreDoc.score;
-            /*float backRubScore = (float) Math.log(1 + linkCounts.getOrDefault(concept, 0));
-            float backRubScore = (float) Math.log(1 + linkCounts.getOrDefault(concept, 0));
-            if (concept.startsWith("category")) {
-                System.out.println("Found a category page!");
-                backRubScore += 5;
-            }*/
-            conceptWeights.put(concept, baseScore /*+ backRubScore*/);
+        HashMap<String, Float> nonZeroScores = new HashMap<>();
+        for ( Iterator<String> topConcepts = this.topConcepts(); topConcepts.hasNext(); ) {
+            String concept = topConcepts.next();
+            float score = conceptWeights.get(concept);
+            if (score == 0.0f) {
+                break;
+            }
+            nonZeroScores.put(concept, score);
         }
-
-        /*int i = 0;
-        Map<String, Float> cutoffWeights = new HashMap<>();
-        for(Iterator<String> it = this.topConcepts(); it.hasNext() && i++ < 450;) {
-            String concept = it.next();
-            cutoffWeights.put(concept, conceptWeights.get(concept));
-        }
-        conceptWeights = cutoffWeights;*/
+        conceptWeights = nonZeroScores;
     }
 
     public ConceptVector(Map<String, Float> conceptWeights) {

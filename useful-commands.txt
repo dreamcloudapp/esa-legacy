@@ -37,7 +37,7 @@
 
 ./esa.bat --repeat-content index\simple-stripped-links-terms.xml.bz2 index\simple-links-terms-repeated.xml.bz2 --repeat-title 4 --repeat-link 2
 
-./esa.bat --write-rare-words index\simple-links-terms-repeated.xml.bz2 index\simple-rare-words.txt 3 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default
+./esa.bat --write-rare-words index\simple-links-terms-repeated.xml.bz2 index\simple-rare-words.txt 3 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default --min-word-length 3
 
 ./esa.bat --index index\simple-links-terms-repeated.xml.bz2 --threads 8 --batch-size 1000 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default --rare-words index\simple-rare-words.txt --min-incoming-links 1 --min-outgoing-links 1 --min-word-length 3
 
@@ -57,9 +57,9 @@ results w/o templates 0.680 / 0.614
 
 ./esa.bat --repeat-content index\2005-stripped-links-terms.xml.bz2 index\2005-links-terms-repeated.xml.bz2 --repeat-title 4 --repeat-link 2
 
-./esa.bat --write-rare-words index\2005-links-terms-repeated.xml.bz2 index\2005-rare-words.txt 3 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default
+./esa.bat --write-rare-words index\2005-links-terms.xml.bz2 index\2005-rare-words.txt 3 --filter classic ascii lower singular --stopwords en-default
 
-./esa.bat --index index\2005-links-terms-repeated.xml.bz2 --threads 8 --batch-size 1000 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default --rare-words index\2005-rare-words.txt --min-incoming-links 1 --min-outgoing-links 1 --min-word-length 3
+./esa.bat --index index\2005-links-terms.xml.bz2 --threads 8 --batch-size 1000 --filter classic ascii lower singular stemmer --stemmer-depth 3 --stopwords en-default --rare-words index\2005-rare-words.txt --min-incoming-links 5 --min-outgoing-links 5 --min-terms 100 --min-word-length 3
 
 ./esa.bat --spearman en-wordsim353 --filter classic ascii lower singular stemmer --stemmer-depth 3 --vector-limit 450
 
