@@ -137,9 +137,7 @@ public class TfIdfWriter extends XmlReadingHandler implements Indexer {
         }
 
         if (!analyzed) {
-            synchronized (tfIdfAnalyzer) {
-                tfIdfAnalyzer.prepareDocument(wikiText);
-            }
+            tfIdfAnalyzer.prepareDocument(wikiText);
         } else {
             TfIdfScore[] scores = tfIdfAnalyzer.getTfIdfScores(wikiText);
             scoreRepository.saveTfIdfScores(article.title, scores);

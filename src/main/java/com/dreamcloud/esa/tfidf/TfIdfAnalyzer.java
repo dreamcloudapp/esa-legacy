@@ -12,7 +12,7 @@ import java.util.Set;
 
 public class TfIdfAnalyzer {
     protected int documentCount = 0;
-    protected MutableObjectIntMap<String> documentFrequencies = ObjectIntMaps.mutable.empty();
+    protected final MutableObjectIntMap<String> documentFrequencies = ObjectIntMaps.mutable.empty();
     protected final Analyzer analyzer;
 
     public TfIdfAnalyzer(Analyzer analyzer, String smartFlags) {
@@ -36,10 +36,12 @@ public class TfIdfAnalyzer {
             uniqueTerms.add(termAttribute.toString());
         }
         tokens.close();
-        for (String uniqueTerm: uniqueTerms) {
-            documentFrequencies.addToValue(uniqueTerm, 1);
+        synchronized (documentFrequencies) {
+            for (String uniqueTerm: uniqueTerms) {
+                documentFrequencies.addToValue(uniqueTerm, 1);
+            }
+            documentCount++;
         }
-        documentCount++;
     }
 
     public TfIdfScore[] getTfIdfScores(String text) throws IOException {

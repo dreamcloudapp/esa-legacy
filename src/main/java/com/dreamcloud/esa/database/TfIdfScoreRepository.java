@@ -64,24 +64,26 @@ public class TfIdfScoreRepository {
             byte[] docId = generateUuid();
             docStatement.setBytes(1, docId);
             docStatement.setString(2, document);
-            docStatement.executeQuery();
+            docStatement.executeUpdate();
 
             for (TfIdfScore score: scores) {
                 PreparedStatement termStatement = con.prepareStatement("insert into dc.term(`id`, `term`) values(?, ?) on duplicate key update term = term");
                 byte[] termId = generateUuid();
                 termStatement.setBytes(1, termId);
                 termStatement.setString(2, score.getTerm());
+                termStatement.executeUpdate();
 
                 PreparedStatement scoreStatement = con.prepareStatement("insert into dc.score(`document_id`, `term_id`, `score`) values(?, ?, ?)");
                 scoreStatement.setBytes(1, docId);
                 scoreStatement.setBytes(2, termId);
                 scoreStatement.setDouble(3, score.getScore());
-                scoreStatement.executeQuery();
+                scoreStatement.executeUpdate();
             }
         }
         catch (Exception e) {
             System.out.println("MySQL is unhappy about something:");
             e.printStackTrace();
+            System.exit(-1);
         }
     }
 }

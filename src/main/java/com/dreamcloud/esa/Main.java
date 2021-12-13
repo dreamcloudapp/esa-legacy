@@ -691,10 +691,10 @@ public class Main {
         }
     }
 
-    public static void indexFile(EsaOptions options, WikiIndexerOptions wikiIndexerOptions) {
+    public static void indexFile(EsaOptions options, WikiIndexerOptions wikiIndexerOptions) throws IOException {
         TfIdfWriter writer = new TfIdfWriter(wikiIndexerOptions);
-        writer.parseXmlDump(new File(options.indexFile));
-        writer.parseXmlDump(new File(options.indexFile));
+        writer.index(new File(options.indexFile));
+        writer.index(new File(options.indexFile));
         /*IndexerFactory indexerFactory = new IndexerFactory();
         Indexer indexer = indexerFactory.getIndexer(options.documentType, wikiIndexerOptions);
         try{
