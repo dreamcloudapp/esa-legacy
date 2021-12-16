@@ -1,5 +1,6 @@
 package com.dreamcloud.esa.database;
 
+import com.dreamcloud.esa.tfidf.TfIdfAnalyzer;
 import com.dreamcloud.esa.tfidf.TfIdfScore;
 import org.eclipse.collections.api.map.primitive.MutableObjectIntMap;
 import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
@@ -14,7 +15,7 @@ public class TfIdfScoreRepository {
 
     }
 
-    public MutableObjectIntMap<String> getTermDocumentFrequencies() {
+    public void getTermDocumentFrequencies(TfIdfAnalyzer tfIdfAnalyzer) {
         try {
             if (this.con == null) {
                 this.con = MySQLConnection.getConnection();
@@ -24,19 +25,21 @@ public class TfIdfScoreRepository {
 
             PreparedStatement freqStatement = con.prepareStatement("select * from esa.df");
             ResultSet resultSet = freqStatement.executeQuery();
+            int resultCount = 0;
             while (resultSet.next()) {
                 String term = resultSet.getString(1);
                 int count = resultSet.getInt(2);
                 termFrequencies.put(term, count);
+                resultCount++;
             }
-            return termFrequencies;
+            tfIdfAnalyzer.setDocumentCount(resultCount);
+            tfIdfAnalyzer.setDocumentFrequencies(termFrequencies);
         }
         catch (Exception e) {
             System.out.println("Postgres is unhappy about something:");
             e.printStackTrace();
             System.exit(-1);
         }
-        return null;
     }
 
     public void saveTermDocumentFrequencies(MutableObjectIntMap<String> termDocumentFrequencies) {
@@ -71,6 +74,7 @@ public class TfIdfScoreRepository {
             }
 
             PreparedStatement scoreStatement = con.prepareStatement("select document, score from esa.score where term = ?");
+            scoreStatement.setString(1, term);
             ResultSet resultSet = scoreStatement.executeQuery();
             ArrayList<TfIdfScore> scores = new ArrayList<>();
             while (resultSet.next()) {

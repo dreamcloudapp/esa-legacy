@@ -75,13 +75,9 @@ public class TfIdfAnalyzer {
         for (String term: termFrequencies.keySet()) {
             //1 = term frequency with log normalization
             double tf = 1 + Math.log(termFrequencies.get(term));
-            System.out.println("analyzing term " + term);
-            System.out.println("tf: " + tf);
 
             //t = inverse document frequency with log normalization
             double idf = Math.log(documentCount.get() / (double) documentFrequencies.get(term));
-            System.out.println("idf: " + idf);
-            System.out.println("tf-idf: " + tf * idf);
 
             //Add score
             scores[i++] = new TfIdfScore(term, tf * idf);
@@ -94,18 +90,14 @@ public class TfIdfAnalyzer {
         }
         scoreSumOfSquares = Math.sqrt(scoreSumOfSquares);
 
-
         for (TfIdfScore score: scores) {
             score.normalizeScore(1.0 / scoreSumOfSquares);
         }
 
-        for (TfIdfScore score: scores) {
-            if (Double.isNaN(score.getScore())) {
-                System.out.println("NaN score: " + score.getTerm());
-                System.exit(1);
-            }
-        }
-
         return scores;
+    }
+
+    public void setDocumentCount(int documentCount) {
+        this.documentCount.set(documentCount);
     }
 }

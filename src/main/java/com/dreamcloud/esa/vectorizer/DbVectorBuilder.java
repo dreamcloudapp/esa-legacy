@@ -16,8 +16,7 @@ public class DbVectorBuilder implements VectorBuilder {
         this.scoreRepository = scoreRepository;
         this.tfIdfAnalyzer = new TfIdfAnalyzer(analyzer);
 
-        MutableObjectIntMap<String> documentFrequencies = scoreRepository.getTermDocumentFrequencies();
-        tfIdfAnalyzer.setDocumentFrequencies(documentFrequencies);
+        scoreRepository.getTermDocumentFrequencies(tfIdfAnalyzer);
     }
 
     public ConceptVector build(String document) throws IOException {
