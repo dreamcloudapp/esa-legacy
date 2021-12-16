@@ -77,7 +77,10 @@ public class TfIdfAnalyzer {
             double tf = 1 + Math.log(termFrequencies.get(term));
 
             //t = inverse document frequency with log normalization
-            double idf = Math.log(documentCount.get() / (double) documentFrequencies.get(term));
+            double idf = 0;
+            if (documentFrequencies.containsKey(term)) {
+               idf = Math.log(documentCount.get() / (double) documentFrequencies.get(term));
+            }
 
             //Add score
             scores[i++] = new TfIdfScore(term, tf * idf);
@@ -92,6 +95,16 @@ public class TfIdfAnalyzer {
 
         for (TfIdfScore score: scores) {
             score.normalizeScore(1.0 / scoreSumOfSquares);
+
+            if (Double.isNaN(score.getScore())) {
+                System.out.println("got a nan:");
+                System.out.println("=================================");
+                System.out.println(score.getTerm());
+                System.out.println("==========");
+                System.out.println(text);
+                System.out.println("=================================");
+                System.exit(1);
+            }
         }
 
         return scores;

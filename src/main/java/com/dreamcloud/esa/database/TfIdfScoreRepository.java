@@ -67,6 +67,43 @@ public class TfIdfScoreRepository {
         }
     }
 
+    public TfIdfScore[] getTfIdfScores(String[] terms) {
+        try {
+            if (this.con == null) {
+                this.con = MySQLConnection.getConnection();
+            }
+
+            StringBuilder sql = new StringBuilder("select term, document, score from esa.score where term IN (");
+            for (int i=0; i<terms.length; i++) {
+                sql.append('?');
+                if (i < terms.length - 1) {
+                    sql.append(", ");
+                }
+            }
+            sql.append(')');
+            PreparedStatement scoreStatement = con.prepareStatement(sql.toString());
+            int i = 1;
+            for (String term: terms) {
+                scoreStatement.setString(i++, term);
+            }
+            ResultSet resultSet = scoreStatement.executeQuery();
+            ArrayList<TfIdfScore> scores = new ArrayList<>();
+            while (resultSet.next()) {
+                String term = resultSet.getString(1);
+                String document = resultSet.getString(2);
+                double score = resultSet.getDouble(3);
+                scores.add(new TfIdfScore(document, term, score));
+            }
+            return scores.toArray(TfIdfScore[]::new);
+        }
+        catch (Exception e) {
+            System.out.println("Postgres is unhappy about something:");
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        return null;
+    }
+
     public TfIdfScore[] getTfIdfScores(String term) {
         try {
             if (this.con == null) {

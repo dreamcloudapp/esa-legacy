@@ -190,4 +190,18 @@ public class ConceptVector {
     public Map<String, Float> getConceptWeights() {
         return conceptWeights;
     }
+
+    public void pruneToSize(int n) {
+        ConceptVector vector = new ConceptVector();
+        int i = 0;
+        for ( Iterator<String> topConcepts = this.topConcepts(); topConcepts.hasNext(); ) {
+            String concept = topConcepts.next();
+            float score = conceptWeights.get(concept);
+            vector.conceptWeights.put(concept, score);
+            if (i++ == n) {
+                break;
+            }
+        }
+        this.conceptWeights = vector.conceptWeights;
+    }
 }

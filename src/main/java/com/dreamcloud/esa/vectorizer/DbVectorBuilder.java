@@ -22,14 +22,24 @@ public class DbVectorBuilder implements VectorBuilder {
     public ConceptVector build(String document) throws IOException {
         ConceptVector vector = new ConceptVector();
         TfIdfScore[] scores = tfIdfAnalyzer.getTfIdfScores(document);
+        String []terms = new String[scores.length];
+        int i = 0;
         for (TfIdfScore score: scores) {
-            ConceptVector termVector = new ConceptVector();
-            TfIdfScore[] docScores = scoreRepository.getTfIdfScores(score.getTerm());
-            for (TfIdfScore docScore: docScores) {
-                termVector.conceptWeights.put(docScore.getDocument(), (float) (score.getScore() * docScore.getScore()));
-            }
-            vector.merge(termVector);
+            terms[i++] = score.getTerm();
         }
+        TfIdfScore[] scoreDocs = scoreRepository.getTfIdfScores(terms);
+
+        for (TfIdfScore docScore: scoreDocs) {
+            double score = docScore.getScore();
+            for (TfIdfScore termScore: scores) {
+                if (termScore.getTerm().equals(docScore.getTerm())) {
+                    score *= termScore.getScore();
+                }
+            }
+            vector.conceptWeights.put(docScore.getDocument(), (float) score);
+        }
+
+        vector.pruneToSize(1600);
         return vector;
     }
 }
