@@ -1,13 +1,19 @@
 package com.dreamcloud.esa.tools;
 
-import java.util.Locale;
-
 public class StringUtils {
     public static boolean nonEmpty(String s) {
         return s != null && !s.equals("");
     }
 
     public static String normalizeWikiTitle(String title) {
-        return title.toLowerCase(Locale.ROOT).replaceAll("[^\\p{Alnum}]+", " ").trim().replaceAll("[\\s]+", " ");
+        if (title == null || "".equals(title)) {
+            return title;
+        }
+
+        char[] c = title.toCharArray();
+        c[0] = Character.toLowerCase(c[0]);
+        title = new String(c);
+
+        return title.replaceAll("[^\\p{Alnum}]+", " ").trim().replaceAll("[\\s]+", " ");
     }
 }

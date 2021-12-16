@@ -59,23 +59,13 @@ public class TfIdfScoreRepository {
                 this.con = MySQLConnection.getConnection();
             }
 
-            //create document
-            PreparedStatement docStatement = con.prepareStatement("insert into dc.document(`id`, `title`) values(?, ?)");
-            byte[] docId = generateUuid();
-            docStatement.setBytes(1, docId);
-            docStatement.setString(2, document);
-            docStatement.executeUpdate();
-
             for (TfIdfScore score: scores) {
-                PreparedStatement termStatement = con.prepareStatement("insert into dc.term(`id`, `term`) values(?, ?) on duplicate key update term = term");
-                byte[] termId = generateUuid();
-                termStatement.setBytes(1, termId);
-                termStatement.setString(2, score.getTerm());
-                termStatement.executeUpdate();
-
-                PreparedStatement scoreStatement = con.prepareStatement("insert into dc.score(`document_id`, `term_id`, `score`) values(?, ?, ?)");
-                scoreStatement.setBytes(1, docId);
-                scoreStatement.setBytes(2, termId);
+                PreparedStatement scoreStatement = con.prepareStatement("insert into esa.score(document, term, score) values(?, ?, ?)");
+                scoreStatement.setString(1, document.substring(0, Math.min(128, document.length())));
+                scoreStatement.setString(2, score.getTerm());
+                if (Double.isNaN(score.getScore())) {
+                    System.out.println("Found a NaN: " + score.getTerm() + ", " + document);
+                }
                 scoreStatement.setDouble(3, score.getScore());
                 scoreStatement.executeUpdate();
             }

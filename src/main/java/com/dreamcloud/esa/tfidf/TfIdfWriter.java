@@ -65,6 +65,7 @@ public class TfIdfWriter extends XmlReadingHandler implements Indexer {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        analyzed = !analyzed;
 
         //Show logs
         System.out.println("----------------------------------------");
@@ -84,7 +85,6 @@ public class TfIdfWriter extends XmlReadingHandler implements Indexer {
             is.setEncoding("UTF-8");
             saxParser.parse(is, this);
             reader.close();
-            analyzed = !analyzed;
         } catch (ParserConfigurationException | SAXException | IOException ex) {
             Logger.getLogger(com.dreamcloud.esa.indexer.WikiIndexer.class.getName()).log(Level.SEVERE, null, ex);
         }

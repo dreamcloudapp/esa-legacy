@@ -9,9 +9,10 @@ import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class TfIdfAnalyzer {
-    protected int documentCount = 0;
+    protected AtomicInteger documentCount = new AtomicInteger(0);
     protected final MutableObjectIntMap<String> documentFrequencies = ObjectIntMaps.mutable.empty();
     protected final Analyzer analyzer;
 
@@ -33,15 +34,19 @@ public class TfIdfAnalyzer {
         Set<String> uniqueTerms = new HashSet<>();
         tokens.reset();
         while(tokens.incrementToken()) {
-            uniqueTerms.add(termAttribute.toString());
+            String term = termAttribute.toString();
+            if (term.length() > 32) {
+                continue;
+            }
+            uniqueTerms.add(term);
         }
         tokens.close();
         synchronized (documentFrequencies) {
             for (String uniqueTerm: uniqueTerms) {
                 documentFrequencies.addToValue(uniqueTerm, 1);
             }
-            documentCount++;
         }
+        documentCount.incrementAndGet();
     }
 
     public TfIdfScore[] getTfIdfScores(String text) throws IOException {
@@ -50,7 +55,11 @@ public class TfIdfAnalyzer {
         CharTermAttribute termAttribute = tokens.addAttribute(CharTermAttribute.class);
         tokens.reset();
         while(tokens.incrementToken()) {
-            termFrequencies.addToValue(termAttribute.toString(), 1);
+            String term = termAttribute.toString();
+            if (term.length() > 32) {
+                continue;
+            }
+            termFrequencies.addToValue(term, 1);
         }
         tokens.close();
         TfIdfScore[] scores = new TfIdfScore[termFrequencies.size()];
@@ -60,9 +69,13 @@ public class TfIdfAnalyzer {
             double tf = 1 + Math.log(termFrequencies.get(term));
 
             //t = inverse document frequency with log normalization
-            double idf = Math.log(documentCount / (double) documentFrequencies.get(term));
+            double idf = Math.log(documentCount.get() / (double) documentFrequencies.get(term));
 
             //Add score
+            double tfidf = tf * idf;
+            if (Double.isNaN(tfidf)) {
+                System.out.println("0-tfidf: tf=" + tf + "; idf=" + idf);
+            }
             scores[i++] = new TfIdfScore(term, tf * idf);
         }
 
@@ -73,8 +86,23 @@ public class TfIdfAnalyzer {
         }
         scoreSumOfSquares = Math.sqrt(scoreSumOfSquares);
 
+        if (Double.isNaN(scoreSumOfSquares)) {
+            System.out.println("NaN sum: " + termFrequencies.size());
+        }
+
+        if (scoreSumOfSquares == 0) {
+            System.out.println("Zero sum: " + termFrequencies.size());
+        }
+
         for (TfIdfScore score: scores) {
             score.normalizeScore(1.0 / scoreSumOfSquares);
+        }
+
+        for (TfIdfScore score: scores) {
+            if (Double.isNaN(score.getScore())) {
+                System.out.println("NaN score: " + score.getTerm());
+                System.exit(1);
+            }
         }
 
         return scores;

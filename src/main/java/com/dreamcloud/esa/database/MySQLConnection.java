@@ -13,6 +13,6 @@ public class MySQLConnection {
         if (!env.containsKey(ODBC_ENVIRONMENT_VARIABLE)) {
             throw new SQLException("The ODBC connection string was empty: set the " + ODBC_ENVIRONMENT_VARIABLE + " and try again.");
         }
-        return DriverManager.getConnection("jdbc:" + env.get(ODBC_ENVIRONMENT_VARIABLE));
+        return DriverManager.getConnection("jdbc:" + env.get(ODBC_ENVIRONMENT_VARIABLE), "esa_java_app", "FishAndChips");
     }
 }
