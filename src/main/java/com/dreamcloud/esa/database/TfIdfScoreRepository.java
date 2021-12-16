@@ -2,50 +2,41 @@ package com.dreamcloud.esa.database;
 
 import com.dreamcloud.esa.tfidf.TfIdfScore;
 import org.eclipse.collections.api.map.primitive.MutableObjectIntMap;
+import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
 
 import java.sql.*;
+import java.util.ArrayList;
 
 public class TfIdfScoreRepository {
-    PreparedStatement statement;
     Connection con;
 
     public TfIdfScoreRepository() {
 
     }
 
-    protected static byte hexToByte(String hexString) {
-        int firstDigit = toDigit(hexString.charAt(0));
-        int secondDigit = toDigit(hexString.charAt(1));
-        return (byte) ((firstDigit << 4) + secondDigit);
-    }
+    public MutableObjectIntMap<String> getTermDocumentFrequencies() {
+        try {
+            if (this.con == null) {
+                this.con = MySQLConnection.getConnection();
+            }
 
-    protected static int toDigit(char hexChar) {
-        int digit = Character.digit(hexChar, 16);
-        if(digit == -1) {
-            throw new IllegalArgumentException(
-                    "Invalid Hexadecimal Character: "+ hexChar);
-        }
-        return digit;
-    }
+            MutableObjectIntMap<String> termFrequencies = ObjectIntMaps.mutable.empty();
 
-    protected static byte[] decodeHexString(String hexString) {
-        if (hexString.length() % 2 == 1) {
-            throw new IllegalArgumentException(
-                    "Invalid hexadecimal String supplied.");
+            PreparedStatement freqStatement = con.prepareStatement("select * from esa.df");
+            ResultSet resultSet = freqStatement.executeQuery();
+            while (resultSet.next()) {
+                String term = resultSet.getString(1);
+                int count = resultSet.getInt(2);
+                termFrequencies.put(term, count);
+            }
+            return termFrequencies;
         }
-
-        byte[] bytes = new byte[hexString.length() / 2];
-        for (int i = 0; i < hexString.length(); i += 2) {
-            bytes[i / 2] = hexToByte(hexString.substring(i, i + 2));
+        catch (Exception e) {
+            System.out.println("Postgres is unhappy about something:");
+            e.printStackTrace();
+            System.exit(-1);
         }
-        return bytes;
-    }
-
-    protected PreparedStatement getStatement() throws SQLException {
-        if (statement == null) {
-            statement = con.prepareStatement("insert into dc.term_map(`term_id`, `concept_id`, `score`) values(?, ?, ?)");
-        }
-        return statement;
+        return null;
     }
 
     public void saveTermDocumentFrequencies(MutableObjectIntMap<String> termDocumentFrequencies) {
@@ -54,7 +45,7 @@ public class TfIdfScoreRepository {
                 this.con = MySQLConnection.getConnection();
             }
 
-            PreparedStatement freqStatement = con.prepareStatement("insert into esa.df(term, count, ) values(?, ?)");
+            PreparedStatement freqStatement = con.prepareStatement("insert into esa.df(term, frequency) values(?, ?)");
             int i = 0;
             for (String term: termDocumentFrequencies.keySet()) {
                 int count = termDocumentFrequencies.get(term);
@@ -71,6 +62,30 @@ public class TfIdfScoreRepository {
             e.printStackTrace();
             System.exit(-1);
         }
+    }
+
+    public TfIdfScore[] getTfIdfScores(String term) {
+        try {
+            if (this.con == null) {
+                this.con = MySQLConnection.getConnection();
+            }
+
+            PreparedStatement scoreStatement = con.prepareStatement("select document, score from esa.score where term = ?");
+            ResultSet resultSet = scoreStatement.executeQuery();
+            ArrayList<TfIdfScore> scores = new ArrayList<>();
+            while (resultSet.next()) {
+                String document = resultSet.getString(1);
+                double score = resultSet.getDouble(2);
+                scores.add(new TfIdfScore(document, term, score));
+            }
+            return scores.toArray(TfIdfScore[]::new);
+        }
+        catch (Exception e) {
+            System.out.println("Postgres is unhappy about something:");
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        return null;
     }
 
     public void saveTfIdfScores(String document, TfIdfScore[] scores) {

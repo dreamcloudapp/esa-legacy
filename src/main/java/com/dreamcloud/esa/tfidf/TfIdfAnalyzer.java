@@ -53,6 +53,10 @@ public class TfIdfAnalyzer {
         return this.documentFrequencies;
     }
 
+   public void setDocumentFrequencies(MutableObjectIntMap<String> documentFrequencies) {
+        this.documentFrequencies.putAll(documentFrequencies);
+   }
+
     public TfIdfScore[] getTfIdfScores(String text) throws IOException {
         MutableObjectIntMap<String> termFrequencies = ObjectIntMaps.mutable.empty();
         TokenStream tokens = analyzer.tokenStream("text", text);
@@ -71,15 +75,15 @@ public class TfIdfAnalyzer {
         for (String term: termFrequencies.keySet()) {
             //1 = term frequency with log normalization
             double tf = 1 + Math.log(termFrequencies.get(term));
+            System.out.println("analyzing term " + term);
+            System.out.println("tf: " + tf);
 
             //t = inverse document frequency with log normalization
             double idf = Math.log(documentCount.get() / (double) documentFrequencies.get(term));
+            System.out.println("idf: " + idf);
+            System.out.println("tf-idf: " + tf * idf);
 
             //Add score
-            double tfidf = tf * idf;
-            if (Double.isNaN(tfidf)) {
-                System.out.println("0-tfidf: tf=" + tf + "; idf=" + idf);
-            }
             scores[i++] = new TfIdfScore(term, tf * idf);
         }
 
@@ -90,13 +94,6 @@ public class TfIdfAnalyzer {
         }
         scoreSumOfSquares = Math.sqrt(scoreSumOfSquares);
 
-        if (Double.isNaN(scoreSumOfSquares)) {
-            System.out.println("NaN sum: " + termFrequencies.size());
-        }
-
-        if (scoreSumOfSquares == 0) {
-            System.out.println("Zero sum: " + termFrequencies.size());
-        }
 
         for (TfIdfScore score: scores) {
             score.normalizeScore(1.0 / scoreSumOfSquares);
