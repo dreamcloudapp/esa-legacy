@@ -49,6 +49,10 @@ public class TfIdfAnalyzer {
         documentCount.incrementAndGet();
     }
 
+    public MutableObjectIntMap<String> getDocumentFrequencies() {
+        return this.documentFrequencies;
+    }
+
     public TfIdfScore[] getTfIdfScores(String text) throws IOException {
         MutableObjectIntMap<String> termFrequencies = ObjectIntMaps.mutable.empty();
         TokenStream tokens = analyzer.tokenStream("text", text);

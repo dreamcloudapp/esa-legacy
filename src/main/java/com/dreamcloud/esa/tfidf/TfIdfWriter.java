@@ -65,6 +65,13 @@ public class TfIdfWriter extends XmlReadingHandler implements Indexer {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
+        if (analyzed == false) {
+            //Write the document frequencies
+            TfIdfScoreRepository tfIdfScoreRepository = new TfIdfScoreRepository();
+            tfIdfScoreRepository.saveTermDocumentFrequencies(tfIdfAnalyzer.getDocumentFrequencies());
+        }
+
         analyzed = !analyzed;
 
         //Show logs

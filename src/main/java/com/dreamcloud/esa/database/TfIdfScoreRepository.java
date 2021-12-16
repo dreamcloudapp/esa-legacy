@@ -1,9 +1,9 @@
 package com.dreamcloud.esa.database;
 
 import com.dreamcloud.esa.tfidf.TfIdfScore;
+import org.eclipse.collections.api.map.primitive.MutableObjectIntMap;
 
 import java.sql.*;
-import java.util.UUID;
 
 public class TfIdfScoreRepository {
     PreparedStatement statement;
@@ -48,9 +48,29 @@ public class TfIdfScoreRepository {
         return statement;
     }
 
-    protected static byte[] generateUuid() {
-        UUID id = UUID.randomUUID();
-        return decodeHexString(id.toString().replace("-", ""));
+    public void saveTermDocumentFrequencies(MutableObjectIntMap<String> termDocumentFrequencies) {
+        try {
+            if (this.con == null) {
+                this.con = MySQLConnection.getConnection();
+            }
+
+            PreparedStatement freqStatement = con.prepareStatement("insert into esa.df(term, count, ) values(?, ?)");
+            int i = 0;
+            for (String term: termDocumentFrequencies.keySet()) {
+                int count = termDocumentFrequencies.get(term);
+                freqStatement.setString(1, term);
+                freqStatement.setInt(2, count);
+                freqStatement.executeUpdate();
+                if(i++ % 1000 == 0) {
+                    System.out.println("Saved document frequency: [" + term + "\t" + count + "]");
+                }
+            }
+        }
+        catch (Exception e) {
+            System.out.println("Postgres is unhappy about something:");
+            e.printStackTrace();
+            System.exit(-1);
+        }
     }
 
     public void saveTfIdfScores(String document, TfIdfScore[] scores) {
@@ -59,8 +79,8 @@ public class TfIdfScoreRepository {
                 this.con = MySQLConnection.getConnection();
             }
 
+            PreparedStatement scoreStatement = con.prepareStatement("insert into esa.score(document, term, score) values(?, ?, ?)");
             for (TfIdfScore score: scores) {
-                PreparedStatement scoreStatement = con.prepareStatement("insert into esa.score(document, term, score) values(?, ?, ?)");
                 scoreStatement.setString(1, document.substring(0, Math.min(128, document.length())));
                 scoreStatement.setString(2, score.getTerm());
                 if (Double.isNaN(score.getScore())) {
@@ -71,7 +91,7 @@ public class TfIdfScoreRepository {
             }
         }
         catch (Exception e) {
-            System.out.println("MySQL is unhappy about something:");
+            System.out.println("Postgres is unhappy about something:");
             e.printStackTrace();
             System.exit(-1);
         }

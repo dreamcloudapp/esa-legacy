@@ -14,6 +14,6 @@ public class StringUtils {
         c[0] = Character.toLowerCase(c[0]);
         title = new String(c);
 
-        return title.replaceAll("[^\\p{Alnum}]+", " ").trim().replaceAll("[\\s]+", " ");
+        return title.replace('_', ' ').trim().replaceAll("[\\s]+", " ");
     }
 }
