@@ -24,6 +24,7 @@ import java.util.Map;
  *         <text>Cats are small, furry, and cute mammals.</text>
  *         <incomingLinks>24</incomingLinks>
  *         <outgoingLinks>24</incomingLinks>
+ *         <terms>24</terms>
  *     </doc>
  * </docs>
  *
@@ -32,15 +33,15 @@ import java.util.Map;
  * This results in a smaller file size,
  * but makes the dump less versatile.
  */
-public class WikiLinkAnnotator extends XmlWritingHandler {
-    protected WikiLinkAnnotatorOptions options;
+public class WikiLinkAndTermAnnotator extends XmlWritingHandler {
+    protected WikiLinkAndTermAnnotatorOptions options;
     protected Map<String, String> titleMap = new HashMap<>();
-    protected Map<String, WikiLinkAnnotation> annotations = new HashMap<>();
+    protected Map<String, WikiAnnotation> annotations = new HashMap<>();
 
     protected final SAXParserFactory saxFactory;
     protected int numStripped = 0;
 
-    public WikiLinkAnnotator(WikiLinkAnnotatorOptions options) {
+    public WikiLinkAndTermAnnotator(WikiLinkAndTermAnnotatorOptions options) {
         this.options = options;
         saxFactory = SAXParserFactory.newInstance();
         saxFactory.setNamespaceAware(true);
@@ -54,31 +55,27 @@ public class WikiLinkAnnotator extends XmlWritingHandler {
         titleMap.clear();
     }
 
-    public void annotate(File strippedFile, File titleMapFile, File outputFile) throws IOException, ParserConfigurationException, SAXException, XMLStreamException {
+    public void annotate(File inputFile, File titleMapFile, File outputFile) throws IOException, ParserConfigurationException, SAXException, XMLStreamException {
         reset();
         buildTitleMap(titleMapFile);
-        System.out.println("Title Map: " + titleMap.size());
-        System.out.println("---------------------------------------");
-        /*for(String title: titleMap.keySet()) {
-            String redirect = titleMap.get(title);
-            System.out.println(title + "\t->\t" + redirect);
-        }*/
-        System.out.println("---------------------------------------");
-        analyzeDocuments(strippedFile);
+        analyzeTerms(inputFile);
+        analyzeLinks(inputFile);
         System.out.println("Annotations: " + annotations.size());
         float totalIncomingLinks = 0;
         float totalOutgoingLinks = 0;
-        for (WikiLinkAnnotation annotation: annotations.values()) {
+        float totalTerms = 0;
+        for (WikiAnnotation annotation: annotations.values()) {
             totalIncomingLinks += annotation.incomingLinks;
             totalOutgoingLinks += annotation.outgoingLinks;
+            totalTerms += annotation.terms;
         }
         System.out.println("Link Stats: " + titleMap.size());
         System.out.println("---------------------------------------");
         System.out.println("Average Incoming Links: " + (totalIncomingLinks / annotations.size()));
         System.out.println("Average Outgoing Links: " + (totalOutgoingLinks / annotations.size()));
+        System.out.println("Average Terms per Doc: " + (totalTerms / annotations.size()));
         System.out.println("---------------------------------------");
-
-        writeAnnotatedXml(strippedFile, outputFile);
+        writeAnnotatedXml(inputFile, outputFile);
     }
 
     protected void buildTitleMap(File titleMapFile) throws IOException, ParserConfigurationException, SAXException {
@@ -90,12 +87,21 @@ public class WikiLinkAnnotator extends XmlWritingHandler {
         reader.close();
     }
 
-    protected void analyzeDocuments(File strippedFile) throws IOException, SAXException, ParserConfigurationException {
+    protected void analyzeTerms(File strippedFile) throws IOException, SAXException, ParserConfigurationException {
         SAXParser saxParser = saxFactory.newSAXParser();
         Reader reader = BZipFileReader.getFileReader(strippedFile);
         InputSource is = new InputSource(reader);
         is.setEncoding("UTF-8");
-        saxParser.parse(is, new WikiLinkHandler(titleMap, annotations));
+        saxParser.parse(is, new WikiLinAndTermHandler(options, titleMap, annotations, WikiLinAndTermHandler.ANALYSIS_TERMS));
+        reader.close();
+    }
+
+    protected void analyzeLinks(File strippedFile) throws IOException, SAXException, ParserConfigurationException {
+        SAXParser saxParser = saxFactory.newSAXParser();
+        Reader reader = BZipFileReader.getFileReader(strippedFile);
+        InputSource is = new InputSource(reader);
+        is.setEncoding("UTF-8");
+        saxParser.parse(is, new WikiLinAndTermHandler(options, titleMap, annotations, WikiLinAndTermHandler.ANALYSIS_LINKS));
         reader.close();
     }
 
@@ -125,9 +131,9 @@ public class WikiLinkAnnotator extends XmlWritingHandler {
     public void handleDocument(Map<String, String> xmlFields) {
         String title = xmlFields.get("title");
         String text = xmlFields.get("text");
-        WikiLinkAnnotation annotation = annotations.getOrDefault(title, null);
+        WikiAnnotation annotation = annotations.getOrDefault(title, null);
         if (annotation != null) {
-            if (annotation.incomingLinks < options.minimumIncomingLinks || annotation.outgoingLinks < options.minimumOutgoingLinks) {
+            if (annotation.incomingLinks < options.minimumIncomingLinks || annotation.outgoingLinks < options.minimumOutgoingLinks || annotation.terms < options.minimumTerms) {
                 numStripped++;
             } else {
                 try {
@@ -146,12 +152,13 @@ public class WikiLinkAnnotator extends XmlWritingHandler {
         }
     }
 
-    public void writeDocument(String title, String text, WikiLinkAnnotation annotation) throws XMLStreamException, IOException {
+    public void writeDocument(String title, String text, WikiAnnotation annotation) throws XMLStreamException, IOException {
         this.writeStartElement("doc");
         this.writeElement("title", title);
         this.writeElement("text", text);
         this.writeElement("incomingLinks", String.valueOf(annotation.incomingLinks));
         this.writeElement("outgoingLinks", String.valueOf(annotation.outgoingLinks));
+        this.writeElement("terms", String.valueOf(annotation.terms));
         this.writeEndElement();
     }
 }

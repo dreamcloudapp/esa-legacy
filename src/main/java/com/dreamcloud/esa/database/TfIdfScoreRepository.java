@@ -110,7 +110,7 @@ public class TfIdfScoreRepository {
                 this.con = MySQLConnection.getConnection();
             }
 
-            PreparedStatement scoreStatement = con.prepareStatement("select document, score from esa.score where term = ?");
+            PreparedStatement scoreStatement = con.prepareStatement("select document, score from esa.score where term = ? order by score desc");
             scoreStatement.setString(1, term);
             ResultSet resultSet = scoreStatement.executeQuery();
             ArrayList<TfIdfScore> scores = new ArrayList<>();
@@ -145,6 +145,57 @@ public class TfIdfScoreRepository {
                 scoreStatement.setDouble(3, score.getScore());
                 scoreStatement.executeUpdate();
             }
+        }
+        catch (Exception e) {
+            System.out.println("Postgres is unhappy about something:");
+            e.printStackTrace();
+            System.exit(-1);
+        }
+    }
+
+    public String[] getTerms() {
+        try {
+            if (this.con == null) {
+                this.con = MySQLConnection.getConnection();
+            }
+            long termCount = 0;
+            PreparedStatement countStatement = con.prepareStatement("select count(*) from esa.df;");
+            ResultSet resultSet = countStatement.executeQuery();
+            ArrayList<TfIdfScore> scores = new ArrayList<>();
+            if (resultSet.next()) {
+                termCount = resultSet.getLong(1);
+            }
+
+            if (termCount > 0) {
+                String[] terms = new String[(int) termCount];
+                PreparedStatement termSelect = con.prepareStatement("select term from esa.df;");
+                resultSet = termSelect.executeQuery();
+                int i = 0;
+                while (resultSet.next()) {
+                    terms[i++] = resultSet.getString(1);
+                }
+                return terms;
+            } else {
+                return null;
+            }
+        }
+        catch (Exception e) {
+            System.out.println("Postgres is unhappy about something:");
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        return null;
+    }
+
+    public void pruneTerm(String term, double cutoffScore) {
+        try {
+            if (this.con == null) {
+                this.con = MySQLConnection.getConnection();
+            }
+            PreparedStatement pruneUpdate = con.prepareStatement("update esa.score set score = 0 where term = ? and score < ?");
+            pruneUpdate.setString(1, term);
+            pruneUpdate.setDouble(2, cutoffScore);
+            pruneUpdate.executeUpdate();
         }
         catch (Exception e) {
             System.out.println("Postgres is unhappy about something:");

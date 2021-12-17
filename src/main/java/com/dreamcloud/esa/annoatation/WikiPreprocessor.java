@@ -59,7 +59,7 @@ public class WikiPreprocessor extends XmlWritingHandler {
 
         //Generate a normalized template map
         try(TemplateMapper mapper = new TemplateMapper(new TemplateResolutionOptions())) {
-            templateMap = mapper.map(inputFile);
+            //templateMap = mapper.map(inputFile);
         }
 
         //Perform the template substitution
@@ -119,7 +119,7 @@ public class WikiPreprocessor extends XmlWritingHandler {
         }
 
         try {
-            text = templateProcessor.substitute(text, title);
+            //text = templateProcessor.substitute(text, title);
 
             //We've handled templates, so let's strip out HTML tags and CSS stuff
             //text = Jsoup.clean(text, "", Safelist.none());

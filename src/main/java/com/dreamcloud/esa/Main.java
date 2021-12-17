@@ -11,6 +11,7 @@ import java.util.Iterator;
 
 import com.dreamcloud.esa.analyzer.*;
 import com.dreamcloud.esa.annoatation.*;
+import com.dreamcloud.esa.database.TfIdfScoreRepository;
 import com.dreamcloud.esa.debug.ArticleFinder;
 import com.dreamcloud.esa.debug.DebugArticle;
 import com.dreamcloud.esa.documentPreprocessor.ChainedPreprocessor;
@@ -201,15 +202,10 @@ public class Main {
         wikiPreprocessorOption.setArgs(3);
         options.addOption(wikiPreprocessorOption);
 
-        Option linkCountOption = new Option(null, "count-links", true, "wikiInputFile titleMapFile outputFile / Creates an annotated XML file with link counts.");
+        Option linkCountOption = new Option(null, "count-links-and-terms", true, "wikiInputFile titleMapFile outputFile / Creates an annotated XML file with link counts.");
         linkCountOption.setRequired(false);
         linkCountOption.setArgs(3);
         options.addOption(linkCountOption);
-
-        Option termCountOption = new Option(null, "count-terms", true, "inputFile outputFile / Creates an annotated XML file with term counts.");
-        termCountOption.setRequired(false);
-        termCountOption.setArgs(2);
-        options.addOption(termCountOption);
 
         Option repeatContentOption = new Option(null, "repeat-content", true, "inputFile outputFile / Repeats titles and links to weight them more highly.");
         repeatContentOption.setRequired(false);
@@ -240,9 +236,8 @@ public class Main {
         options.addOption(indexPathOption);
 
         //Prune index option
-        Option pruneOption = new Option(null, "prune", true, "index path, pruned index path / Creates an inverse index mapping pruned to include only relevant concepts");
+        Option pruneOption = new Option(null, "prune", false, "Creates an inverse index mapping pruned to include only relevant concepts");
         pruneOption.setRequired(false);
-        pruneOption.setArgs(2);
         options.addOption(pruneOption);
 
         Option pruneWindowSizeOption = new Option(null, "prune-window-size", true, "int [100] / The size of the concept window used for pruning.");
@@ -271,12 +266,10 @@ public class Main {
             String[] weightArgs = cmd.getOptionValues("weight");
             String[] wikiPreprocessorArgs = cmd.getOptionValues("preprocess");
             String[] findArticleArgs = cmd.getOptionValues("find-article");
-            String[] countLinkArgs = cmd.getOptionValues("count-links");
-            String[] countTermArgs = cmd.getOptionValues("count-terms");
+            String[] countLinkArgs = cmd.getOptionValues("count-links-and-terms");
             String[] repeatContentArgs = cmd.getOptionValues("repeat-content");
             String[] writeRareWordArgs = cmd.getOptionValues("write-rare-words");
             String[] pearsonArgs = cmd.getOptionValues("pearson");
-            String[] pruneArgs = cmd.getOptionValues("prune");
             String docType = cmd.getOptionValue("doctype");
             String vectorizerType = cmd.getOptionValue("vectorizer");
             String similarityAlgorithm = cmd.getOptionValue("similarity");
@@ -558,30 +551,13 @@ public class Main {
                 File strippedFile = new File(countLinkArgs[0]);
                 File titleMapFile = new File(countLinkArgs[1]);
                 File outputFile = new File(countLinkArgs[2]);
-                WikiLinkAnnotatorOptions wikiLinkAnnotatorOptions = new WikiLinkAnnotatorOptions();
+                WikiLinkAndTermAnnotatorOptions wikiLinkAnnotatorOptions = new WikiLinkAndTermAnnotatorOptions();
                 wikiLinkAnnotatorOptions.minimumIncomingLinks = indexerOptions.minimumIncomingLinks;
                 wikiLinkAnnotatorOptions.minimumOutgoingLinks = indexerOptions.minimumOutgoingLinks;
-                try(WikiLinkAnnotator annotator = new WikiLinkAnnotator(wikiLinkAnnotatorOptions)) {
+                wikiLinkAnnotatorOptions.minimumTerms = indexerOptions.minimumTermCount;
+                wikiLinkAnnotatorOptions.analyzer = indexerOptions.analyzerFactory.getAnalyzer();
+                try(WikiLinkAndTermAnnotator annotator = new WikiLinkAndTermAnnotator(wikiLinkAnnotatorOptions)) {
                     annotator.annotate(strippedFile, titleMapFile, outputFile);
-                }
-            }
-
-            else if (hasLength(countTermArgs, 2)) {
-                File inputFile = new File(countTermArgs[0]);
-                File outputFile = new File(countTermArgs[1]);
-                TermCountAnnotatorOptions termCountOptions = new TermCountAnnotatorOptions();
-                termCountOptions.minimumTerms = indexerOptions.minimumTermCount;
-                termCountOptions.maximumTerms = indexerOptions.maximumTermCount;
-                AnalyzerOptions analyzerOptions = new AnalyzerOptions();
-                analyzerOptions.stopWordsRepository = esaOptions.stopWordRepository;
-                analyzerOptions.tokenizerFactory = new TokenizerFactory() {
-                    public Tokenizer getTokenizer() {
-                        return new WikipediaTokenizer();
-                    }
-                };
-                termCountOptions.analyzer = new EsaAnalyzer(analyzerOptions);
-                try(TermCountAnnotator termCountAnnotator = new TermCountAnnotator(termCountOptions)) {
-                    termCountAnnotator.annotate(inputFile, outputFile);
                 }
             }
 
@@ -613,20 +589,9 @@ public class Main {
             else if(nonEmpty(index)) {
                 System.out.println("Indexing " + index + "...");
                 indexFile(esaOptions, indexerOptions);
-            } else if(hasLength(pruneArgs, 2)) {
-              int windowSize = nonEmpty(pruneWindowSize) ? Integer.parseInt(pruneWindowSize) : 0;
-              double dropOff = nonEmpty(pruneDropOff) ? Double.parseDouble(pruneDropOff) : 0;
-              Path inputPath = Path.of(pruneArgs[0]);
-              Path outputPath = Path.of(pruneArgs[1]);
-              IndexPruner pruner;
-              System.out.println("Window Size: " + windowSize);
-              System.out.println("Drop Off: " + dropOff);
-              if (windowSize > 0 && dropOff > 0) {
-                   pruner = new IndexPruner(windowSize, dropOff);
-              } else {
-                  pruner = new IndexPruner();
-              }
-              pruner.prune(inputPath, outputPath);
+            } else if(cmd.hasOption("prune")) {
+              IndexPruner pruner = new IndexPruner(pruneOptions);
+              pruner.prune(new TfIdfScoreRepository());
             } else if(nonEmpty(server)) {
                 EsaHttpServer esaServer = new EsaHttpServer(esaOptions);
                 esaServer.start(Integer.parseInt(server));

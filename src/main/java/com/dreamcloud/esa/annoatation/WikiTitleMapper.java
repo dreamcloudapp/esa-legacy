@@ -72,12 +72,25 @@ class WikiTitleMapper extends XmlWritingHandler {
     @Override
     public void handleDocument(Map<String, String> xmlFields) {
         String title = StringUtils.normalizeWikiTitle(xmlFields.get("title"));
+        //Exclude titles by regex
+        for (Pattern pattern: this.titleExclusionPatterns) {
+            Matcher matcher = pattern.matcher(title.toLowerCase());
+            if (matcher.find()) {
+                return;
+            }
+        }
         String text = xmlFields.get("text");
         String redirect = title;
         Matcher matcher = redirectPattern.matcher(text);
         if (matcher.matches()) {
             numRedirects++;
             redirect = StringUtils.normalizeWikiTitle(matcher.group(1));
+            for (Pattern pattern: this.titleExclusionPatterns) {
+                Matcher redirectMatcher = pattern.matcher(redirect.toLowerCase());
+                if (redirectMatcher.find()) {
+                    return;
+                }
+            }
         }
         try {
             this.writeDocument(title, redirect);
