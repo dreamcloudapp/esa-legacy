@@ -82,8 +82,6 @@ public class WikiLinAndTermHandler extends XmlReadingHandler {
             while (matcher.find()) {
                 String link = titleMap.get(StringUtils.normalizeWikiTitle(matcher.group(1)));
                 if (link != null && annotations.containsKey(link)) {
-                    outgoingLinkMap.put(title, link);
-                    incomingLinkMap.put(link, title);
                     outgoingLinks.add(link);
                 }
             }
@@ -96,6 +94,9 @@ public class WikiLinAndTermHandler extends XmlReadingHandler {
                 if (annotations.containsKey(outgoingLink)) {
                     WikiAnnotation outgoingAnnotation = annotations.get(outgoingLink);
                     outgoingAnnotation.incomingLinks++;
+
+                    outgoingLinkMap.put(title, outgoingLink);
+                    incomingLinkMap.put(outgoingLink, title);
                 }
             }
         }

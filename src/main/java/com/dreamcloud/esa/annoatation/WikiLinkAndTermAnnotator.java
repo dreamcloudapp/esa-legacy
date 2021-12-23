@@ -112,8 +112,10 @@ public class WikiLinkAndTermAnnotator extends XmlWritingHandler {
         saxParser.parse(is, new WikiLinAndTermHandler(options, titleMap, annotations, WikiLinAndTermHandler.ANALYSIS_LINKS, incomingLinkMap, outgoingLinkMap));
 
         LinkPruner pruner = new LinkPruner(incomingLinkMap, outgoingLinkMap, options.minimumIncomingLinks);
+
+        System.out.println("Outgoing Links: " + outgoingLinkMap.keySet().size());
+        System.out.println("Incoming Links: " + incomingLinkMap.keySet().size());
         Set<String> prunedTitles = pruner.prune();
-        System.out.println("Pruned Titles: " + prunedTitles.size());
         reader.close();
     }
 
