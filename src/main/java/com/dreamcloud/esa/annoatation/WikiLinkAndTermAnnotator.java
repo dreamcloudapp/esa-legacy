@@ -3,6 +3,11 @@ package com.dreamcloud.esa.annoatation;
 import com.dreamcloud.esa.annoatation.handler.XmlWritingHandler;
 import com.dreamcloud.esa.tools.BZipFileReader;
 
+import org.apache.commons.collections.MultiMap;
+import org.apache.commons.collections.map.MultiValueMap;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
+import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -14,6 +19,7 @@ import java.io.*;
 import java.text.NumberFormat;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Takes a stripped dump file and a mapping of redirect titles
@@ -36,6 +42,8 @@ import java.util.Map;
 public class WikiLinkAndTermAnnotator extends XmlWritingHandler {
     protected WikiLinkAndTermAnnotatorOptions options;
     protected Map<String, String> titleMap = new HashMap<>();
+    protected MultiValuedMap<String, String> incomingLinkMap = new HashSetValuedHashMap<>();
+    protected MultiValuedMap<String, String> outgoingLinkMap = new HashSetValuedHashMap<>();
     protected Map<String, WikiAnnotation> annotations = new HashMap<>();
 
     protected final SAXParserFactory saxFactory;
@@ -101,7 +109,11 @@ public class WikiLinkAndTermAnnotator extends XmlWritingHandler {
         Reader reader = BZipFileReader.getFileReader(strippedFile);
         InputSource is = new InputSource(reader);
         is.setEncoding("UTF-8");
-        saxParser.parse(is, new WikiLinAndTermHandler(options, titleMap, annotations, WikiLinAndTermHandler.ANALYSIS_LINKS));
+        saxParser.parse(is, new WikiLinAndTermHandler(options, titleMap, annotations, WikiLinAndTermHandler.ANALYSIS_LINKS, incomingLinkMap, outgoingLinkMap));
+
+        LinkPruner pruner = new LinkPruner(incomingLinkMap, outgoingLinkMap, options.minimumIncomingLinks);
+        Set<String> prunedTitles = pruner.prune();
+        System.out.println("Pruned Titles: " + prunedTitles.size());
         reader.close();
     }
 

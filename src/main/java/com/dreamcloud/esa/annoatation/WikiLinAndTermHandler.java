@@ -2,6 +2,8 @@ package com.dreamcloud.esa.annoatation;
 
 import com.dreamcloud.esa.annoatation.handler.XmlReadingHandler;
 import com.dreamcloud.esa.tools.StringUtils;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 
@@ -20,6 +22,8 @@ public class WikiLinAndTermHandler extends XmlReadingHandler {
     protected int numStripped = 0;
     static Pattern linkRegexPattern = Pattern.compile("\\[\\[(?!File:|Image:)([^|#\\]]+)[^]]*]]");
     protected Map<String, String> titleMap;
+    protected MultiValuedMap<String, String> incomingLinkMap;
+    protected MultiValuedMap<String, String> outgoingLinkMap;
     protected Map<String, WikiAnnotation> annotations;
     protected int analysisMode;
 
@@ -28,6 +32,15 @@ public class WikiLinAndTermHandler extends XmlReadingHandler {
         this.titleMap = titleMap;
         this.annotations = annotations;
         this.analysisMode = analysisMode;
+    }
+
+    public WikiLinAndTermHandler(WikiLinkAndTermAnnotatorOptions options, Map<String, String> titleMap, Map<String, WikiAnnotation> annotations, int analysisMode, MultiValuedMap<String, String> incomingLinks, MultiValuedMap<String, String> outgoingLinks) {
+        this.options = options;
+        this.titleMap = titleMap;
+        this.annotations = annotations;
+        this.analysisMode = analysisMode;
+        this.incomingLinkMap = incomingLinks;
+        this.outgoingLinkMap = outgoingLinks;
     }
 
     public void handleDocument(Map<String, String> xmlFields) {
@@ -69,6 +82,8 @@ public class WikiLinAndTermHandler extends XmlReadingHandler {
             while (matcher.find()) {
                 String link = titleMap.get(StringUtils.normalizeWikiTitle(matcher.group(1)));
                 if (link != null && annotations.containsKey(link)) {
+                    outgoingLinkMap.put(title, link);
+                    incomingLinkMap.put(link, title);
                     outgoingLinks.add(link);
                 }
             }
@@ -86,7 +101,7 @@ public class WikiLinAndTermHandler extends XmlReadingHandler {
         }
 
         if (this.getDocsRead() % 1000 == 0) {
-            System.out.println("link-annotated article\t[" + this.getDocsRead() + "]\t\"" + title + "\"");
+            System.out.println((analysisMode == ANALYSIS_LINKS ? "link" : "term") + "-annotated article\t[" + this.getDocsRead() + "]\t\"" + title + "\"");
         }
     }
 }
