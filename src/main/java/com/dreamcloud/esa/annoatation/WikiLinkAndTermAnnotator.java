@@ -3,10 +3,7 @@ package com.dreamcloud.esa.annoatation;
 import com.dreamcloud.esa.annoatation.handler.XmlWritingHandler;
 import com.dreamcloud.esa.tools.BZipFileReader;
 
-import org.apache.commons.collections.MultiMap;
-import org.apache.commons.collections.map.MultiValueMap;
 import org.apache.commons.collections4.MultiValuedMap;
-import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;

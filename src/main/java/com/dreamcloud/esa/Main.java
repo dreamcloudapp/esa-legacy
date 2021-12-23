@@ -2,7 +2,6 @@ package com.dreamcloud.esa;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.text.DecimalFormat;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -24,11 +23,11 @@ import com.dreamcloud.esa.similarity.SimilarityFactory;
 import com.dreamcloud.esa.tfidf.TfIdfWriter;
 import com.dreamcloud.esa.tools.*;
 import com.dreamcloud.esa.vectorizer.*;
+
+import jdk.jfr.Category;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
-import org.apache.lucene.analysis.wikipedia.WikipediaTokenizer;
 import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.search.*;
@@ -212,6 +211,10 @@ public class Main {
         repeatContentOption.setArgs(2);
         options.addOption(repeatContentOption);
 
+        Option categoryInfoOption = new Option(null, "category-info", true, "inputFile / Displays category information about the processed dump file.");
+        categoryInfoOption.setRequired(false);
+        options.addOption(categoryInfoOption);
+
         Option repeatTitleOption = new Option(null, "repeat-title", true, "int | The number of times to repeat titles.");
         repeatTitleOption.setRequired(false);
         options.addOption(repeatTitleOption);
@@ -281,6 +284,7 @@ public class Main {
             String pruneDropOff = cmd.getOptionValue("prune-dropoff");
             String titleRepeat = cmd.getOptionValue("repeat-title");
             String linkRepeat = cmd.getOptionValue("repeat-link");
+            String categoryInfo = cmd.getOptionValue("category-info");
 
             EsaOptions esaOptions = new EsaOptions();
 
@@ -582,6 +586,13 @@ public class Main {
                 int rareWordThreshold = Integer.parseInt(writeRareWordArgs[2]);
                 try(RareWordDictionary termCountMapper = new RareWordDictionary(analyzerFactory.getAnalyzer(), rareWordThreshold)) {
                     termCountMapper.mapToXml(inputFile, outputFile);
+                }
+            }
+
+            else if(nonEmpty(categoryInfo)) {
+                File inputFile = new File(categoryInfo);
+                try(CategoryAnalyzer categoryAnalyzer = new CategoryAnalyzer()) {
+                    categoryAnalyzer.analyze(inputFile);
                 }
             }
 
