@@ -106,9 +106,13 @@ public class CategoryAnalyzer extends XmlReadingHandler {
         }
 
         int excludedCount = 0;
-        for (String excludedCategory: getGabrilovichExclusionCategories()) {
-            if (categoryInfo.containsKey(excludedCategory)) {
-                excludedCount += categoryInfo.get(excludedCategory);
+
+        for (String category: categoryInfo.keySet()) {
+            for (String excludedCategory : getGabrilovichExclusionCategories()) {
+                if (areCategoriesRelated(excludedCategory, category)) {
+                    excludedCount += categoryInfo.get(excludedCategory);
+                    break;
+                }
             }
         }
         System.out.println("Excluded articles: " + excludedCount);
@@ -152,7 +156,7 @@ public class CategoryAnalyzer extends XmlReadingHandler {
             return true;
         }
 
-        Collection<String> children = categoryHierarchy.get(parent);
+        Collection<String> children =
         for (String child: children) {
             if (areCategoriesRelated(child, orphan, categoriesSeen)) {
                 return true;
