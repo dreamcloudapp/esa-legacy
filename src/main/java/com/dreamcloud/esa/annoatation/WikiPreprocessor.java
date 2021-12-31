@@ -17,6 +17,7 @@ import java.io.Reader;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,12 +31,15 @@ import java.util.regex.Pattern;
 public class WikiPreprocessor extends XmlWritingHandler {
     Map<String, String> templateMap;
     protected TemplateProcessor templateProcessor;
+    protected CategoryAnalyzer categoryAnalyzer;
+    Set<String> excludedCategories;
     protected Pattern redirectPattern = Pattern.compile("^.*#REDIRECT[^\\[]+\\[\\[(.+)]].*$");
     protected Pattern htmlAttributePattern = Pattern.compile("\\|\\s*[a-zA-Z_-]+\\s*=\\s*[^|]+\\|", Pattern.CASE_INSENSITIVE);
     ArrayList<Pattern> titleExclusionPatterns;
     protected final SAXParserFactory saxFactory;
     protected int docsStripped = 0;
     protected int numRedirects = 0;
+    private int docsStrippedByCategory = 0;
 
     public WikiPreprocessor(WikiPreprocessorOptions options) {
         this.setDocumentTag("page");
@@ -49,6 +53,8 @@ public class WikiPreprocessor extends XmlWritingHandler {
                 this.titleExclusionPatterns.add(Pattern.compile(titleExclusionRegEx));
             }
         }
+        categoryAnalyzer = new CategoryAnalyzer();
+        excludedCategories = categoryAnalyzer.getGabrilovichExclusionCategories();
     }
 
     public void preprocess(File inputFile, File outputFile, File titleOutputFile) throws Exception {
@@ -57,10 +63,13 @@ public class WikiPreprocessor extends XmlWritingHandler {
             titleMapper.mapToXml(titleOutputFile);
         }
 
+        //Build category hierarchies
+        categoryAnalyzer.analyze(inputFile);
+
         //Generate a normalized template map
-        try(TemplateMapper mapper = new TemplateMapper(new TemplateResolutionOptions())) {
-            //templateMap = mapper.map(inputFile);
-        }
+        /*try(TemplateMapper mapper = new TemplateMapper(new TemplateResolutionOptions())) {
+            templateMap = mapper.map(inputFile);
+        }*/
 
         //Perform the template substitution
         reset();
@@ -85,6 +94,7 @@ public class WikiPreprocessor extends XmlWritingHandler {
         System.out.println("----------------------------------------");
         System.out.println("Articles Read:\t" + this.getDocsRead());
         System.out.println("Articles Stripped:\t" + docsStripped);
+        System.out.println("Articles Stripped by Category:\t" + docsStrippedByCategory);
         NumberFormat format = NumberFormat.getPercentInstance();
         format.setMinimumFractionDigits(1);
         System.out.println("Strip Rate:\t" + format.format(((double) docsStripped) / ((double) this.getDocsRead())));
@@ -95,9 +105,16 @@ public class WikiPreprocessor extends XmlWritingHandler {
     @Override
     public void handleDocument(Map<String, String> xmlFields) throws SAXException {
         String title = xmlFields.get("title");
+        String normalizedTitle = StringUtils.normalizeWikiTitle(title);
         String text = xmlFields.get("text");
 
         if (!StringUtils.nonEmpty(title) || !StringUtils.nonEmpty(text)) {
+            this.docsStripped++;
+            return;
+        }
+
+        //Exclude category articles
+        if (normalizedTitle.startsWith("category:")) {
             this.docsStripped++;
             return;
         }
@@ -118,13 +135,22 @@ public class WikiPreprocessor extends XmlWritingHandler {
             return;
         }
 
+        //Exclude articles in excluded categories
+        for (String excludedCategory: excludedCategories) {
+            if (categoryAnalyzer.isArticleInCategory(normalizedTitle, excludedCategory)) {
+                this.docsStripped++;
+                this.docsStrippedByCategory++;
+                return;
+            }
+        }
+
         try {
-            //text = templateProcessor.substitute(text, title);
+            //text = templateProcessor.substitute(text, title); //todo: why not use normalized title here?
 
             //We've handled templates, so let's strip out HTML tags and CSS stuff
             //text = Jsoup.clean(text, "", Safelist.none());
             text = htmlAttributePattern.matcher(text).replaceAll(" ");
-            this.writeDocument(StringUtils.normalizeWikiTitle(title), text);
+            this.writeDocument(normalizedTitle, text);
         } catch (XMLStreamException | IOException e) {
             e.printStackTrace();
             System.exit(1);

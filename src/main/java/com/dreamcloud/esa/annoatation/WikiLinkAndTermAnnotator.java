@@ -90,6 +90,19 @@ public class WikiLinkAndTermAnnotator extends XmlWritingHandler {
         is.setEncoding("UTF-8");
         saxParser.parse(is, new WikiTitleMapHandler(titleMap));
         reader.close();
+
+        //Resolve all redirects
+        Map<String, String> resolvedTitleMap = new HashMap<>();
+        for (String title: titleMap.keySet()) {
+            String currentTitle = title;
+            String redirect = titleMap.get(title);
+            while (!currentTitle.equals(redirect)) {
+                currentTitle = redirect;
+                redirect = titleMap.get(redirect);
+            }
+            resolvedTitleMap.put(title, redirect);
+        }
+        titleMap = resolvedTitleMap;
     }
 
     protected void analyzeTerms(File strippedFile) throws IOException, SAXException, ParserConfigurationException {

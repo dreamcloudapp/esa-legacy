@@ -6,6 +6,7 @@ import com.dreamcloud.esa.tools.StringUtils;
 
 import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
+import org.apache.xpath.operations.Bool;
 import org.eclipse.collections.api.iterator.MutableIntIterator;
 import org.eclipse.collections.api.map.primitive.MutableObjectIntMap;
 import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
@@ -27,9 +28,10 @@ public class CategoryAnalyzer extends XmlReadingHandler {
     protected final SAXParserFactory saxFactory;
     static Pattern categoryRegexPattern = Pattern.compile("\\[\\[\\s?([cC]ategory:[^|#\\]]+)[^]]*]]");
     protected MultiValuedMap<String, String> categoryHierarchy = new HashSetValuedHashMap<>();
+    protected MultiValuedMap<String, String> articleCategories = new HashSetValuedHashMap<>();
     protected MutableObjectIntMap<String> categoryInfo = ObjectIntMaps.mutable.empty();
 
-    protected static Set<String> getGabrilovichExclusionCategories() {
+    public Set<String> getGabrilovichExclusionCategories() {
         Set<String> categories = new HashSet<>();
         categories.add(StringUtils.normalizeWikiTitle("Category:Star name disambiguations"));
         categories.add(StringUtils.normalizeWikiTitle("Category:America"));
@@ -75,6 +77,7 @@ public class CategoryAnalyzer extends XmlReadingHandler {
     }
 
     public CategoryAnalyzer() {
+        setDocumentTag("page");
         saxFactory = SAXParserFactory.newInstance();
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);
@@ -89,7 +92,7 @@ public class CategoryAnalyzer extends XmlReadingHandler {
         saxParser.parse(is, this);
         reader.close();
 
-        System.out.println("Category Stats");
+        /*System.out.println("Category Stats");
         System.out.println("---------------------------------------");
         System.out.println("Total categories " + categoryInfo.size());
         Iterator<String> orderedCategories = categoryInfo.keySet().stream().
@@ -117,10 +120,11 @@ public class CategoryAnalyzer extends XmlReadingHandler {
         }
         System.out.println("Excluded articles: " + excludedCount);
         System.out.println("---------------------------------------");
+         */
     }
 
     public void handleDocument(Map<String, String> xmlFields) {
-        String title = xmlFields.get("title");
+        String title = StringUtils.normalizeWikiTitle(xmlFields.get("title"));
         String text = xmlFields.get("text");
         Matcher matcher = categoryRegexPattern.matcher(text);
         Set<String> categories = new HashSet<>();
@@ -130,13 +134,23 @@ public class CategoryAnalyzer extends XmlReadingHandler {
         }
         boolean isCategoryArticle = title.startsWith("category:");
         for (String category: categories) {
+            articleCategories.put(title, category);
             categoryInfo.addToValue(category, 1);
             if (isCategoryArticle) {
                 categoryHierarchy.put(category, title);
             }
         }
 
-        this.logMessage("Analyzed article\t" + this.getDocsRead());
+        this.logMessage("Categorized article\t" + this.getDocsRead());
+    }
+
+    public boolean isArticleInCategory(String article, String category) {
+        for (String articleCategory: articleCategories.get(article)) {
+            if (areCategoriesRelated(category, articleCategory)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     protected boolean areCategoriesRelated(String parent, String orphan) {
@@ -156,7 +170,7 @@ public class CategoryAnalyzer extends XmlReadingHandler {
             return true;
         }
 
-        Collection<String> children =
+        Collection<String> children = categoryHierarchy.get(parent);
         for (String child: children) {
             if (areCategoriesRelated(child, orphan, categoriesSeen)) {
                 return true;
