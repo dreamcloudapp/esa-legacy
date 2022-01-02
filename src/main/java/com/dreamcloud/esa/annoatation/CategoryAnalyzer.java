@@ -29,50 +29,10 @@ public class CategoryAnalyzer extends XmlReadingHandler {
     static Pattern categoryRegexPattern = Pattern.compile("\\[\\[\\s?([cC]ategory:[^|#\\]]+)[^]]*]]");
     protected MultiValuedMap<String, String> categoryHierarchy = new HashSetValuedHashMap<>();
     protected MutableObjectIntMap<String> categoryInfo = ObjectIntMaps.mutable.empty();
-    Set<String> categories = new HashSet<>();
+    Set<String> excludedCategories = new HashSet<>();
 
     public Set<String> getGabrilovichExclusionCategories() {
-        categories.add(StringUtils.normalizeWikiTitle("Category:Star name disambiguations"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:America"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Disambiguation"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Georgia"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Lists of political parties by generic name"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Galaxy name disambiguations"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Lists of two-letter combinations"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Disambiguation categories"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Towns in Italy (StringUtils.normalizeWikiTitle(disambiguation)"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Redirects to disambiguation pages"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Birmingham"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Mathematical disambiguation"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Public schools in Montgomery County"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Structured lists"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Identical titles for unrelated songs"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Signpost articles"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Township disambiguation"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:County disambiguation"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Disambiguation pages in need of cleanup"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Human name disambiguation"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Number disambiguations"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Letter and number combinations"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:4-letter acronyms"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Acronyms that may need to be disambiguated"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Lists of roads sharing the same title"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:List disambiguations"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:3-digit Interstate disambiguations"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Geographical locations sharing the same title"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Tropical cyclone disambiguation"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Repeat-word disambiguations"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Song disambiguations"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Disambiguated phrases"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Subway station disambiguations"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Lists of identical but unrelated album titles"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:5-letter acronyms"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Three-letter acronym disambiguations"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Miscellaneous disambiguations"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Two-letter acronym disambiguations"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Days"));
-        categories.add(StringUtils.normalizeWikiTitle("Category:Eastern Orthodox liturgical days"));
-        return categories;
+        return excludedCategories;
     }
 
     public CategoryAnalyzer() {
@@ -81,6 +41,46 @@ public class CategoryAnalyzer extends XmlReadingHandler {
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);
         saxFactory.setXIncludeAware(true);
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Star name disambiguations"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:America"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Disambiguation"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Georgia"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Lists of political parties by generic name"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Galaxy name disambiguations"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Lists of two-letter combinations"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Disambiguation categories"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Towns in Italy (StringUtils.normalizeWikiTitle(disambiguation)"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Redirects to disambiguation pages"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Birmingham"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Mathematical disambiguation"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Public schools in Montgomery County"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Structured lists"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Identical titles for unrelated songs"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Signpost articles"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Township disambiguation"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:County disambiguation"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Disambiguation pages in need of cleanup"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Human name disambiguation"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Number disambiguations"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Letter and number combinations"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:4-letter acronyms"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Acronyms that may need to be disambiguated"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Lists of roads sharing the same title"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:List disambiguations"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:3-digit Interstate disambiguations"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Geographical locations sharing the same title"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Tropical cyclone disambiguation"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Repeat-word disambiguations"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Song disambiguations"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Disambiguated phrases"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Subway station disambiguations"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Lists of identical but unrelated album titles"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:5-letter acronyms"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Three-letter acronym disambiguations"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Miscellaneous disambiguations"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Two-letter acronym disambiguations"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Days"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Eastern Orthodox liturgical days"));
     }
 
     public void analyze(File inputFile) throws ParserConfigurationException, SAXException, IOException {
@@ -120,20 +120,18 @@ public class CategoryAnalyzer extends XmlReadingHandler {
         System.out.println("Excluded articles: " + excludedCount);
         System.out.println("---------------------------------------");
          */
-        System.out.println("Disambiguation categories:");
-        System.out.println("---------------------------------------");
-        listCategoryChildren("category:disambiguation");
-        System.out.println("---------------------------------------");
+
+        for (String excludedCategory: excludedCategories.toArray(String[]::new)) {
+            expandExcludedCategories(excludedCategory);
+        }
     }
 
-    public void listCategoryChildren(String category) {
+    public void expandExcludedCategories(String category) {
         Collection<String> childCategories = categoryHierarchy.get(category);
         if (childCategories != null) {
             for (String childCategory: childCategories) {
-                categories.add(childCategory);
-                System.out.println(childCategory);
-                listCategoryChildren(childCategory);
-                System.out.println("---");
+               excludedCategories.add(childCategory);
+               expandExcludedCategories(childCategory);
             }
         }
     }
@@ -162,12 +160,13 @@ public class CategoryAnalyzer extends XmlReadingHandler {
     }
 
     public boolean articleHasCategory(String articleText, String category) {
-        for (String articleCategory: getArticleCategories(articleText)) {
+        return getArticleCategories(articleText).contains(category);
+        /*for (String articleCategory: getArticleCategories(articleText)) {
             if (areCategoriesRelated(category, articleCategory)) {
                 return true;
             }
         }
-        return false;
+        return false;*/
     }
 
     protected boolean areCategoriesRelated(String parent, String orphan) {

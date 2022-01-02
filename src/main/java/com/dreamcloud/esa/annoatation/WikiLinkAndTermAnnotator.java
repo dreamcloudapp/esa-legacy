@@ -94,13 +94,16 @@ public class WikiLinkAndTermAnnotator extends XmlWritingHandler {
         //Resolve all redirects
         Map<String, String> resolvedTitleMap = new HashMap<>();
         for (String title: titleMap.keySet()) {
-            String currentTitle = title;
-            String redirect = titleMap.get(title);
-            while (!currentTitle.equals(redirect)) {
-                currentTitle = redirect;
-                redirect = titleMap.get(redirect);
+            String originalTitle = title;
+            while (titleMap.containsKey(title)) {
+                String resolvedTitle = titleMap.get(title);
+                if (title.equals(resolvedTitle)) {
+                    break;
+                } else {
+                    title = resolvedTitle;
+                }
             }
-            resolvedTitleMap.put(title, redirect);
+            resolvedTitleMap.put(originalTitle, title);
         }
         titleMap = resolvedTitleMap;
     }

@@ -56,7 +56,6 @@ public class WikiPreprocessor extends XmlWritingHandler {
             }
         }
         categoryAnalyzer = new CategoryAnalyzer();
-        excludedCategories = categoryAnalyzer.getGabrilovichExclusionCategories();
     }
 
     public void preprocess(File inputFile, File outputFile, File titleOutputFile) throws Exception {
@@ -67,6 +66,7 @@ public class WikiPreprocessor extends XmlWritingHandler {
 
         //Build category hierarchies
         categoryAnalyzer.analyze(inputFile);
+        excludedCategories = categoryAnalyzer.getGabrilovichExclusionCategories();
 
         //Generate a normalized template map
         try(TemplateMapper mapper = new TemplateMapper(new TemplateResolutionOptions())) {
@@ -136,6 +136,7 @@ public class WikiPreprocessor extends XmlWritingHandler {
         Matcher matcher = redirectPattern.matcher(text);
         if (matcher.matches()) {
             this.docsStripped++;
+            this.numRedirects++;
             return;
         }
 
@@ -150,14 +151,17 @@ public class WikiPreprocessor extends XmlWritingHandler {
             text = templateProcessor.substitute(text, title); //todo: why not use normalized title here?
 
             //Exclude articles in excluded categories
-            for (String excludedCategory: excludedCategories) {
-                if (categoryAnalyzer.articleHasCategory(text, excludedCategory)) {
-                    System.out.println("Article '" + normalizedTitle + "' excluded for being in category '" + excludedCategory + "'");
-                    System.out.println("---------------------------------------");
-                    for (String category: categoryAnalyzer.getArticleCategories(text)) {
-                        System.out.println(category);
+            for (String articleCategory: categoryAnalyzer.getArticleCategories(text)) {
+                if (excludedCategories.contains(articleCategory)) {
+                    if (this.getDocsRead() % 1000 == 0) {
+                        System.out.println("Article '" + normalizedTitle + "' excluded for being in category '" + articleCategory + "'");
+                        System.out.println("---------------------------------------");
+                        for (String category: categoryAnalyzer.getArticleCategories(text)) {
+                            System.out.println(category);
+                        }
+                        System.out.println("---------------------------------------");
                     }
-                    System.out.println("---------------------------------------");
+
                     this.docsStripped++;
                     this.docsStrippedByCategory++;
                     return;
