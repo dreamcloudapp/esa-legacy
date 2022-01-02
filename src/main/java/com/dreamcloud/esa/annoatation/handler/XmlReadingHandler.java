@@ -104,5 +104,5 @@ abstract public class XmlReadingHandler extends DefaultHandler implements AutoCl
 
     }
 
-    abstract public void handleDocument(Map<String, String> xmlFields) throws SAXException;
+    abstract protected void handleDocument(Map<String, String> xmlFields) throws SAXException;
 }

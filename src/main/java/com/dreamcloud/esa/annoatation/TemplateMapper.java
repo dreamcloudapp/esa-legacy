@@ -100,7 +100,7 @@ class TemplateMapper extends XmlReadingHandler {
         return templateMap;
     }
 
-    public void handleDocument(Map<String, String> xmlFields) {
+    protected void handleDocument(Map<String, String> xmlFields) {
         int docsRead = this.getDocsRead();
         if (docsRead % 1000 == 0) {
             System.out.println("processed template\t[" + docsStripped + " | " + templates + "]");

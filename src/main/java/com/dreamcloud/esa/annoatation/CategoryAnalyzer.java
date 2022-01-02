@@ -28,11 +28,10 @@ public class CategoryAnalyzer extends XmlReadingHandler {
     protected final SAXParserFactory saxFactory;
     static Pattern categoryRegexPattern = Pattern.compile("\\[\\[\\s?([cC]ategory:[^|#\\]]+)[^]]*]]");
     protected MultiValuedMap<String, String> categoryHierarchy = new HashSetValuedHashMap<>();
-    protected MultiValuedMap<String, String> articleCategories = new HashSetValuedHashMap<>();
     protected MutableObjectIntMap<String> categoryInfo = ObjectIntMaps.mutable.empty();
+    Set<String> categories = new HashSet<>();
 
     public Set<String> getGabrilovichExclusionCategories() {
-        Set<String> categories = new HashSet<>();
         categories.add(StringUtils.normalizeWikiTitle("Category:Star name disambiguations"));
         categories.add(StringUtils.normalizeWikiTitle("Category:America"));
         categories.add(StringUtils.normalizeWikiTitle("Category:Disambiguation"));
@@ -121,31 +120,49 @@ public class CategoryAnalyzer extends XmlReadingHandler {
         System.out.println("Excluded articles: " + excludedCount);
         System.out.println("---------------------------------------");
          */
+        System.out.println("Disambiguation categories:");
+        System.out.println("---------------------------------------");
+        listCategoryChildren("category:disambiguation");
+        System.out.println("---------------------------------------");
     }
 
-    public void handleDocument(Map<String, String> xmlFields) {
+    public void listCategoryChildren(String category) {
+        Collection<String> childCategories = categoryHierarchy.get(category);
+        if (childCategories != null) {
+            for (String childCategory: childCategories) {
+                categories.add(childCategory);
+                System.out.println(childCategory);
+                listCategoryChildren(childCategory);
+                System.out.println("---");
+            }
+        }
+    }
+
+    protected void handleDocument(Map<String, String> xmlFields) {
         String title = StringUtils.normalizeWikiTitle(xmlFields.get("title"));
         String text = xmlFields.get("text");
-        Matcher matcher = categoryRegexPattern.matcher(text);
-        Set<String> categories = new HashSet<>();
-        while (matcher.find()) {
-            String category = StringUtils.normalizeWikiTitle(matcher.group(1));
-            categories.add(category);
-        }
         boolean isCategoryArticle = title.startsWith("category:");
-        for (String category: categories) {
-            articleCategories.put(title, category);
+        for (String category: getArticleCategories(text)) {
             categoryInfo.addToValue(category, 1);
             if (isCategoryArticle) {
                 categoryHierarchy.put(category, title);
             }
         }
-
         this.logMessage("Categorized article\t" + this.getDocsRead());
     }
 
-    public boolean isArticleInCategory(String article, String category) {
-        for (String articleCategory: articleCategories.get(article)) {
+    public Collection<String> getArticleCategories(String articleText) {
+        Matcher matcher = categoryRegexPattern.matcher(articleText);
+        Set<String> categories = new HashSet<>();
+        while (matcher.find()) {
+            String category = StringUtils.normalizeWikiTitle(matcher.group(1));
+            categories.add(category);
+        }
+        return categories;
+    }
+
+    public boolean articleHasCategory(String articleText, String category) {
+        for (String articleCategory: getArticleCategories(articleText)) {
             if (areCategoriesRelated(category, articleCategory)) {
                 return true;
             }

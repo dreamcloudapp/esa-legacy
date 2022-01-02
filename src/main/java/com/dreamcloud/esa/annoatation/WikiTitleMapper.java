@@ -70,7 +70,7 @@ class WikiTitleMapper extends XmlWritingHandler {
     }
 
     @Override
-    public void handleDocument(Map<String, String> xmlFields) {
+    protected void handleDocument(Map<String, String> xmlFields) {
         String title = StringUtils.normalizeWikiTitle(xmlFields.get("title"));
         //Exclude titles by regex
         for (Pattern pattern: this.titleExclusionPatterns) {

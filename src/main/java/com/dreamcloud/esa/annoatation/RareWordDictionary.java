@@ -71,7 +71,7 @@ public class RareWordDictionary extends XmlReadingHandler {
     }
 
     @Override
-    public void handleDocument(Map<String, String> xmlFields) throws SAXException {
+    protected void handleDocument(Map<String, String> xmlFields) throws SAXException {
         String text = xmlFields.get("text");
         TokenStream tokens = analyzer.tokenStream("text", text);
         CharTermAttribute termAttribute = tokens.addAttribute(CharTermAttribute.class);

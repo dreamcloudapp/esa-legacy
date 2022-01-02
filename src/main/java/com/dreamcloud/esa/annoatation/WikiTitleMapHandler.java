@@ -10,7 +10,7 @@ public class WikiTitleMapHandler extends XmlReadingHandler {
        this.titleMap = titleMap;
    }
 
-    public void handleDocument(Map<String, String> xmlFields) {
+    protected void handleDocument(Map<String, String> xmlFields) {
         String title = xmlFields.get("title");
         String redirect = xmlFields.get("redirect");
         this.titleMap.put(title, redirect);

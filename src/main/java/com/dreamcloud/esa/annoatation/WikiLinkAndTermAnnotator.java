@@ -152,7 +152,7 @@ public class WikiLinkAndTermAnnotator extends XmlWritingHandler {
         System.out.println("---------------------------------------");
     }
 
-    public void handleDocument(Map<String, String> xmlFields) {
+    protected void handleDocument(Map<String, String> xmlFields) {
         String title = xmlFields.get("title");
         String text = xmlFields.get("text");
         WikiAnnotation annotation = annotations.getOrDefault(title, null);

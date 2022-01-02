@@ -48,7 +48,7 @@ public class ArticleFinder extends XmlReadingHandler {
     }
 
     @Override
-    public void handleDocument(Map<String, String> xmlFields) throws ArticleFoundException {
+    protected void handleDocument(Map<String, String> xmlFields) throws ArticleFoundException {
         String title = xmlFields.get("title");
         if (title.equals(searchTitle) || this.getDocsRead() == searchIndex) {
             DebugArticle article = new DebugArticle();

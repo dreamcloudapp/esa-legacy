@@ -177,7 +177,7 @@ public class WikiIndexer extends XmlReadingHandler implements Indexer {
         indexWriter.close();
     }
 
-    public void handleDocument(Map<String, String> xmlFields) throws SAXException {
+    protected void handleDocument(Map<String, String> xmlFields) throws SAXException {
         WikipediaArticle article = new WikipediaArticle();
         article.title = xmlFields.get("title");
         article.text = xmlFields.get("text");

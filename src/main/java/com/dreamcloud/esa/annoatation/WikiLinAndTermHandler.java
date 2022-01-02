@@ -43,7 +43,7 @@ public class WikiLinAndTermHandler extends XmlReadingHandler {
         this.outgoingLinkMap = outgoingLinks;
     }
 
-    public void handleDocument(Map<String, String> xmlFields) {
+    protected void handleDocument(Map<String, String> xmlFields) {
         String title = xmlFields.get("title");
         String text = xmlFields.get("text");
 

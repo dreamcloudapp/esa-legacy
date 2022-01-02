@@ -35,11 +35,13 @@ public class WikiPreprocessor extends XmlWritingHandler {
     Set<String> excludedCategories;
     protected Pattern redirectPattern = Pattern.compile("^.*#REDIRECT[^\\[]+\\[\\[(.+)]].*$");
     protected Pattern htmlAttributePattern = Pattern.compile("\\|\\s*[a-zA-Z_-]+\\s*=\\s*[^|]+\\|", Pattern.CASE_INSENSITIVE);
+    protected Pattern stubPattern = Pattern.compile("\\{\\{[^}]*stub[^}]*}}");
     ArrayList<Pattern> titleExclusionPatterns;
     protected final SAXParserFactory saxFactory;
     protected int docsStripped = 0;
     protected int numRedirects = 0;
     private int docsStrippedByCategory = 0;
+    protected int numStubs = 0;
 
     public WikiPreprocessor(WikiPreprocessorOptions options) {
         this.setDocumentTag("page");
@@ -67,9 +69,9 @@ public class WikiPreprocessor extends XmlWritingHandler {
         categoryAnalyzer.analyze(inputFile);
 
         //Generate a normalized template map
-        /*try(TemplateMapper mapper = new TemplateMapper(new TemplateResolutionOptions())) {
+        try(TemplateMapper mapper = new TemplateMapper(new TemplateResolutionOptions())) {
             templateMap = mapper.map(inputFile);
-        }*/
+        }
 
         //Perform the template substitution
         reset();
@@ -95,6 +97,8 @@ public class WikiPreprocessor extends XmlWritingHandler {
         System.out.println("Articles Read:\t" + this.getDocsRead());
         System.out.println("Articles Stripped:\t" + docsStripped);
         System.out.println("Articles Stripped by Category:\t" + docsStrippedByCategory);
+        System.out.println("Redirects Stripped:\t" + numRedirects);
+        System.out.println("Stubs Stripped:\t" + numStubs);
         NumberFormat format = NumberFormat.getPercentInstance();
         format.setMinimumFractionDigits(1);
         System.out.println("Strip Rate:\t" + format.format(((double) docsStripped) / ((double) this.getDocsRead())));
@@ -103,7 +107,7 @@ public class WikiPreprocessor extends XmlWritingHandler {
     }
 
     @Override
-    public void handleDocument(Map<String, String> xmlFields) throws SAXException {
+    protected void handleDocument(Map<String, String> xmlFields) throws SAXException {
         String title = xmlFields.get("title");
         String normalizedTitle = StringUtils.normalizeWikiTitle(title);
         String text = xmlFields.get("text");
@@ -135,17 +139,30 @@ public class WikiPreprocessor extends XmlWritingHandler {
             return;
         }
 
-        //Exclude articles in excluded categories
-        for (String excludedCategory: excludedCategories) {
-            if (categoryAnalyzer.isArticleInCategory(normalizedTitle, excludedCategory)) {
-                this.docsStripped++;
-                this.docsStrippedByCategory++;
-                return;
-            }
+        matcher = stubPattern.matcher(text);
+        if (matcher.find()) {
+            this.numStubs++;
+            this.docsStripped++;
+            return;
         }
 
         try {
-            //text = templateProcessor.substitute(text, title); //todo: why not use normalized title here?
+            text = templateProcessor.substitute(text, title); //todo: why not use normalized title here?
+
+            //Exclude articles in excluded categories
+            for (String excludedCategory: excludedCategories) {
+                if (categoryAnalyzer.articleHasCategory(text, excludedCategory)) {
+                    System.out.println("Article '" + normalizedTitle + "' excluded for being in category '" + excludedCategory + "'");
+                    System.out.println("---------------------------------------");
+                    for (String category: categoryAnalyzer.getArticleCategories(text)) {
+                        System.out.println(category);
+                    }
+                    System.out.println("---------------------------------------");
+                    this.docsStripped++;
+                    this.docsStrippedByCategory++;
+                    return;
+                }
+            }
 
             //We've handled templates, so let's strip out HTML tags and CSS stuff
             //text = Jsoup.clean(text, "", Safelist.none());

@@ -30,7 +30,7 @@ public class WikiContentRepeater extends XmlWritingHandler {
         saxFactory.setXIncludeAware(true);
     }
 
-    public void handleDocument(Map<String, String> xmlFields) throws SAXException {
+    protected void handleDocument(Map<String, String> xmlFields) throws SAXException {
         String title = xmlFields.get("title");
         StringBuilder text = new StringBuilder(xmlFields.get("text"));
         if (options.linkRepeat > 0) {
