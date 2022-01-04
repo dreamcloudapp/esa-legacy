@@ -126,7 +126,7 @@ public class TfIdfWriter extends XmlReadingHandler implements Indexer {
             fixedQueue[i] = null;
         }
         queueSize = 0;
-        System.out.println("Indexed articles\t[" + numIndexed + " | " + getDocsRead() + "]");
+        this.logMessage("Indexed articles\t[" + numIndexed + " | " + getDocsRead() + "]");
     }
 
     Integer indexArticles (Vector<WikipediaArticle> articles) throws Exception {

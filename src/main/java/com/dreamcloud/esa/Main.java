@@ -228,6 +228,10 @@ public class Main {
         writeRareWordsOption.setArgs(3);
         options.addOption(writeRareWordsOption);
 
+        Option articleStatsOption = new Option(null, "article-stats", true, "inputFile outputFile / Gets stats about the annotated articles.");
+        articleStatsOption.setRequired(false);
+        options.addOption(articleStatsOption);
+
         //Indexing
         Option indexOption = new Option(null, "index", true, "input file / Indexes a corpus of documents.");
         indexOption.setRequired(false);
@@ -589,10 +593,21 @@ public class Main {
                 }
             }
 
+            else if (cmd.hasOption("article-stats")) {
+                File inputFile = new File(cmd.getOptionValue("article-stats"));
+                int rareTerms = 0;
+                if (esaOptions.rareWordRepository != null) {
+                    rareTerms = esaOptions.rareWordRepository.getStopWords().size();
+                }
+                try(ArticleStatsReader articleStatsReader = new ArticleStatsReader(analyzerFactory.getAnalyzer(), rareTerms)) {
+                    articleStatsReader.readArticles(inputFile);
+                }
+            }
+
             else if(nonEmpty(categoryInfo)) {
                 File inputFile = new File(categoryInfo);
                 try(CategoryAnalyzer categoryAnalyzer = new CategoryAnalyzer()) {
-                    categoryAnalyzer.analyze(inputFile);
+                    categoryAnalyzer.analyze(inputFile, null);
                 }
             }
 

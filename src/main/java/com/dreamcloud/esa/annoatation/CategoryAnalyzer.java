@@ -30,6 +30,7 @@ public class CategoryAnalyzer extends XmlReadingHandler {
     protected MultiValuedMap<String, String> categoryHierarchy = new HashSetValuedHashMap<>();
     protected MutableObjectIntMap<String> categoryInfo = ObjectIntMaps.mutable.empty();
     Set<String> excludedCategories = new HashSet<>();
+    TemplateProcessor templateProcessor;
 
     public Set<String> getGabrilovichExclusionCategories() {
         return excludedCategories;
@@ -81,9 +82,15 @@ public class CategoryAnalyzer extends XmlReadingHandler {
        excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Two-letter acronym disambiguations"));
        excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Days"));
        excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Eastern Orthodox liturgical days"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Stubs"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Pages for deletion"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Articles that need to be wikified"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:All stub articles"));
+       excludedCategories.add(StringUtils.normalizeWikiTitle("Category:Articles to be expanded"));
     }
 
-    public void analyze(File inputFile) throws ParserConfigurationException, SAXException, IOException {
+    public void analyze(File inputFile, TemplateProcessor templateProcessor) throws ParserConfigurationException, SAXException, IOException {
+        this.templateProcessor = templateProcessor;
         SAXParser saxParser = saxFactory.newSAXParser();
         Reader reader = BZipFileReader.getFileReader(inputFile);
         InputSource is = new InputSource(reader);
@@ -130,8 +137,11 @@ public class CategoryAnalyzer extends XmlReadingHandler {
         Collection<String> childCategories = categoryHierarchy.get(category);
         if (childCategories != null) {
             for (String childCategory: childCategories) {
-               excludedCategories.add(childCategory);
-               expandExcludedCategories(childCategory);
+                if (excludedCategories.contains(childCategory)) {
+                    continue;
+                }
+                excludedCategories.add(childCategory);
+                expandExcludedCategories(childCategory);
             }
         }
     }
@@ -140,6 +150,16 @@ public class CategoryAnalyzer extends XmlReadingHandler {
         String title = StringUtils.normalizeWikiTitle(xmlFields.get("title"));
         String text = xmlFields.get("text");
         boolean isCategoryArticle = title.startsWith("category:");
+
+        try {
+            if (isCategoryArticle && this.templateProcessor != null) {
+                text = templateProcessor.substitute(text, title);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
         for (String category: getArticleCategories(text)) {
             categoryInfo.addToValue(category, 1);
             if (isCategoryArticle) {

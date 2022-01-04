@@ -35,7 +35,7 @@ public class WikiPreprocessor extends XmlWritingHandler {
     Set<String> excludedCategories;
     protected Pattern redirectPattern = Pattern.compile("^.*#REDIRECT[^\\[]+\\[\\[(.+)]].*$");
     protected Pattern htmlAttributePattern = Pattern.compile("\\|\\s*[a-zA-Z_-]+\\s*=\\s*[^|]+\\|", Pattern.CASE_INSENSITIVE);
-    protected Pattern stubPattern = Pattern.compile("\\{\\{[^}]*stub[^}]*}}");
+    protected Pattern stubPattern = Pattern.compile("\\{\\{[^}]*([Ss]tub|[Aa]sbox|[Mm]issing [Ii]nformation)[^}]*}}");
     ArrayList<Pattern> titleExclusionPatterns;
     protected final SAXParserFactory saxFactory;
     protected int docsStripped = 0;
@@ -64,10 +64,6 @@ public class WikiPreprocessor extends XmlWritingHandler {
             titleMapper.mapToXml(titleOutputFile);
         }
 
-        //Build category hierarchies
-        categoryAnalyzer.analyze(inputFile);
-        excludedCategories = categoryAnalyzer.getGabrilovichExclusionCategories();
-
         //Generate a normalized template map
         try(TemplateMapper mapper = new TemplateMapper(new TemplateResolutionOptions())) {
             templateMap = mapper.map(inputFile);
@@ -82,6 +78,10 @@ public class WikiPreprocessor extends XmlWritingHandler {
         InputSource is = new InputSource(reader);
         is.setEncoding("UTF-8");
         SAXParser saxParser = saxFactory.newSAXParser();
+
+        //Build category hierarchies
+        categoryAnalyzer.analyze(inputFile, templateProcessor);
+        excludedCategories = categoryAnalyzer.getGabrilovichExclusionCategories();
 
         this.open(outputFile);
         this.writeDocumentBegin("docs");
@@ -141,7 +141,7 @@ public class WikiPreprocessor extends XmlWritingHandler {
         }
 
         matcher = stubPattern.matcher(text);
-        if (matcher.find()) {
+        if (matcher.find() || text.contains("stub}}")) {
             this.numStubs++;
             this.docsStripped++;
             return;
