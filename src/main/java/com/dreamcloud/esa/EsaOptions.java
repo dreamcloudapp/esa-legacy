@@ -1,6 +1,7 @@
 package com.dreamcloud.esa;
 
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessor;
+import com.dreamcloud.esa.vectorizer.PruneOptions;
 import org.apache.lucene.analysis.Analyzer;
 
 import java.io.IOException;
@@ -17,6 +18,7 @@ public class EsaOptions {
     public int documentLimit;
     public String indexFile;
     public StopWordRepository rareWordRepository;
+    public PruneOptions pruneOptions;
 
     public void displayInfo() throws IOException {
         System.out.println("ESA options:");

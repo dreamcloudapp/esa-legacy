@@ -18,13 +18,14 @@ import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessorFactory;
 import com.dreamcloud.esa.documentPreprocessor.NullPreprocessor;
 import com.dreamcloud.esa.indexer.*;
+import com.dreamcloud.esa.pruner.PrunerTuner;
+import com.dreamcloud.esa.pruner.PrunerTuning;
 import com.dreamcloud.esa.server.EsaHttpServer;
 import com.dreamcloud.esa.similarity.SimilarityFactory;
 import com.dreamcloud.esa.tfidf.TfIdfWriter;
 import com.dreamcloud.esa.tools.*;
 import com.dreamcloud.esa.vectorizer.*;
 
-import jdk.jfr.Category;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
@@ -185,6 +186,12 @@ public class Main {
         pearsonOption.setRequired(false);
         options.addOption(pearsonOption);
 
+        //Pearson correlations to get tool p-value
+        Option tuneOption = new Option(null, "tune", true, "int vectorLimitStart int vectorLimitEnd int step / Finds ideal vector limits and pruning options for spearman and pearson");
+        tuneOption.setArgs(3);
+        tuneOption.setRequired(false);
+        options.addOption(tuneOption);
+
         //Debugging
         Option findArticleOption = new Option(null, "find-article", true, "inputFile articleTitle|index / Displays info about an article searched for via title or numeric index");
         findArticleOption.setRequired(false);
@@ -299,6 +306,7 @@ public class Main {
             if (nonEmpty(pruneDropOff)) {
                 pruneOptions.dropOff = Float.parseFloat(pruneDropOff);
             }
+            esaOptions.pruneOptions = pruneOptions;
 
             if (!nonEmpty(docType)) {
                 docType = "wiki";
@@ -320,7 +328,7 @@ public class Main {
             }
 
             String limit = cmd.getOptionValue("vector-limit");
-            int documentLimit = 100;
+            int documentLimit = 0;
             if (nonEmpty(limit)) {
                 try {
                     documentLimit = Integer.parseInt(limit);
@@ -469,10 +477,34 @@ public class Main {
                 }
                 TextVectorizer textVectorizer = vectorizerFactory.getVectorizer();
                 SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer, pruneOptions);
-                PValueCalculator calculator = new PValueCalculator(new File(pearsonFile));
+                PValueCalculator calculator = new PValueCalculator(new File(pearsonFile), documentFile);
                 System.out.println("Calculating P-value using Pearson correlation...");
                 System.out.println("----------------------------------------");
-                System.out.println("p-value:\t" + calculator.getPearsonCorrelation(similarityTool, documentFile));
+                System.out.println("p-value:\t" + calculator.getPearsonCorrelation(similarityTool));
+                System.out.println("----------------------------------------");
+            }
+
+            else if (cmd.hasOption("tune")) {
+                String[] tuneArgs = cmd.getOptionValues("tune");
+                int vectorLimitStart = Integer.parseInt(tuneArgs[0]);
+                int vectorLimitEnd = Integer.parseInt(tuneArgs[1]);
+                int vectorLimitStep = Integer.parseInt(tuneArgs[2]);
+                File spearmanFile = new File("./src/data/en-wordsim353.csv");
+                File pearsonFile = new File("./src/data/en-lp50.csv");
+                File documentFile = new File("./src/data/en-lp50-documents.csv");
+
+                TextVectorizer textVectorizer = vectorizerFactory.getVectorizer();
+                PValueCalculator spearmanCalculator = new PValueCalculator(spearmanFile);
+                PValueCalculator pearsonCalculator = new PValueCalculator(pearsonFile, documentFile);
+
+                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
+                PrunerTuner tuner = new PrunerTuner(similarityTool);
+                System.out.println("Analyzing wordsim-353 to find the ideal vector limit...");
+                System.out.println("----------------------------------------");
+                PrunerTuning tuning = tuner.tune(pearsonCalculator, pruneOptions, 100, 150, 10, 0.001, 0.25, 0.001);
+                System.out.println("tuned p-value:\t" + tuning.getTunedScore());
+                System.out.println("tuned window size:\t" + tuning.getTunedWindowSize());
+                System.out.println("tuned window dropoff:\t" + tuning.getTunedWindowDropOff());
                 System.out.println("----------------------------------------");
             }
 

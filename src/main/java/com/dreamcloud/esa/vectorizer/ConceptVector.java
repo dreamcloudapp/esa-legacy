@@ -30,7 +30,7 @@ public class ConceptVector {
 
     public void initConcepts(IndexReader reader) throws IOException {
         //init(reader);
-        this.conceptWeights = new HashMap<>();
+        this.conceptWeights = new LinkedHashMap<>();
         //this.conceptWeights.putAll(allConceptWeights);
     }
 
@@ -101,7 +101,7 @@ public class ConceptVector {
     }
 
     public ConceptVector() {
-        this.conceptWeights = new HashMap<>();
+        this.conceptWeights = new LinkedHashMap<>();
     }
 
     public void merge(ConceptVector other) {
@@ -118,41 +118,27 @@ public class ConceptVector {
     }
 
     public ConceptVector prune(int windowSize, float dropOff) {
-        return this;
-        /*if (this.conceptWeights.size() == 0) {
-            return this;
-        }
-
         ConceptVector pruned = new ConceptVector();
+        if (conceptWeights.size() == 0) {
+            return pruned;
+        }
 
-        int w = 0;
-        float topScore = -1;
-        float firstScore = -1;
-        for (Iterator<String> it = this.topConcepts(); it.hasNext(); w++) {
-            String concept = it.next();
-            float score = this.conceptWeights.get(concept);
-            pruned.conceptWeights.put(concept, score);
+        String[] orderedConcepts = conceptWeights.keySet().toArray(String[]::new);
+        for (int conceptIdx = 0; conceptIdx < orderedConcepts.length; conceptIdx++) {
+            String windowHeadConcept = orderedConcepts[conceptIdx];
+            float windowHeadScore = this.conceptWeights.get(windowHeadConcept);
+            pruned.conceptWeights.put(windowHeadConcept, windowHeadScore);
 
-            if (topScore == -1) {
-                topScore = score;
-            } /*else {
-                if (score < topScore * dropOff) {
+            if (conceptIdx + windowSize < orderedConcepts.length) {
+                String windowTailConcept = orderedConcepts[conceptIdx + windowSize];
+                float windowTailScore = this.conceptWeights.get(windowTailConcept);
+                if ((windowHeadScore - windowTailScore) < windowHeadScore * dropOff) {
                     break;
                 }
-            }*/
-            /*if (w == 0) {
-                firstScore = score;
-            }
-
-            if (w == windowSize) {
-                //Process the window
-                if (firstScore - score > dropOff * topScore) {
-                    break;
-                }
-                w = -1;
             }
         }
-        return pruned;*/
+
+        return pruned;
     }
 
     public float dotProduct(ConceptVector other) {
@@ -191,7 +177,7 @@ public class ConceptVector {
         return conceptWeights;
     }
 
-    public void pruneToSize(int n) {
+    public ConceptVector pruneToSize(int n) {
         ConceptVector vector = new ConceptVector();
         int i = 0;
         for ( Iterator<String> topConcepts = this.topConcepts(); topConcepts.hasNext(); ) {
@@ -202,6 +188,6 @@ public class ConceptVector {
                 break;
             }
         }
-        this.conceptWeights = vector.conceptWeights;
+        return vector;
     }
 }

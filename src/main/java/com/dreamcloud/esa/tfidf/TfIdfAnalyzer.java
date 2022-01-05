@@ -86,7 +86,7 @@ public class TfIdfAnalyzer {
             scores[i++] = new TfIdfScore(term, tf * idf);
         }
 
-        ////c = cosine normalization
+        //c = cosine normalization
         double scoreSumOfSquares = 0.0;
         for (TfIdfScore score: scores) {
             scoreSumOfSquares += Math.pow(score.getScore(), 2);
@@ -95,16 +95,6 @@ public class TfIdfAnalyzer {
 
         for (TfIdfScore score: scores) {
             score.normalizeScore(1.0 / scoreSumOfSquares);
-
-            if (Double.isNaN(score.getScore())) {
-                System.out.println("got a nan:");
-                System.out.println("=================================");
-                System.out.println(score.getTerm());
-                System.out.println("==========");
-                System.out.println(text);
-                System.out.println("=================================");
-                System.exit(1);
-            }
         }
 
         return scores;

@@ -10,16 +10,12 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 
-class DocumentSimilarity {
-    public String doc1;
-    public String doc2;
-    double similarity;
-}
-
 public class PValueCalculator {
     File file;
+    File documentFile;
+    ArrayList<DocumentSimilarity> humanSimilarityList;
 
-    private static void resolveDocuments(ArrayList<DocumentSimilarity> docSims, File documentFile) throws IOException, CsvValidationException {
+    public static void resolveDocuments(ArrayList<DocumentSimilarity> docSims, File documentFile) throws IOException, CsvValidationException {
         CSVReader csvReader = new CSVReader(new FileReader(documentFile));
         ArrayList<String> documents = new ArrayList<>();
         String[] values;
@@ -48,13 +44,14 @@ public class PValueCalculator {
         this.file = file;
     }
 
-    public double getPearsonCorrelation(SemanticSimilarityTool similarity, File documentFile) throws Exception {
+    public PValueCalculator(File file, File documentFile) {
+        this.file = file;
+        this.documentFile = documentFile;
+    }
+
+    public double getPearsonCorrelation(SemanticSimilarityTool similarity) throws Exception {
         ArrayList<DocumentSimilarity> humanSimilarityList = this.readHumanScores();
-        if (documentFile != null) {
-            resolveDocuments(humanSimilarityList, documentFile);
-        }
         double[] humanScores = this.getHumanScores(humanSimilarityList);
-        System.out.println("Human Scores:\t" + humanScores.length);
         double[] esaScores = this.getEsaScores(humanSimilarityList, similarity);
         PearsonsCorrelation pearsonsCorrelation = new PearsonsCorrelation();
         return pearsonsCorrelation.correlation(humanScores, esaScores);
@@ -63,7 +60,6 @@ public class PValueCalculator {
     public double getSpearmanCorrelation(SemanticSimilarityTool similarity) throws Exception {
         ArrayList<DocumentSimilarity> humanSimilarityList = this.readHumanScores();
         double[] humanScores = this.getHumanScores(humanSimilarityList);
-        System.out.println("Human Scores:\t" + humanScores.length);
         double[] esaScores = this.getEsaScores(humanSimilarityList, similarity);
         SpearmansCorrelation spearmansCorrelation = new SpearmansCorrelation();
         return spearmansCorrelation.correlation(humanScores, esaScores);
@@ -77,7 +73,7 @@ public class PValueCalculator {
 
             String sourceDesc = docSim.doc1.substring(0, Math.min(16, docSim.doc1.length()));
             String compareDesc = docSim.doc2.substring(0, Math.min(16, docSim.doc2.length()));
-            System.out.println("doc " + i + "\t ('" + sourceDesc + "', '" + compareDesc + "'):\t" + esaScores[i]);
+            //System.out.println("doc " + i + "\t ('" + sourceDesc + "', '" + compareDesc + "'):\t" + esaScores[i]);
         }
         return esaScores;
     }
@@ -91,19 +87,24 @@ public class PValueCalculator {
         return humanScores;
     }
 
-    private ArrayList<DocumentSimilarity> readHumanScores() throws IOException, CsvValidationException {
-        ArrayList<DocumentSimilarity> humanSimilarityList = new ArrayList<>();
-        CSVReader csvReader = new CSVReader(new FileReader(file));
-        String[] values;
-        while ((values = csvReader.readNext()) != null) {
-            if (values.length < 3 ) {
-                throw new CsvValidationException("Word sim file improperly formatted.");
+    public ArrayList<DocumentSimilarity> readHumanScores() throws IOException, CsvValidationException {
+        if (humanSimilarityList == null) {
+            humanSimilarityList = new ArrayList<>();
+            CSVReader csvReader = new CSVReader(new FileReader(file));
+            String[] values;
+            while ((values = csvReader.readNext()) != null) {
+                if (values.length < 3 ) {
+                    throw new CsvValidationException("Word sim file improperly formatted.");
+                }
+                DocumentSimilarity docSim = new DocumentSimilarity();
+                docSim.doc1 = values[0];
+                docSim.doc2 = values[1];
+                docSim.similarity = Double.parseDouble(values[2]) / 10.0;
+                humanSimilarityList.add(docSim);
             }
-            DocumentSimilarity docSim = new DocumentSimilarity();
-            docSim.doc1 = values[0];
-            docSim.doc2 = values[1];
-            docSim.similarity = Double.parseDouble(values[2]) / 10.0;
-            humanSimilarityList.add(docSim);
+            if (documentFile != null) {
+                resolveDocuments(humanSimilarityList, documentFile);
+            }
         }
         return humanSimilarityList;
     }

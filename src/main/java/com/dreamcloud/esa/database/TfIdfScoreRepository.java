@@ -7,8 +7,11 @@ import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class TfIdfScoreRepository {
+    Map<String, TfIdfScore[]> termScoreCache = new HashMap<>();
     Connection con;
 
     public TfIdfScoreRepository() {
@@ -105,28 +108,30 @@ public class TfIdfScoreRepository {
     }
 
     public TfIdfScore[] getTfIdfScores(String term) {
-        try {
-            if (this.con == null) {
-                this.con = MySQLConnection.getConnection();
-            }
+        if (!termScoreCache.containsKey(term)) {
+            try {
+                if (this.con == null) {
+                    this.con = MySQLConnection.getConnection();
+                }
 
-            PreparedStatement scoreStatement = con.prepareStatement("select document, score from esa.score where term = ? order by score desc");
-            scoreStatement.setString(1, term);
-            ResultSet resultSet = scoreStatement.executeQuery();
-            ArrayList<TfIdfScore> scores = new ArrayList<>();
-            while (resultSet.next()) {
-                String document = resultSet.getString(1);
-                double score = resultSet.getDouble(2);
-                scores.add(new TfIdfScore(document, term, score));
+                PreparedStatement scoreStatement = con.prepareStatement("select document, score from esa.score where term = ? order by score desc");
+                scoreStatement.setString(1, term);
+                ResultSet resultSet = scoreStatement.executeQuery();
+                ArrayList<TfIdfScore> scores = new ArrayList<>();
+                while (resultSet.next()) {
+                    String document = resultSet.getString(1);
+                    double score = resultSet.getDouble(2);
+                    scores.add(new TfIdfScore(document, term, score));
+                }
+                termScoreCache.put(term, scores.toArray(TfIdfScore[]::new));
             }
-            return scores.toArray(TfIdfScore[]::new);
+            catch (Exception e) {
+                System.out.println("Postgres is unhappy about something:");
+                e.printStackTrace();
+                System.exit(-1);
+            }
         }
-        catch (Exception e) {
-            System.out.println("Postgres is unhappy about something:");
-            e.printStackTrace();
-            System.exit(-1);
-        }
-        return null;
+        return termScoreCache.get(term);
     }
 
     public void saveTfIdfScores(String document, TfIdfScore[] scores) {

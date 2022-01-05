@@ -16,7 +16,7 @@ public class CommandLineVectorizerFactory implements VectorizerFactory {
     public TextVectorizer getVectorizer() throws IOException {
         switch (this.options.vectorizerType) {
             case "sql":
-                return new SqlVectorizer(new DbVectorBuilder(new TfIdfScoreRepository(), options.analyzer));
+                return new SqlVectorizer(new DbVectorBuilder(new TfIdfScoreRepository(), options.analyzer, options.documentLimit, options.pruneOptions));
             case "lucene":
             default:
                 return new Vectorizer(options);
