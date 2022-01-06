@@ -32,11 +32,33 @@ public class DocumentScoreCachingReader implements DocumentScoreReader {
     }
 
     public TfIdfScore[] getTfIdfScores(String term) {
-        cacheHits.put(term, cacheHits.getOrDefault(term, 0) + 1);
+        int termHits = cacheHits.getOrDefault(term, 0) + 1;
+        cacheHits.put(term, termHits);
         if (cache.containsKey(term)) {
             return cache.get(term);
         } else {
-            return reader.getTfIdfScores(term);
+            TfIdfScore[] scores = reader.getTfIdfScores(term);
+            if (cache.size() < capacity) {
+                //cache the sucker
+                cache.put(term, scores);
+            } else {
+                //we are at capacity, check the cache hits to see if we can replace anything
+                int lowestHits = Integer.MAX_VALUE;
+                String lowestHitsTerm = null;
+                for (String hitsTerm: cacheHits.keySet()) {
+                    int hits = cacheHits.get(hitsTerm);
+                    if (hits < lowestHits) {
+                        lowestHits = hits;
+                        lowestHitsTerm = hitsTerm;
+                    }
+                }
+                if (lowestHitsTerm != null && lowestHits < termHits) {
+                    //replace the sucker
+                    cache.remove(lowestHitsTerm);
+                    cache.put(term, scores);
+                }
+            }
+            return scores;
         }
     }
 
