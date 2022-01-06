@@ -85,6 +85,8 @@ public class TfIdfWriter extends XmlReadingHandler implements Indexer {
 
         analyzed = !analyzed;
 
+        this.writeDatabaseFiles();
+
         //Show logs
         System.out.println("----------------------------------------");
         System.out.println("Articles Indexed:\t" + numIndexed);
@@ -93,6 +95,19 @@ public class TfIdfWriter extends XmlReadingHandler implements Indexer {
         format.setMinimumFractionDigits(1);
         System.out.println("Acceptance Rate:\t" + format.format(((double) numIndexed) / ((double) getDocsRead())));
         System.out.println("----------------------------------------");
+    }
+
+    private void writeDatabaseFiles() throws IOException {
+        termIndexWriter.open(new File("term-index.dc"));
+        termScoreWriter.open(new File("term-scores.dc"));
+        //Write the term index
+        for (String term: termScores.keySet()) {
+            byte[] scores = termScores.get(term);
+            termIndexWriter.writeTerm(term, scores.length / FileSystem.DOCUMENT_SCORE_BYTES);
+            termScoreWriter.writeTermScores(scores);
+        }
+        termIndexWriter.close();
+        termScoreWriter.close();
     }
 
     public void parseXmlDump(File file) {

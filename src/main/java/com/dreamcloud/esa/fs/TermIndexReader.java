@@ -25,6 +25,7 @@ public class TermIndexReader {
         int termLength = ByteBuffer.wrap(termLengthBytes).getInt();
         TermIndexEntry entry = new TermIndexEntry();
         entry.term = new String(inputStream.readNBytes(termLength));
+        entry.documentFrequency = ByteBuffer.wrap(inputStream.readNBytes(FileSystem.OFFSET_BYTES)).getInt();
         entry.offset = ByteBuffer.wrap(inputStream.readNBytes(FileSystem.OFFSET_BYTES)).getInt();
         entry.numScores = ByteBuffer.wrap(inputStream.readNBytes(FileSystem.TERM_LENGTH_BYTES)).getInt();
         return entry;

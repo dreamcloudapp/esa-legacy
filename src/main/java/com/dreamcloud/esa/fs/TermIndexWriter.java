@@ -19,22 +19,28 @@ public class TermIndexWriter {
     }
 
     public void writeTerm(String term, int numScores) throws IOException {
-        int termLength = term.length();
+        int termLength = term.getBytes().length;
         int termOffset = offset;
         offset += numScores * FileSystem.DOCUMENT_SCORE_BYTES;
 
         /*
             Write the following bytes:
             term length (4)
-            term (term.length())
+            term (term bytes length)
+            doc freq (4)
             offset (4) (the starting offset in the score file)
             numScores (4)
          */
-        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES + term.length() + Integer.BYTES + Integer.BYTES);
+        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES + termLength + FileSystem.OFFSET_BYTES * 3);
         buffer.putInt(termLength);
         buffer.put(term.getBytes());
+        buffer.putInt(numScores);
         buffer.putInt(termOffset);
         buffer.putInt(numScores);
         outputStream.write(buffer.array());
+    }
+
+    public void close() throws IOException {
+        outputStream.close();
     }
 }

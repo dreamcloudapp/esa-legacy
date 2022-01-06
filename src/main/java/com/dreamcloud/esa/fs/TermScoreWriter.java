@@ -27,6 +27,10 @@ public class TermScoreWriter {
         }
     }
 
+    public void writeTermScores(byte[] termScores) throws IOException {
+        outputStream.write(termScores);
+    }
+
     public void close() throws IOException {
         this.outputStream.close();
     }
