@@ -12,6 +12,7 @@ public class TermIndexReader {
 
     public void open(File termIndex) throws IOException {
         inputStream = new FileInputStream(termIndex);
+        inputStream = new BufferedInputStream(inputStream);
     }
 
     public TermIndexEntry readTerm() throws IOException {
@@ -39,5 +40,9 @@ public class TermIndexReader {
             termIndex.addEntry(entry);
         }
         return termIndex;
+    }
+
+    public void close() throws IOException {
+        this.inputStream.close();
     }
 }

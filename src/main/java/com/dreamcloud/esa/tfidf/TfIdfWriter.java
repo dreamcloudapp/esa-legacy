@@ -3,10 +3,14 @@ package com.dreamcloud.esa.tfidf;
 import com.dreamcloud.esa.analyzer.WikipediaArticle;
 import com.dreamcloud.esa.annoatation.handler.XmlReadingHandler;
 import com.dreamcloud.esa.database.TfIdfScoreRepository;
+import com.dreamcloud.esa.fs.FileSystem;
+import com.dreamcloud.esa.fs.TermIndexWriter;
+import com.dreamcloud.esa.fs.TermScoreWriter;
 import com.dreamcloud.esa.indexer.Indexer;
 import com.dreamcloud.esa.indexer.WikiIndexerOptions;
 import com.dreamcloud.esa.tools.BZipFileReader;
 
+import org.eclipse.collections.api.map.primitive.MutableObjectByteMap;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -16,6 +20,8 @@ import javax.xml.parsers.SAXParserFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
 import java.util.*;
 import java.util.concurrent.*;
@@ -30,8 +36,11 @@ public class TfIdfWriter extends XmlReadingHandler implements Indexer {
     int queueSize = 0;
     private int numIndexed = 0;
     WikiIndexerOptions options;
-    boolean analyzed = false;
+    boolean analyzed = true;
     final TfIdfAnalyzer tfIdfAnalyzer;
+    final TermIndexWriter termIndexWriter;
+    final TermScoreWriter termScoreWriter;
+    Map<String, byte[]> termScores = new HashMap<>();
 
     public TfIdfWriter(WikiIndexerOptions options) {
         this.options = options;
@@ -41,6 +50,8 @@ public class TfIdfWriter extends XmlReadingHandler implements Indexer {
         saxFactory.setValidating(false);
         saxFactory.setXIncludeAware(true);
         tfIdfAnalyzer = new TfIdfAnalyzer(options.analyzerFactory.getAnalyzer(), "1tc");
+        this.termIndexWriter = new TermIndexWriter();
+        this.termScoreWriter = new TermScoreWriter();
     }
 
     public void reset() {
@@ -147,7 +158,19 @@ public class TfIdfWriter extends XmlReadingHandler implements Indexer {
             tfIdfAnalyzer.prepareDocument(wikiText);
         } else {
             TfIdfScore[] scores = tfIdfAnalyzer.getTfIdfScores(wikiText);
-            scoreRepository.saveTfIdfScores(article.title, scores);
+            int documentIdx = this.getDocsRead();
+            for (TfIdfScore tfIdfScore: scores) {
+                String term = tfIdfScore.getTerm();
+                float score = (float) tfIdfScore.getScore();
+
+                byte[] termScore = termScores.getOrDefault(term, new byte[0]);
+                ByteBuffer byteBuffer = ByteBuffer.allocate(termScore.length + FileSystem.DOCUMENT_SCORE_BYTES);
+                byteBuffer.put(termScore);
+                byteBuffer.putInt(documentIdx);
+                byteBuffer.putFloat(score);
+                termScores.put(term, byteBuffer.array());
+            }
+            //scoreRepository.saveTfIdfScores(article.title, scores);
         }
     }
 

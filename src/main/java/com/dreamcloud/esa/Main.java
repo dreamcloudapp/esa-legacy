@@ -188,7 +188,6 @@ public class Main {
 
         //Pearson correlations to get tool p-value
         Option tuneOption = new Option(null, "tune", true, "int vectorLimitStart int vectorLimitEnd int step / Finds ideal vector limits and pruning options for spearman and pearson");
-        tuneOption.setArgs(3);
         tuneOption.setRequired(false);
         options.addOption(tuneOption);
 
@@ -485,10 +484,6 @@ public class Main {
             }
 
             else if (cmd.hasOption("tune")) {
-                String[] tuneArgs = cmd.getOptionValues("tune");
-                int vectorLimitStart = Integer.parseInt(tuneArgs[0]);
-                int vectorLimitEnd = Integer.parseInt(tuneArgs[1]);
-                int vectorLimitStep = Integer.parseInt(tuneArgs[2]);
                 File spearmanFile = new File("./src/data/en-wordsim353.csv");
                 File pearsonFile = new File("./src/data/en-lp50.csv");
                 File documentFile = new File("./src/data/en-lp50-documents.csv");
@@ -717,7 +712,7 @@ public class Main {
     public static void indexFile(EsaOptions options, WikiIndexerOptions wikiIndexerOptions) throws IOException {
         TfIdfWriter writer = new TfIdfWriter(wikiIndexerOptions);
         writer.index(new File(options.indexFile));
-        writer.index(new File(options.indexFile));
+        //writer.index(new File(options.indexFile));
         /*IndexerFactory indexerFactory = new IndexerFactory();
         Indexer indexer = indexerFactory.getIndexer(options.documentType, wikiIndexerOptions);
         try{
