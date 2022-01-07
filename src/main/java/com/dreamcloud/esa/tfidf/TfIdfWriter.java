@@ -171,7 +171,6 @@ public class TfIdfWriter extends XmlReadingHandler /* implements Indexer */ {
         }
 
         TfIdfScore[] scores = tfIdfAnalyzer.getTfIdfScores(wikiText);
-        int documentIdx = this.getDocsRead();
         for (TfIdfScore tfIdfScore: scores) {
             String term = tfIdfScore.getTerm();
             float score = (float) tfIdfScore.getScore();
@@ -179,7 +178,7 @@ public class TfIdfWriter extends XmlReadingHandler /* implements Indexer */ {
             byte[] termScore = termScores.getOrDefault(term, new byte[0]);
             ByteBuffer byteBuffer = ByteBuffer.allocate(termScore.length + FileSystem.DOCUMENT_SCORE_BYTES);
             byteBuffer.put(termScore);
-            byteBuffer.putInt(documentIdx);
+            byteBuffer.putInt(article.id);
             byteBuffer.putFloat(score);
             termScores.put(term, byteBuffer.array());
         }
@@ -191,6 +190,7 @@ public class TfIdfWriter extends XmlReadingHandler /* implements Indexer */ {
 
     protected void handleDocument(Map<String, String> xmlFields) throws SAXException {
         WikipediaArticle article = new WikipediaArticle();
+        article.id = this.getDocsRead();
         article.title = xmlFields.get("title");
         article.text = xmlFields.get("text");
         article.incomingLinks = Integer.parseInt(xmlFields.get("incomingLinks"));

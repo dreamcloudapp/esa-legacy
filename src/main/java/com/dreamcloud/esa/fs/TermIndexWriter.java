@@ -1,12 +1,9 @@
 package com.dreamcloud.esa.fs;
 
-import com.dreamcloud.esa.tfidf.TfIdfScore;
-
 import java.io.*;
-import java.nio.ByteBuffer;
 
 public class TermIndexWriter {
-    OutputStream outputStream;
+    DataOutputStream outputStream;
     int offset = 0;
     int documentCount;
 
@@ -15,12 +12,11 @@ public class TermIndexWriter {
     }
 
     public void open(File termIndex) throws IOException {
-        outputStream = new FileOutputStream(termIndex);
-        outputStream = new BufferedOutputStream(outputStream);
+        OutputStream sourceOutputStream = new FileOutputStream(termIndex);
+        sourceOutputStream = new BufferedOutputStream(sourceOutputStream);
+        outputStream = new DataOutputStream(sourceOutputStream);
         offset = 0;
-        ByteBuffer buffer = ByteBuffer.allocate(FileSystem.OFFSET_BYTES);
-        buffer.putInt(documentCount);
-        outputStream.write(buffer.array());
+        outputStream.writeInt(documentCount);
     }
 
     public void writeTerm(String term, int numScores) throws IOException {
@@ -28,21 +24,11 @@ public class TermIndexWriter {
         int termOffset = offset;
         offset += numScores * FileSystem.DOCUMENT_SCORE_BYTES;
 
-        /*
-            Write the following bytes:
-            term length (4)
-            term (term bytes length)
-            doc freq (4)
-            offset (4) (the starting offset in the score file)
-            numScores (4)
-         */
-        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES + termLength + FileSystem.OFFSET_BYTES * 3);
-        buffer.putInt(termLength);
-        buffer.put(term.getBytes());
-        buffer.putInt(numScores);
-        buffer.putInt(termOffset);
-        buffer.putInt(numScores);
-        outputStream.write(buffer.array());
+        outputStream.writeInt(termLength);
+        outputStream.write(term.getBytes());
+        outputStream.writeInt(numScores);
+        outputStream.writeInt(termOffset);
+        outputStream.writeInt(numScores);
     }
 
     public void close() throws IOException {

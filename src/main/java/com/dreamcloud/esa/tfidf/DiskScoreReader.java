@@ -38,6 +38,7 @@ public class DiskScoreReader implements DocumentScoreReader {
             for (int scoreIdx = 0; scoreIdx < entry.numScores; scoreIdx++) {
                 int doc = byteBuffer.getInt();
                 float score = byteBuffer.getFloat();
+                //System.out.println("doc: " + doc + "; score: " + score);
                 scores[scoreIdx] = new TfIdfScore(String.valueOf(doc), term, score);
             }
             return scores;

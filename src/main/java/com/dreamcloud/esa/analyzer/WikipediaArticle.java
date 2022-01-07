@@ -3,6 +3,7 @@ package com.dreamcloud.esa.analyzer;
 import com.dreamcloud.esa.indexer.WikiIndexerOptions;
 
 public class WikipediaArticle {
+    public int id;
     public String title;
     public String text;
     public Integer incomingLinks;

@@ -1,10 +1,9 @@
 package com.dreamcloud.esa.fs;
 
 import java.io.*;
-import java.nio.ByteBuffer;
 
 public class TermIndexReader {
-    InputStream inputStream;
+    DataInputStream inputStream;
     int documentCount;
 
     public TermIndexReader() {
@@ -12,29 +11,23 @@ public class TermIndexReader {
     }
 
     public void open(File termIndex) throws IOException {
-        inputStream = new FileInputStream(termIndex);
-        inputStream = new BufferedInputStream(inputStream);
-
+        inputStream = new DataInputStream(new BufferedInputStream(new FileInputStream(termIndex)));
         //We're sticking the document count here as it's data we need for TF-IDF
-        byte[] documentCountBytes = inputStream.readNBytes(FileSystem.OFFSET_BYTES);
-        ByteBuffer buffer = ByteBuffer.wrap(documentCountBytes);
-        documentCount = buffer.getInt();
+        documentCount = inputStream.readInt();
     }
 
     public TermIndexEntry readTerm() throws IOException {
-        byte[] termLengthBytes = inputStream.readNBytes(FileSystem.TERM_LENGTH_BYTES);
-        if (termLengthBytes.length == 0) {
-            //EOF
+        try {
+            TermIndexEntry entry = new TermIndexEntry();
+            int termLength = inputStream.readInt();
+            entry.term = new String(inputStream.readNBytes(termLength));
+            entry.documentFrequency = inputStream.readInt();
+            entry.offset = inputStream.readInt();
+            entry.numScores = inputStream.readInt();
+            return entry;
+        } catch (EOFException e) {
             return null;
         }
-
-        int termLength = ByteBuffer.wrap(termLengthBytes).getInt();
-        TermIndexEntry entry = new TermIndexEntry();
-        entry.term = new String(inputStream.readNBytes(termLength));
-        entry.documentFrequency = ByteBuffer.wrap(inputStream.readNBytes(FileSystem.OFFSET_BYTES)).getInt();
-        entry.offset = ByteBuffer.wrap(inputStream.readNBytes(FileSystem.OFFSET_BYTES)).getInt();
-        entry.numScores = ByteBuffer.wrap(inputStream.readNBytes(FileSystem.TERM_LENGTH_BYTES)).getInt();
-        return entry;
     }
 
     public TermIndex readIndex() throws IOException {

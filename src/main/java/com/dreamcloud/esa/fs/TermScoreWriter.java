@@ -1,20 +1,17 @@
 package com.dreamcloud.esa.fs;
 
-import com.dreamcloud.esa.tfidf.TfIdfScore;
-
 import java.io.*;
 import java.nio.ByteBuffer;
 
 public class TermScoreWriter {
-    OutputStream outputStream;
+    DataOutputStream outputStream;
 
     public TermScoreWriter() {
 
     }
 
     public void open(File termIndex) throws IOException {
-        outputStream = new FileOutputStream(termIndex);
-        outputStream = new BufferedOutputStream(outputStream);
+        outputStream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(termIndex)));
     }
 
     public void writeTermScores(TermScore[] termScores) throws IOException {
