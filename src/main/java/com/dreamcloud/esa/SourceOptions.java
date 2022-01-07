@@ -1,6 +1,7 @@
 package com.dreamcloud.esa;
 
 import com.dreamcloud.esa.tfidf.CollectionInfo;
+import com.dreamcloud.esa.tfidf.CollectionWriter;
 import com.dreamcloud.esa.tfidf.DocumentScoreReader;
 
 /**
@@ -9,4 +10,5 @@ import com.dreamcloud.esa.tfidf.DocumentScoreReader;
 public class SourceOptions {
     public CollectionInfo collectionInfo;
     public DocumentScoreReader scoreReader;
+    public CollectionWriter collectionWriter;
 }

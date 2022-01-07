@@ -6,11 +6,8 @@ import com.dreamcloud.esa.tools.StringUtils;
 
 import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
-import org.apache.xpath.operations.Bool;
-import org.eclipse.collections.api.iterator.MutableIntIterator;
 import org.eclipse.collections.api.map.primitive.MutableObjectIntMap;
 import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
-import org.eclipse.collections.impl.list.mutable.MutableIterator;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 

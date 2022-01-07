@@ -23,10 +23,7 @@ import com.dreamcloud.esa.pruner.PrunerTuner;
 import com.dreamcloud.esa.pruner.PrunerTuning;
 import com.dreamcloud.esa.server.EsaHttpServer;
 import com.dreamcloud.esa.similarity.SimilarityFactory;
-import com.dreamcloud.esa.tfidf.CollectionInfo;
-import com.dreamcloud.esa.tfidf.ScoreReader;
-import com.dreamcloud.esa.tfidf.DocumentScoreCachingReader;
-import com.dreamcloud.esa.tfidf.TfIdfWriter;
+import com.dreamcloud.esa.tfidf.*;
 import com.dreamcloud.esa.tools.*;
 import com.dreamcloud.esa.vectorizer.*;
 
@@ -314,13 +311,17 @@ public class Main {
                 TfIdfScoreRepository repo = new TfIdfScoreRepository();
                 sourceOptions.collectionInfo = new CollectionInfo(repo.getDocumentCount(), repo.getDocumentFrequencies());
                 sourceOptions.scoreReader = repo;
+                sourceOptions.collectionWriter = new SqlCollectionWriter(repo);
             } else if(source.equals("fs")) {
+                File termIndexFile = new File("index/term-index.dc");
+                File documentScoreFile = new File("index/term-scores.dc");
                 TermIndexReader termIndexReader = new TermIndexReader();
-                termIndexReader.open(new File("term-index.dc"));
+                termIndexReader.open(termIndexFile);
                 TermIndex termIndex = termIndexReader.readIndex();
-                DocumentScoreDataReader scoreFileReader = new DocumentScoreFileReader(new File("term-scores.dc"));
+                DocumentScoreDataReader scoreFileReader = new DocumentScoreFileReader(documentScoreFile);
                 sourceOptions.collectionInfo = new CollectionInfo(termIndex.getDocumentCount(), termIndex.getDocumentFrequencies());
                 sourceOptions.scoreReader = new ScoreReader(termIndex, scoreFileReader);
+                sourceOptions.collectionWriter = new DiskCollectionWriter(termIndexFile, documentScoreFile);
             }
             //sourceOptions.scoreReader = new DocumentScoreCachingReader(sourceOptions.scoreReader);
             LoggingScoreReader scoreReader = new LoggingScoreReader(sourceOptions.scoreReader);
@@ -747,7 +748,7 @@ public class Main {
         rareWordDictionary.parse(new File(options.indexFile));
         CollectionInfo collectionInfo = new CollectionInfo(rareWordDictionary.getDocsRead(), rareWordDictionary.getDocumentFrequencies());
 
-        TfIdfWriter writer = new TfIdfWriter(new File(options.indexFile), collectionInfo, wikiIndexerOptions);
+        TfIdfWriter writer = new TfIdfWriter(new File(options.indexFile), options.sourceOptions.collectionWriter, collectionInfo, wikiIndexerOptions);
         writer.index();
         //writer.index(new File(options.indexFile));
         /*IndexerFactory indexerFactory = new IndexerFactory();

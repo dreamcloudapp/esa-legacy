@@ -1,10 +1,7 @@
 package com.dreamcloud.esa.database;
 
 import com.dreamcloud.esa.tfidf.DocumentScoreReader;
-import com.dreamcloud.esa.tfidf.TfIdfAnalyzer;
 import com.dreamcloud.esa.tfidf.TfIdfScore;
-import org.eclipse.collections.api.map.primitive.MutableObjectIntMap;
-import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
 
 import java.io.IOException;
 import java.sql.*;
@@ -38,7 +35,7 @@ public class TfIdfScoreRepository implements DocumentScoreReader {
         }
     }
 
-    public void saveTermDocumentFrequencies(MutableObjectIntMap<String> termDocumentFrequencies) {
+    public void saveTermDocumentFrequencies(Map<String, Integer> termDocumentFrequencies) {
         try {
             if (this.con == null) {
                 this.con = MySQLConnection.getConnection();
@@ -58,7 +55,7 @@ public class TfIdfScoreRepository implements DocumentScoreReader {
         } catch (Exception e) {
             System.out.println("Postgres is unhappy about something:");
             e.printStackTrace();
-            System.exit(-1);
+            System.exit(1);
         }
     }
 
@@ -138,7 +135,7 @@ public class TfIdfScoreRepository implements DocumentScoreReader {
         } catch (Exception e) {
             System.out.println("Postgres is unhappy about something:");
             e.printStackTrace();
-            System.exit(-1);
+            System.exit(1);
         }
     }
 
@@ -170,7 +167,7 @@ public class TfIdfScoreRepository implements DocumentScoreReader {
         } catch (Exception e) {
             System.out.println("Postgres is unhappy about something:");
             e.printStackTrace();
-            System.exit(-1);
+            System.exit(1);
         }
         return null;
     }
@@ -187,7 +184,7 @@ public class TfIdfScoreRepository implements DocumentScoreReader {
         } catch (Exception e) {
             System.out.println("Postgres is unhappy about something:");
             e.printStackTrace();
-            System.exit(-1);
+            System.exit(1);
         }
     }
 
@@ -198,7 +195,7 @@ public class TfIdfScoreRepository implements DocumentScoreReader {
             }
 
             Statement freqStatement = con.createStatement();
-            ResultSet resultSet = freqStatement.executeQuery("select count(distinct document) from esa.score");
+            ResultSet resultSet = freqStatement.executeQuery("select num_docs from esa.num_docs");
             if (resultSet.next()) {
                 return resultSet.getInt(1);
             } else {
@@ -226,6 +223,22 @@ public class TfIdfScoreRepository implements DocumentScoreReader {
             return documentFrequencies;
         } catch (SQLException e) {
             throw new IOException(e.getMessage());
+        }
+    }
+
+    public void saveDocumentCount(int numDocs) {
+        try {
+            if (this.con == null) {
+                this.con = MySQLConnection.getConnection();
+            }
+
+            PreparedStatement numDocsInsert = con.prepareStatement("insert into esa.num_docs(num_docs) values(?)");
+            numDocsInsert.setInt(1, numDocs);
+            numDocsInsert.executeUpdate();
+        } catch (Exception e) {
+            System.out.println("Postgres is unhappy about something:");
+            e.printStackTrace();
+            System.exit(1);
         }
     }
 }

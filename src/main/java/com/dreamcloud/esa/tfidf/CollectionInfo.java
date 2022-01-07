@@ -28,4 +28,8 @@ public class CollectionInfo {
     public boolean hasDocumentFrequency(String term) {
         return this.documentFrequencies.containsKey(term);
     }
+
+    public Map<String, Integer> getDocumentFrequencies() {
+        return documentFrequencies;
+    }
 }

@@ -5,15 +5,12 @@ import com.dreamcloud.esa.tools.BZipFileReader;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.eclipse.collections.api.map.primitive.MutableObjectIntMap;
-import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
-import javax.xml.stream.XMLStreamException;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
@@ -21,7 +18,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class RareWordDictionary extends XmlReadingHandler {
     protected final SAXParserFactory saxFactory;
