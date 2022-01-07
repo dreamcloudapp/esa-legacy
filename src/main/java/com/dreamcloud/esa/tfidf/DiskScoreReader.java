@@ -18,6 +18,15 @@ public class DiskScoreReader implements DocumentScoreReader {
         this.scoreFileReader = scoreFileReader;
     }
 
+    public int getDocumentFrequency(String term) {
+        TermIndexEntry entry = this.termIndex.getEntry(term);
+        if (entry != null) {
+            return entry.documentFrequency;
+        } else {
+            return 0;
+        }
+    }
+
     public TfIdfScore[] getTfIdfScores(String term) throws IOException {
         TermIndexEntry entry = termIndex.getEntry(term);
         if (entry == null) {

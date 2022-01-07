@@ -1,5 +1,8 @@
 package com.dreamcloud.esa.tfidf;
 
+import com.dreamcloud.esa.database.DocumentScore;
+import com.dreamcloud.esa.fs.TermIndex;
+import com.dreamcloud.esa.fs.TermIndexEntry;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
@@ -12,50 +15,13 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class TfIdfAnalyzer {
-    protected AtomicInteger documentCount = new AtomicInteger(0);
-    protected final MutableObjectIntMap<String> documentFrequencies = ObjectIntMaps.mutable.empty();
     protected final Analyzer analyzer;
+    protected CollectionInfo collectionInfo;
 
-    public TfIdfAnalyzer(Analyzer analyzer, String smartFlags) {
+    public TfIdfAnalyzer(Analyzer analyzer, CollectionInfo collectionInfo) {
         this.analyzer = analyzer;
+        this.collectionInfo = collectionInfo;
     }
-
-    public TfIdfAnalyzer(Analyzer analyzer) {
-        this(analyzer, "1tc");
-    }
-
-    /**
-     * Processes document terms for IDF calculation.
-     * @param text Any text document containing terms
-     */
-    public void prepareDocument(String text) throws IOException {
-        TokenStream tokens = analyzer.tokenStream("text", text);
-        CharTermAttribute termAttribute = tokens.addAttribute(CharTermAttribute.class);
-        Set<String> uniqueTerms = new HashSet<>();
-        tokens.reset();
-        while(tokens.incrementToken()) {
-            String term = termAttribute.toString();
-            if (term.length() > 32) {
-                continue;
-            }
-            uniqueTerms.add(term);
-        }
-        tokens.close();
-        synchronized (documentFrequencies) {
-            for (String uniqueTerm: uniqueTerms) {
-                documentFrequencies.addToValue(uniqueTerm, 1);
-            }
-        }
-        documentCount.incrementAndGet();
-    }
-
-    public MutableObjectIntMap<String> getDocumentFrequencies() {
-        return this.documentFrequencies;
-    }
-
-   public void setDocumentFrequencies(MutableObjectIntMap<String> documentFrequencies) {
-        this.documentFrequencies.putAll(documentFrequencies);
-   }
 
     public TfIdfScore[] getTfIdfScores(String text) throws IOException {
         MutableObjectIntMap<String> termFrequencies = ObjectIntMaps.mutable.empty();
@@ -78,8 +44,8 @@ public class TfIdfAnalyzer {
 
             //t = inverse document frequency with log normalization
             double idf = 0;
-            if (documentFrequencies.containsKey(term)) {
-               idf = Math.log(documentCount.get() / (double) documentFrequencies.get(term));
+            if (collectionInfo.hasDocumentFrequency(term)) {
+                idf = Math.log(collectionInfo.numDocs / (double) collectionInfo.getDocumentFrequency(term));
             }
 
             //Add score
@@ -98,9 +64,5 @@ public class TfIdfAnalyzer {
         }
 
         return scores;
-    }
-
-    public void setDocumentCount(int documentCount) {
-        this.documentCount.set(documentCount);
     }
 }

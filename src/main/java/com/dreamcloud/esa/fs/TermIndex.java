@@ -5,10 +5,11 @@ import java.util.Map;
 import java.util.Set;
 
 public class TermIndex {
-    Map<String, TermIndexEntry> termIndex = new HashMap<>();
+    protected int documentCount;
+    protected Map<String, TermIndexEntry> termIndex = new HashMap<>();
 
-    public TermIndex() {
-
+    public TermIndex(int documentCount) {
+        this.documentCount = documentCount;
     }
 
     public void addEntry(TermIndexEntry entry) {
@@ -21,5 +22,17 @@ public class TermIndex {
 
     public Set<String> getTerms() {
         return termIndex.keySet();
+    }
+
+    public int getDocumentCount() {
+        return documentCount;
+    }
+
+    public Map<String, Integer> getDocumentFrequencies() {
+        Map<String, Integer> documentFrequencies = new HashMap<>();
+        for (TermIndexEntry entry: termIndex.values()) {
+            documentFrequencies.put(entry.term, entry.documentFrequency);
+        }
+        return documentFrequencies;
     }
 }

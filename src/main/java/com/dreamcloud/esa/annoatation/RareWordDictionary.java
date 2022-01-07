@@ -17,16 +17,18 @@ import javax.xml.stream.XMLStreamException;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class RareWordDictionary extends XmlReadingHandler {
     protected final SAXParserFactory saxFactory;
     private int rareWordThreshold = 0;
     protected int termsRead = 0;
     protected int rareTerms = 0;
-    protected MutableObjectIntMap<String> uniqueTerms = ObjectIntMaps.mutable.empty();
+    protected Map<String, Integer> uniqueTerms = new HashMap<>();
     Analyzer analyzer;
 
     public RareWordDictionary(Analyzer analyzer, int rareWordThreshold) {
@@ -38,7 +40,11 @@ public class RareWordDictionary extends XmlReadingHandler {
         saxFactory.setXIncludeAware(true);
     }
 
-    public void mapToXml(File inputFile, File outputFile) throws IOException, XMLStreamException, ParserConfigurationException, SAXException {
+    public Map<String, Integer> getDocumentFrequencies() {
+        return uniqueTerms;
+    }
+
+    public void parse(File inputFile) throws IOException, SAXException, ParserConfigurationException {
         //Build the map
         SAXParser saxParser = saxFactory.newSAXParser();
         Reader reader = BZipFileReader.getFileReader(inputFile);
@@ -46,6 +52,10 @@ public class RareWordDictionary extends XmlReadingHandler {
         is.setEncoding("UTF-8");
         saxParser.parse(is, this);
         reader.close();
+    }
+
+    public void mapToXml(File inputFile, File outputFile) throws IOException, ParserConfigurationException, SAXException {
+        this.parse(inputFile);
 
         //Write the map
         OutputStream outputStream = new FileOutputStream(outputFile);
@@ -89,7 +99,7 @@ public class RareWordDictionary extends XmlReadingHandler {
         }
 
         for (String term: uniqueTerms) {
-            this.uniqueTerms.addToValue(term, 1);
+            this.uniqueTerms.put(term, this.uniqueTerms.getOrDefault(term, 0) + 1);
         }
     }
 }

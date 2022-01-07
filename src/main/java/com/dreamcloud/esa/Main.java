@@ -17,11 +17,16 @@ import com.dreamcloud.esa.documentPreprocessor.ChainedPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessorFactory;
 import com.dreamcloud.esa.documentPreprocessor.NullPreprocessor;
+import com.dreamcloud.esa.fs.DocumentScoreFileReader;
+import com.dreamcloud.esa.fs.TermIndex;
+import com.dreamcloud.esa.fs.TermIndexReader;
 import com.dreamcloud.esa.indexer.*;
 import com.dreamcloud.esa.pruner.PrunerTuner;
 import com.dreamcloud.esa.pruner.PrunerTuning;
 import com.dreamcloud.esa.server.EsaHttpServer;
 import com.dreamcloud.esa.similarity.SimilarityFactory;
+import com.dreamcloud.esa.tfidf.CollectionInfo;
+import com.dreamcloud.esa.tfidf.DiskScoreReader;
 import com.dreamcloud.esa.tfidf.TfIdfWriter;
 import com.dreamcloud.esa.tools.*;
 import com.dreamcloud.esa.vectorizer.*;
@@ -35,8 +40,10 @@ import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.commons.cli.*;
+import org.xml.sax.SAXException;
 
 //Reading input files
+import javax.xml.parsers.ParserConfigurationException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
@@ -238,6 +245,11 @@ public class Main {
         articleStatsOption.setRequired(false);
         options.addOption(articleStatsOption);
 
+        //Data source (DB, Lucene, custom FS)
+        Option sourceOption = new Option(null, "source", true, "[db|fs|lucene] / The data source for analysis.");
+        sourceOption.setRequired(true);
+        options.addOption(sourceOption);
+
         //Indexing
         Option indexOption = new Option(null, "index", true, "input file / Indexes a corpus of documents.");
         indexOption.setRequired(false);
@@ -283,6 +295,7 @@ public class Main {
             String[] repeatContentArgs = cmd.getOptionValues("repeat-content");
             String[] writeRareWordArgs = cmd.getOptionValues("write-rare-words");
             String[] pearsonArgs = cmd.getOptionValues("pearson");
+            String[] sourceArgs = cmd.getOptionValues("source");
             String docType = cmd.getOptionValue("doctype");
             String vectorizerType = cmd.getOptionValue("vectorizer");
             String similarityAlgorithm = cmd.getOptionValue("similarity");
@@ -296,7 +309,23 @@ public class Main {
             String linkRepeat = cmd.getOptionValue("repeat-link");
             String categoryInfo = cmd.getOptionValue("category-info");
 
+            SourceOptions sourceOptions = new SourceOptions();
+            String source = sourceArgs[0];
+            if (source.equals("db")) {
+                TfIdfScoreRepository repo = new TfIdfScoreRepository();
+                sourceOptions.collectionInfo = new CollectionInfo(repo.getDocumentCount(), repo.getDocumentFrequencies());
+                sourceOptions.scoreReader = repo;
+            } else if(source.equals("fs")) {
+                TermIndexReader termIndexReader = new TermIndexReader();
+                termIndexReader.open(new File("term-index.dc"));
+                TermIndex termIndex = termIndexReader.readIndex();
+                DocumentScoreFileReader scoreFileReader = new DocumentScoreFileReader(new File("term-scores.dc"));
+                sourceOptions.collectionInfo = new CollectionInfo(termIndex.getDocumentCount(), termIndex.getDocumentFrequencies());;
+                sourceOptions.scoreReader = new DiskScoreReader(termIndex, scoreFileReader);
+            }
+
             EsaOptions esaOptions = new EsaOptions();
+            esaOptions.sourceOptions = sourceOptions;
 
             PruneOptions pruneOptions = new PruneOptions();
             if (nonEmpty(pruneWindowSize)) {
@@ -709,9 +738,14 @@ public class Main {
         }
     }
 
-    public static void indexFile(EsaOptions options, WikiIndexerOptions wikiIndexerOptions) throws IOException {
-        TfIdfWriter writer = new TfIdfWriter(wikiIndexerOptions);
-        writer.index(new File(options.indexFile));
+    public static void indexFile(EsaOptions options, WikiIndexerOptions wikiIndexerOptions) throws IOException, ParserConfigurationException, SAXException {
+        //Get document frequencies
+        RareWordDictionary rareWordDictionary = new RareWordDictionary(options.analyzer, 0);
+        rareWordDictionary.parse(new File(options.indexFile));
+        CollectionInfo collectionInfo = new CollectionInfo(rareWordDictionary.getDocsRead(), rareWordDictionary.getDocumentFrequencies());
+
+        TfIdfWriter writer = new TfIdfWriter(new File(options.indexFile), collectionInfo, wikiIndexerOptions);
+        writer.index();
         //writer.index(new File(options.indexFile));
         /*IndexerFactory indexerFactory = new IndexerFactory();
         Indexer indexer = indexerFactory.getIndexer(options.documentType, wikiIndexerOptions);

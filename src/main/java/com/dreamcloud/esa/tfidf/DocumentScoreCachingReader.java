@@ -2,6 +2,7 @@ package com.dreamcloud.esa.tfidf;
 
 import org.apache.commons.collections15.map.FixedSizeMap;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -27,11 +28,15 @@ public class DocumentScoreCachingReader implements DocumentScoreReader {
         this(reader, DEFAULT_CAPACITY);
     }
 
+    public int getDocumentFrequency(String term) throws IOException {
+        return reader.getDocumentFrequency((term));
+    }
+
     public void clear() {
         cache.clear();
     }
 
-    public TfIdfScore[] getTfIdfScores(String term) {
+    public TfIdfScore[] getTfIdfScores(String term) throws IOException {
         int termHits = cacheHits.getOrDefault(term, 0) + 1;
         cacheHits.put(term, termHits);
         if (cache.containsKey(term)) {
@@ -62,7 +67,7 @@ public class DocumentScoreCachingReader implements DocumentScoreReader {
         }
     }
 
-    public TfIdfScore[] getTfIdfScores(String[] terms) {
+    public TfIdfScore[] getTfIdfScores(String[] terms) throws IOException {
         Vector<TfIdfScore> allScores = new Vector<>();
         for (String term: terms) {
             TfIdfScore[] scores = this.getTfIdfScores(term);

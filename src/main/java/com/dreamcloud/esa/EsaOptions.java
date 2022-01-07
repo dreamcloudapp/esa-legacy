@@ -19,6 +19,7 @@ public class EsaOptions {
     public String indexFile;
     public StopWordRepository rareWordRepository;
     public PruneOptions pruneOptions;
+    public SourceOptions sourceOptions;
 
     public void displayInfo() throws IOException {
         System.out.println("ESA options:");

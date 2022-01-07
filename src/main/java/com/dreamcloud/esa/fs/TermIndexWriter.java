@@ -8,14 +8,19 @@ import java.nio.ByteBuffer;
 public class TermIndexWriter {
     OutputStream outputStream;
     int offset = 0;
+    int documentCount;
 
-    public TermIndexWriter() {
-
+    public TermIndexWriter(int documentCount) {
+        this.documentCount = documentCount;
     }
 
     public void open(File termIndex) throws IOException {
         outputStream = new FileOutputStream(termIndex);
+        outputStream = new BufferedOutputStream(outputStream);
         offset = 0;
+        ByteBuffer buffer = ByteBuffer.allocate(FileSystem.OFFSET_BYTES);
+        buffer.putInt(documentCount);
+        outputStream.write(buffer.array());
     }
 
     public void writeTerm(String term, int numScores) throws IOException {

@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 
 public class TermIndexReader {
     InputStream inputStream;
+    int documentCount;
 
     public TermIndexReader() {
 
@@ -13,6 +14,11 @@ public class TermIndexReader {
     public void open(File termIndex) throws IOException {
         inputStream = new FileInputStream(termIndex);
         inputStream = new BufferedInputStream(inputStream);
+
+        //We're sticking the document count here as it's data we need for TF-IDF
+        byte[] documentCountBytes = inputStream.readNBytes(FileSystem.OFFSET_BYTES);
+        ByteBuffer buffer = ByteBuffer.wrap(documentCountBytes);
+        documentCount = buffer.getInt();
     }
 
     public TermIndexEntry readTerm() throws IOException {
@@ -32,7 +38,7 @@ public class TermIndexReader {
     }
 
     public TermIndex readIndex() throws IOException {
-        TermIndex termIndex = new TermIndex();
+        TermIndex termIndex = new TermIndex(documentCount);
         while (true) {
             TermIndexEntry entry = readTerm();
             if (entry == null) {

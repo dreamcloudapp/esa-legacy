@@ -20,7 +20,7 @@ public class IndexPruner {
         }
     }
 
-    private void pruneTerm(String term, TfIdfScoreRepository tfIdfScoreRepository) {
+    private void pruneTerm(String term, TfIdfScoreRepository tfIdfScoreRepository) throws IOException {
         if (!"link".equals(term) && !"number".equals(term)) {
             return;
         }
