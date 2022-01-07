@@ -1,29 +1,29 @@
 package com.dreamcloud.esa.tfidf;
 
 public class TfIdfScore {
-    protected String document;
+    protected int document;
     protected String term;
     protected double score;
 
-    public TfIdfScore(String document, String term, double score) {
+    public TfIdfScore(int document, String term, double score) {
         this.document = document;
         this.term = term;
         this.score = score;
     }
 
     public TfIdfScore(String term, double score) {
-        this(null, term, score);
+        this(-1, term, score);
     }
 
     public double getScore() {
         return score;
     }
 
-    public String getDocument() {
+    public Integer getDocument() {
         return document;
     }
 
-    public void setDocument(String document) {
+    public void setDocument(int document) {
         this.document = document;
     }
 

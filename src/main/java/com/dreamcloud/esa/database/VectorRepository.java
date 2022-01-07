@@ -50,7 +50,7 @@ public class VectorRepository {
         PreparedStatement  statement = getStatement();
         for(ConceptWeight weight: vector.conceptWeights) {
             statement.setBytes(1, decodeHexString(vector.id));
-            statement.setString(2, weight.concept);
+            statement.setInt(2, weight.concept);
             statement.setFloat(3, weight.weight);
             statement.executeUpdate();
         }

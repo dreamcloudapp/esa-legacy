@@ -1,10 +1,10 @@
 package com.dreamcloud.esa.database;
 
 public class ConceptWeight {
-    public String concept;
+    public int concept;
     public float weight;
 
-    public ConceptWeight(String concept, float weight) {
+    public ConceptWeight(int concept, float weight) {
         this.concept = concept;
         this.weight = weight;
     }

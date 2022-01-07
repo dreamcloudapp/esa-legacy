@@ -17,17 +17,14 @@ import com.dreamcloud.esa.documentPreprocessor.ChainedPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessorFactory;
 import com.dreamcloud.esa.documentPreprocessor.NullPreprocessor;
-import com.dreamcloud.esa.fs.DocumentScoreFileReader;
-import com.dreamcloud.esa.fs.LoggingScoreReader;
-import com.dreamcloud.esa.fs.TermIndex;
-import com.dreamcloud.esa.fs.TermIndexReader;
+import com.dreamcloud.esa.fs.*;
 import com.dreamcloud.esa.indexer.*;
 import com.dreamcloud.esa.pruner.PrunerTuner;
 import com.dreamcloud.esa.pruner.PrunerTuning;
 import com.dreamcloud.esa.server.EsaHttpServer;
 import com.dreamcloud.esa.similarity.SimilarityFactory;
 import com.dreamcloud.esa.tfidf.CollectionInfo;
-import com.dreamcloud.esa.tfidf.DiskScoreReader;
+import com.dreamcloud.esa.tfidf.ScoreReader;
 import com.dreamcloud.esa.tfidf.DocumentScoreCachingReader;
 import com.dreamcloud.esa.tfidf.TfIdfWriter;
 import com.dreamcloud.esa.tools.*;
@@ -321,9 +318,9 @@ public class Main {
                 TermIndexReader termIndexReader = new TermIndexReader();
                 termIndexReader.open(new File("term-index.dc"));
                 TermIndex termIndex = termIndexReader.readIndex();
-                DocumentScoreFileReader scoreFileReader = new DocumentScoreFileReader(new File("term-scores.dc"));
-                sourceOptions.collectionInfo = new CollectionInfo(termIndex.getDocumentCount(), termIndex.getDocumentFrequencies());;
-                sourceOptions.scoreReader = new DiskScoreReader(termIndex, scoreFileReader);
+                DocumentScoreDataReader scoreFileReader = new DocumentScoreFileReader(new File("term-scores.dc"));
+                sourceOptions.collectionInfo = new CollectionInfo(termIndex.getDocumentCount(), termIndex.getDocumentFrequencies());
+                sourceOptions.scoreReader = new ScoreReader(termIndex, scoreFileReader);
             }
             //sourceOptions.scoreReader = new DocumentScoreCachingReader(sourceOptions.scoreReader);
             LoggingScoreReader scoreReader = new LoggingScoreReader(sourceOptions.scoreReader);
@@ -480,9 +477,9 @@ public class Main {
                 System.out.println("Getting top concepts for '" + sourceDesc + "':");
                 TextVectorizer textVectorizer = vectorizerFactory.getVectorizer();
                 ConceptVector vector = textVectorizer.vectorize(sourceText);
-                Iterator<String> topTenConcepts = vector.topConcepts();
+                Iterator<Integer> topTenConcepts = vector.topConcepts();
                 while (topTenConcepts.hasNext()) {
-                    String concept = topTenConcepts.next();
+                    int concept = topTenConcepts.next();
                     System.out.println(concept + ": " + decimalFormat.format(vector.getConceptWeights().get(concept)));
                 }
             }

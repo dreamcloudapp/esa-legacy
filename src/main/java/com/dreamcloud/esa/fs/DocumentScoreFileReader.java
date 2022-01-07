@@ -2,7 +2,7 @@ package com.dreamcloud.esa.fs;
 
 import java.io.*;
 
-public class DocumentScoreFileReader {
+public class DocumentScoreFileReader implements DocumentScoreDataReader {
     //RandomAccessFile scoreFileReader;
     FileInputStream scoreFileReader;
 

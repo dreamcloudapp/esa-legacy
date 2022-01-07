@@ -85,7 +85,7 @@ public class TfIdfScoreRepository implements DocumentScoreReader {
             ArrayList<TfIdfScore> scores = new ArrayList<>();
             while (resultSet.next()) {
                 String term = resultSet.getString(1);
-                String document = resultSet.getString(2);
+                int document = resultSet.getInt(2);
                 double score = resultSet.getDouble(3);
                 scores.add(new TfIdfScore(document, term, score));
             }
@@ -109,7 +109,7 @@ public class TfIdfScoreRepository implements DocumentScoreReader {
             ResultSet resultSet = scoreStatement.executeQuery();
             ArrayList<TfIdfScore> scores = new ArrayList<>();
             while (resultSet.next()) {
-                String document = resultSet.getString(1);
+                int document = resultSet.getInt(1);
                 double score = resultSet.getDouble(2);
                 scores.add(new TfIdfScore(document, term, score));
             }
@@ -119,7 +119,7 @@ public class TfIdfScoreRepository implements DocumentScoreReader {
         }
     }
 
-    public void saveTfIdfScores(String document, TfIdfScore[] scores) {
+    public void saveTfIdfScores(int document, TfIdfScore[] scores) {
         try {
             if (this.con == null) {
                 this.con = MySQLConnection.getConnection();
@@ -127,7 +127,7 @@ public class TfIdfScoreRepository implements DocumentScoreReader {
 
             PreparedStatement scoreStatement = con.prepareStatement("insert into esa.score(document, term, score) values(?, ?, ?)");
             for (TfIdfScore score : scores) {
-                scoreStatement.setString(1, document.substring(0, Math.min(128, document.length())));
+                scoreStatement.setInt(1, document);
                 scoreStatement.setString(2, score.getTerm());
                 if (Double.isNaN(score.getScore())) {
                     System.out.println("Found a NaN: " + score.getTerm() + ", " + document);

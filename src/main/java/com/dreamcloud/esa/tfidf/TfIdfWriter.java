@@ -82,7 +82,8 @@ public class TfIdfWriter extends XmlReadingHandler /* implements Indexer */ {
 
         /*//Write the document frequencies
         TfIdfScoreRepository tfIdfScoreRepository = new TfIdfScoreRepository();
-        tfIdfScoreRepository.saveTermDocumentFrequencies(tfIdfAnalyzer.getDocumentFrequencies());*/
+        tfIdfScoreRepository.saveTermDocumentFrequencies(tfIdfAnalyzer.getDocumentFrequencies());
+        tfIdfScoreRepository.saveDocumentCount(collectionInfo.numDocs);*/
 
         //Show logs
         System.out.println("----------------------------------------");
@@ -182,7 +183,7 @@ public class TfIdfWriter extends XmlReadingHandler /* implements Indexer */ {
             byteBuffer.putFloat(score);
             termScores.put(term, byteBuffer.array());
         }
-        //scoreRepository.saveTfIdfScores(article.title, scores);
+        //scoreRepository.saveTfIdfScores(article.id, scores);
     }
 
     public void close() throws IOException {

@@ -1,6 +1,6 @@
 package com.dreamcloud.esa.tfidf;
 
-import com.dreamcloud.esa.fs.DocumentScoreFileReader;
+import com.dreamcloud.esa.fs.DocumentScoreDataReader;
 import com.dreamcloud.esa.fs.TermIndex;
 import com.dreamcloud.esa.fs.TermIndexEntry;
 
@@ -9,11 +9,11 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Vector;
 
-public class DiskScoreReader implements DocumentScoreReader {
+public class ScoreReader implements DocumentScoreReader {
     protected TermIndex termIndex;
-    protected DocumentScoreFileReader scoreFileReader;
+    protected DocumentScoreDataReader scoreFileReader;
 
-    public DiskScoreReader(TermIndex termIndex, DocumentScoreFileReader scoreFileReader) {
+    public ScoreReader(TermIndex termIndex, DocumentScoreDataReader scoreFileReader) {
         this.termIndex = termIndex;
         this.scoreFileReader = scoreFileReader;
     }
@@ -38,7 +38,7 @@ public class DiskScoreReader implements DocumentScoreReader {
             for (int scoreIdx = 0; scoreIdx < entry.numScores; scoreIdx++) {
                 int doc = byteBuffer.getInt();
                 float score = byteBuffer.getFloat();
-                scores[scoreIdx] = new TfIdfScore(String.valueOf(doc), term, score);
+                scores[scoreIdx] = new TfIdfScore(doc, term, score);
             }
             return scores;
         }

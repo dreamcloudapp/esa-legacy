@@ -52,7 +52,7 @@ public class Vectorizer implements AutoCloseable, TextVectorizer {
             TopScoreDocCollector collector = TopScoreDocCollector.create(maxDocs, maxDocs);
             searcher.search(query, collector);
             TopDocs td = collector.topDocs();
-            this.conceptVectorCache.put(text, new ConceptVector(td, indexReader));
+            //this.conceptVectorCache.put(text, new ConceptVector(td, indexReader));
         }
         return this.conceptVectorCache.get(text);
     }

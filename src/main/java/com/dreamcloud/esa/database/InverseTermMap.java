@@ -72,7 +72,7 @@ public class InverseTermMap {
             break;
         }
 
-        Map<String, Float> conceptWeights = new HashMap<>();
+        Map<Integer, Float> conceptWeights = new HashMap<>();
         ConceptVector conceptVector = new ConceptVector(conceptWeights);
         if (termId != null) {
             PreparedStatement termScoreStatement = con.prepareStatement("select concept_id, score from dc.term_map where term_id = ?");
@@ -82,7 +82,7 @@ public class InverseTermMap {
             while(resultSet.next()) {
                 String conceptId = String.valueOf(resultSet.getInt(1));
                 float score = resultSet.getFloat(2);
-                conceptWeights.put(conceptId, score);
+                //conceptWeights.put(conceptId, score);
             }
         }
         return conceptVector;

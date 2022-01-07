@@ -5,6 +5,9 @@ import com.dreamcloud.esa.tfidf.DocumentScoreReader;
 import com.dreamcloud.esa.tfidf.TfIdfAnalyzer;
 import com.dreamcloud.esa.tfidf.TfIdfScore;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class VectorBuilder {
     DocumentScoreReader scoreReader;
     TfIdfAnalyzer tfIdfAnalyzer;
@@ -31,13 +34,13 @@ public class VectorBuilder {
 
         ConceptVector vector = new ConceptVector();
         TfIdfScore[] scores = tfIdfAnalyzer.getTfIdfScores(document);
-        //Map<String, Double> scoreMap = new HashMap<>();
-        //String []terms = new String[scores.length];
+        Map<String, Float> scoreMap = new HashMap<>();
+        String []terms = new String[scores.length];
         int i = 0;
         for (TfIdfScore score: scores) {
-            /*terms[i++] = score.getTerm();
-            scoreMap.put(score.getTerm(), score.getScore());*/
-            TfIdfScore[] termScores = scoreReader.getTfIdfScores(score.getTerm());
+            terms[i++] = score.getTerm();
+            scoreMap.put(score.getTerm(), (float) score.getScore());
+            /*TfIdfScore[] termScores = scoreReader.getTfIdfScores(score.getTerm());
             ConceptVector termVector = new ConceptVector();
             for (TfIdfScore termScore: termScores) {
                 termVector.conceptWeights.put(termScore.getDocument(), (float) (termScore.getScore() * score.getScore()));
@@ -45,10 +48,10 @@ public class VectorBuilder {
             if (pruneOptions != null) {
                 //termVector = termVector.prune(pruneOptions.windowSize, pruneOptions.dropOff);
             }
-            vector.merge(termVector);
+            vector.merge(termVector);*/
         }
 
-        /*TfIdfScore[] scoreDocs = scoreRepository.getTfIdfScores(terms);
+        TfIdfScore[] scoreDocs = scoreReader.getTfIdfScores(terms);
 
         for (TfIdfScore docScore: scoreDocs) {
             double score = docScore.getScore();
@@ -57,7 +60,7 @@ public class VectorBuilder {
                 score += vector.conceptWeights.get(docScore.getDocument());
             }
             vector.conceptWeights.put(docScore.getDocument(), (float) score);
-        }*/
+        }
 
         if (documentLimit > 0) {
             return vector.pruneToSize(documentLimit);

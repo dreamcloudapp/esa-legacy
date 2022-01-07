@@ -68,8 +68,8 @@ public class EsaHttpServer {
                 String weightedQuery = builder.weight(idTerm, requestBody.documentText);
                 ConceptVector vector = textVectorizer.vectorize(weightedQuery);
                 DocumentVector documentVector = new DocumentVector(requestBody.documentId);
-                Map<String, Float> conceptWeights = vector.getConceptWeights();
-                for(String concept: conceptWeights.keySet()) {
+                Map<Integer, Float> conceptWeights = vector.getConceptWeights();
+                for(int concept: conceptWeights.keySet()) {
                     documentVector.addConceptWeight(new ConceptWeight(concept, conceptWeights.get(concept)));
                 }
 
