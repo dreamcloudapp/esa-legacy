@@ -43,7 +43,7 @@ public class VectorBuilder {
                 termVector.conceptWeights.put(termScore.getDocument(), (float) (termScore.getScore() * score.getScore()));
             }
             if (pruneOptions != null) {
-                termVector = termVector.prune(pruneOptions.windowSize, pruneOptions.dropOff);
+                //termVector = termVector.prune(pruneOptions.windowSize, pruneOptions.dropOff);
             }
             vector.merge(termVector);
         }

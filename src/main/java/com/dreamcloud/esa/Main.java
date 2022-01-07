@@ -18,6 +18,7 @@ import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessor;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessorFactory;
 import com.dreamcloud.esa.documentPreprocessor.NullPreprocessor;
 import com.dreamcloud.esa.fs.DocumentScoreFileReader;
+import com.dreamcloud.esa.fs.LoggingScoreReader;
 import com.dreamcloud.esa.fs.TermIndex;
 import com.dreamcloud.esa.fs.TermIndexReader;
 import com.dreamcloud.esa.indexer.*;
@@ -27,6 +28,7 @@ import com.dreamcloud.esa.server.EsaHttpServer;
 import com.dreamcloud.esa.similarity.SimilarityFactory;
 import com.dreamcloud.esa.tfidf.CollectionInfo;
 import com.dreamcloud.esa.tfidf.DiskScoreReader;
+import com.dreamcloud.esa.tfidf.DocumentScoreCachingReader;
 import com.dreamcloud.esa.tfidf.TfIdfWriter;
 import com.dreamcloud.esa.tools.*;
 import com.dreamcloud.esa.vectorizer.*;
@@ -323,6 +325,9 @@ public class Main {
                 sourceOptions.collectionInfo = new CollectionInfo(termIndex.getDocumentCount(), termIndex.getDocumentFrequencies());;
                 sourceOptions.scoreReader = new DiskScoreReader(termIndex, scoreFileReader);
             }
+            //sourceOptions.scoreReader = new DocumentScoreCachingReader(sourceOptions.scoreReader);
+            LoggingScoreReader scoreReader = new LoggingScoreReader(sourceOptions.scoreReader);
+            sourceOptions.scoreReader = scoreReader;
 
             EsaOptions esaOptions = new EsaOptions();
             esaOptions.sourceOptions = sourceOptions;
@@ -488,7 +493,7 @@ public class Main {
                     spearman = "./src/data/en-wordsim353.csv";
                 }
                 TextVectorizer textVectorizer = vectorizerFactory.getVectorizer();
-                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer, pruneOptions);
+                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
                 PValueCalculator calculator = new PValueCalculator(new File(spearman));
                 System.out.println("Calculating P-value using Spearman correlation...");
                 System.out.println("----------------------------------------");
@@ -504,7 +509,7 @@ public class Main {
                     documentFile = new File("./src/data/en-lp50-documents.csv");
                 }
                 TextVectorizer textVectorizer = vectorizerFactory.getVectorizer();
-                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer, pruneOptions);
+                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
                 PValueCalculator calculator = new PValueCalculator(new File(pearsonFile), documentFile);
                 System.out.println("Calculating P-value using Pearson correlation...");
                 System.out.println("----------------------------------------");
@@ -685,6 +690,7 @@ public class Main {
             long endTime = Instant.now().getEpochSecond();
             System.out.println("----------------------------------------");
             System.out.println("Process finished in " + (endTime - startTime) + " seconds.");
+            System.out.println("Read " + scoreReader.getTermsRead() + " terms @ " + decimalFormat.format(scoreReader.getTermsReadPerSecond()) + " terms/s.");
         } catch (org.apache.commons.cli.ParseException e) {
             System.out.println(e.getMessage());
             formatter.printHelp("wiki-esa", options);
