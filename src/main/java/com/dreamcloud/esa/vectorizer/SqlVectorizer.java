@@ -1,9 +1,5 @@
 package com.dreamcloud.esa.vectorizer;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-
 public class SqlVectorizer implements TextVectorizer {
     protected VectorBuilder builder;
 
