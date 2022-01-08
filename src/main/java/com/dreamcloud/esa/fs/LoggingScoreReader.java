@@ -21,23 +21,23 @@ public class LoggingScoreReader implements DocumentScoreReader {
     }
 
     public TfIdfScore[] getTfIdfScores(String term) throws IOException {
-        long startTime = Instant.now().toEpochMilli();
+        long startTime = System.nanoTime();
         TfIdfScore[] scores = reader.getTfIdfScores(term);
-        timeTaken.addAndGet(Instant.now().toEpochMilli() - startTime);
+        timeTaken.addAndGet(System.nanoTime() - startTime);
         termsRead.incrementAndGet();
         return scores;
     }
 
     public TfIdfScore[] getTfIdfScores(String[] terms) throws IOException {
-        long startTime = Instant.now().toEpochMilli();
+        long startTime = System.nanoTime();
         TfIdfScore[] scores = reader.getTfIdfScores(terms);
-        timeTaken.addAndGet(Instant.now().toEpochMilli() - startTime);
+        timeTaken.addAndGet(System.nanoTime() - startTime);
         termsRead.addAndGet(terms.length);
         return scores;
     }
 
     public double getTermsReadPerSecond() {
-        return (double) termsRead.get() / (timeTaken.get() / 1000.0);
+        return termsRead.get() / (timeTaken.get() / 1000000000.0d);
     }
 
     public long getTermsRead() {

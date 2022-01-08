@@ -77,11 +77,6 @@ public class TfIdfWriter extends XmlReadingHandler /* implements Indexer */ {
         collectionWriter.writeCollectionInfo(collectionInfo);
         collectionWriter.close();
 
-        /*//Write the document frequencies
-        TfIdfScoreRepository tfIdfScoreRepository = new TfIdfScoreRepository();
-        tfIdfScoreRepository.saveTermDocumentFrequencies(tfIdfAnalyzer.getDocumentFrequencies());
-        tfIdfScoreRepository.saveDocumentCount(collectionInfo.numDocs);*/
-
         //Show logs
         System.out.println("----------------------------------------");
         System.out.println("Articles Indexed:\t" + numIndexed);

@@ -318,7 +318,7 @@ public class Main {
                 TermIndexReader termIndexReader = new TermIndexReader();
                 termIndexReader.open(termIndexFile);
                 TermIndex termIndex = termIndexReader.readIndex();
-                DocumentScoreDataReader scoreFileReader = new DocumentScoreFileReader(documentScoreFile);
+                DocumentScoreDataReader scoreFileReader = new DocumentScoreMemoryReader(documentScoreFile);
                 sourceOptions.collectionInfo = new CollectionInfo(termIndex.getDocumentCount(), termIndex.getDocumentFrequencies());
                 sourceOptions.scoreReader = new ScoreReader(termIndex, scoreFileReader);
                 sourceOptions.collectionWriter = new DiskCollectionWriter(termIndexFile, documentScoreFile);
@@ -750,13 +750,5 @@ public class Main {
 
         TfIdfWriter writer = new TfIdfWriter(new File(options.indexFile), options.sourceOptions.collectionWriter, collectionInfo, wikiIndexerOptions);
         writer.index();
-        //writer.index(new File(options.indexFile));
-        /*IndexerFactory indexerFactory = new IndexerFactory();
-        Indexer indexer = indexerFactory.getIndexer(options.documentType, wikiIndexerOptions);
-        try{
-            indexer.index(new File(options.indexFile));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }*/
     }
 }

@@ -32,4 +32,8 @@ public class CollectionInfo {
     public Map<String, Integer> getDocumentFrequencies() {
         return documentFrequencies;
     }
+
+    public int getDocumentCount() {
+        return this.numDocs;
+    }
 }

@@ -1,33 +1,32 @@
 package com.dreamcloud.esa.vectorizer;
 
+import org.apache.commons.collections.ComparatorUtils;
+
 import java.util.*;
 
 public class ConceptVector {
-    Map<Integer, Float> conceptWeights;
+    float[] documentScores = null;
 
-    public ConceptVector(Map<Integer, Float> conceptWeights) {
-        this.conceptWeights = conceptWeights;
+    public float[] getDocumentScores() {
+        return documentScores;
     }
 
-    public ConceptVector() {
-        this.conceptWeights = new HashMap<>();
+    public ConceptVector(float[] documentScores) {
+        this.documentScores = documentScores;
+    }
+
+    public ConceptVector(int numDocs) {
+        this.documentScores = new float[numDocs];
     }
 
     public void merge(ConceptVector other) {
-        for (Map.Entry<Integer, Float> weightEntry: other.getConceptWeights().entrySet()) {
-            int concept = weightEntry.getKey();
-            float score = weightEntry.getValue();
-
-            if (this.conceptWeights.containsKey(concept)) {
-                this.conceptWeights.put(concept, this.conceptWeights.get(concept) + score);
-            } else {
-                this.conceptWeights.put(concept, score);
-            }
+        for (int documentId = 0; documentId < other.getDocumentScores().length; documentId++) {
+            this.documentScores[documentId] += other.getDocumentScores()[documentId];
         }
     }
 
     public ConceptVector prune(int windowSize, float dropOff) {
-        ConceptVector pruned = new ConceptVector();
+        /*ConceptVector pruned = new ConceptVector();
         if (conceptWeights.size() == 0) {
             return pruned;
         }
@@ -47,9 +46,26 @@ public class ConceptVector {
             }
         }
 
-        return pruned;
+        return pruned;*/
+        return this;
     }
 
+    public float dotProduct(ConceptVector other) {
+        float[] theirScores = other.getDocumentScores();
+        float norm1 = 0;
+        float norm2 = 0;
+        float dotProduct = 0;
+        for (int documentId = 0; documentId < documentScores.length; documentId++) {
+            float ourScore = documentScores[documentId];
+            float theirScore = theirScores[documentId];
+            dotProduct += ourScore * theirScore;
+            norm1 += ourScore * ourScore;
+            norm2 += theirScore * theirScore;
+        }
+        return (float) (dotProduct / (Math.sqrt(norm1) * Math.sqrt((norm2))));
+    }
+
+    /*
     public float dotProduct(ConceptVector other) {
         Set<Integer> commonConcepts = new HashSet<>(other.conceptWeights.keySet());
         commonConcepts.retainAll(conceptWeights.keySet());
@@ -73,21 +89,33 @@ public class ConceptVector {
         }
 
         return (float) (dotProd / (Math.sqrt(norm1) * Math.sqrt((norm2))));
-    }
+    }*/
 
     public Iterator<Integer> topConcepts() {
-        return conceptWeights.entrySet().stream().
+        return null;
+        /*return conceptWeights.entrySet().stream().
                 sorted((Map.Entry<Integer, Float> e1, Map.Entry<Integer, Float> e2) -> (int) Math.signum(e2.getValue() - e1.getValue())).
                 map(Map.Entry::getKey).
-                iterator();
+                iterator();*/
     }
 
     public Map<Integer, Float> getConceptWeights() {
-        return conceptWeights;
+        return null;
+        //return conceptWeights;
     }
 
     public ConceptVector pruneToSize(int n) {
-        ConceptVector vector = new ConceptVector();
+        Integer[] documentIds = new Integer[documentScores.length];
+        for (int documentId = 0; documentId < documentIds.length; documentId++) {
+            documentIds[documentId] = documentId;
+        }
+        Arrays.sort(documentIds, (o1, o2) -> Float.compare(documentScores[o2], documentScores[o1]));
+
+        for (int documentId = n; documentId < documentIds.length; documentId++) {
+            documentScores[documentIds[documentId]] = 0;
+        }
+
+        /*ConceptVector vector = new ConceptVector();
         int i = 0;
         for ( Iterator<Integer> topConcepts = this.topConcepts(); topConcepts.hasNext(); ) {
             int concept = topConcepts.next();
@@ -97,6 +125,11 @@ public class ConceptVector {
                 break;
             }
         }
-        return vector;
+        return vector;*/
+        return this;
+    }
+
+    public void addScore(int document, float score) {
+        this.documentScores[document - 1] += score;
     }
 }
