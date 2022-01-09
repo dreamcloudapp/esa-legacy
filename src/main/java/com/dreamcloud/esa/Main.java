@@ -190,7 +190,7 @@ public class Main {
         options.addOption(pearsonOption);
 
         //Pearson correlations to get tool p-value
-        Option tuneOption = new Option(null, "tune", true, "int vectorLimitStart int vectorLimitEnd int step / Finds ideal vector limits and pruning options for spearman and pearson");
+        Option tuneOption = new Option(null, "tune", false, "Finds ideal pruning options for spearman and pearson");
         tuneOption.setRequired(false);
         options.addOption(tuneOption);
 
@@ -478,10 +478,8 @@ public class Main {
                 System.out.println("Getting top concepts for '" + sourceDesc + "':");
                 TextVectorizer textVectorizer = vectorizerFactory.getVectorizer();
                 ConceptVector vector = textVectorizer.vectorize(sourceText);
-                Iterator<Integer> topTenConcepts = vector.topConcepts();
-                while (topTenConcepts.hasNext()) {
-                    int concept = topTenConcepts.next();
-                    System.out.println(concept + ": " + decimalFormat.format(vector.getConceptWeights().get(concept)));
+                for (Integer documentId: vector.getSortedDocumentIds()) {
+                    System.out.println(documentId + ": " + decimalFormat.format(vector.getScore(documentId)));
                 }
             }
 
@@ -528,7 +526,7 @@ public class Main {
                 PrunerTuner tuner = new PrunerTuner(similarityTool);
                 System.out.println("Analyzing wordsim-353 to find the ideal vector limit...");
                 System.out.println("----------------------------------------");
-                PrunerTuning tuning = tuner.tune(pearsonCalculator, pruneOptions, 100, 150, 10, 0.001, 0.25, 0.001);
+                PrunerTuning tuning = tuner.tune(spearmanCalculator, pruneOptions, 10, 150, 10, 0.001, 0.25, 0.001);
                 System.out.println("tuned p-value:\t" + tuning.getTunedScore());
                 System.out.println("tuned window size:\t" + tuning.getTunedWindowSize());
                 System.out.println("tuned window dropoff:\t" + tuning.getTunedWindowDropOff());

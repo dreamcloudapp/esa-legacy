@@ -69,7 +69,8 @@ public class VectorBuilder {
             if (documentLimit > 0) {
                 vector.pruneToSize(documentLimit);
             }
-            cache.put(document, vector);
+            return vector;
+            //cache.put(document, vector);
         }
 
         return cache.get(document);

@@ -1,11 +1,9 @@
 package com.dreamcloud.esa.vectorizer;
 
-import org.apache.commons.collections.ComparatorUtils;
-
 import java.util.*;
 
 public class ConceptVector {
-    float[] documentScores = null;
+    float[] documentScores;
 
     public float[] getDocumentScores() {
         return documentScores;
@@ -26,28 +24,23 @@ public class ConceptVector {
     }
 
     public ConceptVector prune(int windowSize, float dropOff) {
-        /*ConceptVector pruned = new ConceptVector();
-        if (conceptWeights.size() == 0) {
-            return pruned;
-        }
+        ConceptVector pruned = new ConceptVector(this.documentScores.length);
 
-        Integer[] orderedConcepts = conceptWeights.keySet().toArray(Integer[]::new);
-        for (int conceptIdx = 0; conceptIdx < orderedConcepts.length; conceptIdx++) {
-            int windowHeadConcept = orderedConcepts[conceptIdx];
-            float windowHeadScore = this.conceptWeights.get(windowHeadConcept);
-            pruned.conceptWeights.put(windowHeadConcept, windowHeadScore);
+        Integer[] orderedDocumentIds = getSortedDocumentIds();
+        for (int documentIdx = 0; documentIdx < orderedDocumentIds.length; documentIdx++) {
+            int windowHeadId = orderedDocumentIds[documentIdx];
+            float windowHeadScore = getScore(windowHeadId);
+            pruned.addScore(windowHeadId, windowHeadScore);
 
-            if (conceptIdx + windowSize < orderedConcepts.length) {
-                int windowTailConcept = orderedConcepts[conceptIdx + windowSize];
-                float windowTailScore = this.conceptWeights.get(windowTailConcept);
+            if (documentIdx + windowSize < orderedDocumentIds.length) {
+                int windowTailId = orderedDocumentIds[documentIdx + windowSize];
+                float windowTailScore = getScore(windowTailId);
                 if ((windowHeadScore - windowTailScore) < windowHeadScore * dropOff) {
                     break;
                 }
             }
         }
-
-        return pruned;*/
-        return this;
+        return pruned;
     }
 
     public float dotProduct(ConceptVector other) {
@@ -65,71 +58,28 @@ public class ConceptVector {
         return (float) (dotProduct / (Math.sqrt(norm1) * Math.sqrt((norm2))));
     }
 
-    /*
-    public float dotProduct(ConceptVector other) {
-        Set<Integer> commonConcepts = new HashSet<>(other.conceptWeights.keySet());
-        commonConcepts.retainAll(conceptWeights.keySet());
-        float norm1 = 0;
-        float norm2 = 0;
-        float dotProd = 0;
-        for (int concept : commonConcepts) {
-            Float w1 =  conceptWeights.get(concept);
-            Float w2 =  other.conceptWeights.get(concept);
-            dotProd += w1 * w2;
-        }
-
-        for (int concept : conceptWeights.keySet()) {
-            float norm = conceptWeights.get(concept);
-            norm1 += norm * norm;
-        }
-
-        for (int concept : other.conceptWeights.keySet()) {
-            float norm = other.conceptWeights.get(concept);
-            norm2 += norm * norm;
-        }
-
-        return (float) (dotProd / (Math.sqrt(norm1) * Math.sqrt((norm2))));
-    }*/
-
-    public Iterator<Integer> topConcepts() {
-        return null;
-        /*return conceptWeights.entrySet().stream().
-                sorted((Map.Entry<Integer, Float> e1, Map.Entry<Integer, Float> e2) -> (int) Math.signum(e2.getValue() - e1.getValue())).
-                map(Map.Entry::getKey).
-                iterator();*/
-    }
-
-    public Map<Integer, Float> getConceptWeights() {
-        return null;
-        //return conceptWeights;
-    }
-
-    public ConceptVector pruneToSize(int n) {
+    public Integer[] getSortedDocumentIds() {
         Integer[] documentIds = new Integer[documentScores.length];
         for (int documentId = 0; documentId < documentIds.length; documentId++) {
             documentIds[documentId] = documentId;
         }
         Arrays.sort(documentIds, (o1, o2) -> Float.compare(documentScores[o2], documentScores[o1]));
+        return documentIds;
+    }
 
+    public ConceptVector pruneToSize(int n) {
+        Integer[] documentIds = getSortedDocumentIds();
         for (int documentId = n; documentId < documentIds.length; documentId++) {
             documentScores[documentIds[documentId]] = 0;
         }
-
-        /*ConceptVector vector = new ConceptVector();
-        int i = 0;
-        for ( Iterator<Integer> topConcepts = this.topConcepts(); topConcepts.hasNext(); ) {
-            int concept = topConcepts.next();
-            float score = conceptWeights.get(concept);
-            vector.conceptWeights.put(concept, score);
-            if (i++ == n) {
-                break;
-            }
-        }
-        return vector;*/
         return this;
     }
 
     public void addScore(int document, float score) {
         this.documentScores[document - 1] += score;
+    }
+
+    public float getScore(int documentId) {
+        return this.documentScores[documentId];
     }
 }
