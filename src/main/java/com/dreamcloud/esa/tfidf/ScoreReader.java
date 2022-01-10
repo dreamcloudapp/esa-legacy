@@ -32,8 +32,7 @@ public class ScoreReader implements DocumentScoreReader {
         if (entry == null) {
             return new TfIdfScore[0];
         } else {
-            byte[] scoreBytes = scoreFileReader.readScores(entry.offset, entry.numScores);
-            ByteBuffer byteBuffer = ByteBuffer.wrap(scoreBytes);
+            ByteBuffer byteBuffer = scoreFileReader.readScores(entry.offset, entry.numScores);
             TfIdfScore[] scores = new TfIdfScore[entry.numScores];
             for (int scoreIdx = 0; scoreIdx < entry.numScores; scoreIdx++) {
                 int doc = byteBuffer.getInt();

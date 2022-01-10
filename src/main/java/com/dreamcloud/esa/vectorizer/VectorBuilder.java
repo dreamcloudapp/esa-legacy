@@ -7,8 +7,10 @@ import com.dreamcloud.esa.tfidf.TfIdfAnalyzer;
 import com.dreamcloud.esa.tfidf.TfIdfScore;
 import org.apache.lucene.analysis.Analyzer;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class VectorBuilder {
@@ -47,23 +49,36 @@ public class VectorBuilder {
             for (TfIdfScore score: scores) {
                 terms[i++] = score.getTerm();
                 scoreMap.put(score.getTerm(), (float) score.getScore());
-            /*TfIdfScore[] termScores = scoreReader.getTfIdfScores(score.getTerm());
-            ConceptVector termVector = new ConceptVector();
-            for (TfIdfScore termScore: termScores) {
-                termVector.conceptWeights.put(termScore.getDocument(), (float) (termScore.getScore() * score.getScore()));
-            }
-            if (pruneOptions != null) {
-                //termVector = termVector.prune(pruneOptions.windowSize, pruneOptions.dropOff);
-            }
-            vector.merge(termVector);*/
             }
 
-            TfIdfScore[] scoreDocs = scoreReader.getTfIdfScores(terms);
+            //We need to prune these scores!
+            TfIdfScore[] scoreDocs;
+            if (pruneOptions != null) {
+                Vector<TfIdfScore> allTermScores = new Vector<>();
+                for (String term: terms) {
+                    TfIdfScore[] termScores = scoreReader.getTfIdfScores(term);
+                    Arrays.sort(termScores, (t1, t2) -> Float.compare((float) t2.getScore(), (float) t1.getScore()));
+                    for (int scoreIdx = 0; scoreIdx < termScores.length; scoreIdx++) {
+                        allTermScores.add(termScores[scoreIdx]);
+                        if (scoreIdx >= pruneOptions.windowSize) {
+                            float headScore = (float) termScores[scoreIdx - pruneOptions.windowSize].getScore();
+                            float tailScore = (float) termScores[scoreIdx].getScore();
+                            if (headScore - tailScore < headScore * pruneOptions.dropOff) {
+                                break;
+                            }
+                        }
+                    }
+                }
+                scoreDocs = allTermScores.toArray(new TfIdfScore[0]);
+            } else {
+                scoreDocs = scoreReader.getTfIdfScores(terms);
+            }
 
             for (TfIdfScore docScore: scoreDocs) {
                 double score = docScore.getScore();
                 score *= scoreMap.get(docScore.getTerm());
-                vector.addScore(docScore.getDocument(), (float) score);
+                //DB document ids are 1-indexed but our arrays are 0-indexed
+                vector.addScore(docScore.getDocument() - 1, (float) score);
             }
 
             if (documentLimit > 0) {

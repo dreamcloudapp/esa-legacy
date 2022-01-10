@@ -1,10 +1,12 @@
 package com.dreamcloud.esa.fs;
 
+import org.apache.lucene.util.fst.FST;
+
 import java.io.*;
-import java.util.Arrays;
+import java.nio.ByteBuffer;
 
 public class DocumentScoreMemoryReader implements DocumentScoreDataReader {
-    byte[] scoreData = null;
+    byte[] scoreData;
 
     public DocumentScoreMemoryReader(File scoreFile) throws IOException {
         InputStream inputStream = new FileInputStream(scoreFile);
@@ -12,7 +14,7 @@ public class DocumentScoreMemoryReader implements DocumentScoreDataReader {
         scoreData = inputStream.readAllBytes();
     }
 
-    public byte[] readScores(int offset, int numScores) throws IOException {
-        return Arrays.copyOfRange(scoreData, offset, offset + numScores * FileSystem.DOCUMENT_SCORE_BYTES);
+    public ByteBuffer readScores(int offset, int numScores) throws IOException {
+        return ByteBuffer.wrap(scoreData, offset, numScores * FileSystem.DOCUMENT_SCORE_BYTES);
     }
 }

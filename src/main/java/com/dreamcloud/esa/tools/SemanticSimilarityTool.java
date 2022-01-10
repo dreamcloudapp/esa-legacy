@@ -28,6 +28,9 @@ public class SemanticSimilarityTool {
     private float findSemanticSimilarity(String formerText, String latterText, PruneOptions options) throws Exception {
         ConceptVector formerVector = vectorizer.vectorize(formerText).prune(options.windowSize, options.dropOff);
         ConceptVector latterVector = vectorizer.vectorize(latterText).prune(options.windowSize, options.dropOff);
+        /*int minVectorSize = Math.min(formerVector.getDocumentScores().length, latterVector.getDocumentScores().length);
+        formerVector.pruneToSize(minVectorSize);
+        latterVector.pruneToSize(minVectorSize);*/
         return formerVector.dotProduct(latterVector);
     }
 

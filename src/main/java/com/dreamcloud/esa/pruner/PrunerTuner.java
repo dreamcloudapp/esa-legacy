@@ -59,6 +59,7 @@ public class PrunerTuner {
                     }
                     if (lowerScores >= 7) {
                         System.out.println("skipping (9)");
+                        iterationIdx += (int) (((dropOffEnd - dropOffStart) / dropOffStep) + 1);
                         break;
                     }
                 }

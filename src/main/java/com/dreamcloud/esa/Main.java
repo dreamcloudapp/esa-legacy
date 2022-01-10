@@ -522,11 +522,11 @@ public class Main {
                 PValueCalculator spearmanCalculator = new PValueCalculator(spearmanFile);
                 PValueCalculator pearsonCalculator = new PValueCalculator(pearsonFile, documentFile);
 
-                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
+                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer, pruneOptions);
                 PrunerTuner tuner = new PrunerTuner(similarityTool);
                 System.out.println("Analyzing wordsim-353 to find the ideal vector limit...");
                 System.out.println("----------------------------------------");
-                PrunerTuning tuning = tuner.tune(spearmanCalculator, pruneOptions, 10, 150, 10, 0.001, 0.25, 0.001);
+                PrunerTuning tuning = tuner.tune(spearmanCalculator, pruneOptions, 50, 100, 5, 0.001, 0.1, 0.001);
                 System.out.println("tuned p-value:\t" + tuning.getTunedScore());
                 System.out.println("tuned window size:\t" + tuning.getTunedWindowSize());
                 System.out.println("tuned window dropoff:\t" + tuning.getTunedWindowDropOff());

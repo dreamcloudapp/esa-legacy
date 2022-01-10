@@ -34,4 +34,8 @@ public class TfIdfScore {
     public void normalizeScore(double lengthNorm) {
         this.score = score * lengthNorm;
     }
+
+    public void addToScore(float score) {
+        this.score += score;
+    }
 }
