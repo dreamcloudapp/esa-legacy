@@ -10,7 +10,7 @@ public class DocumentScoreCachingReader implements DocumentScoreReader {
     protected static int DEFAULT_CAPACITY = 2048;
 
     DocumentScoreReader reader;
-    protected Map<String, TfIdfScore[]> cache;
+    protected Map<String, Vector<TfIdfScore>> cache;
     protected Map<String, Integer> cacheHits;
     protected int capacity;
 
@@ -36,13 +36,14 @@ public class DocumentScoreCachingReader implements DocumentScoreReader {
         cache.clear();
     }
 
-    public TfIdfScore[] getTfIdfScores(String term) throws IOException {
+    public void getTfIdfScores(String term, Vector<TfIdfScore> outVector) throws IOException {
         int termHits = cacheHits.getOrDefault(term, 0) + 1;
         cacheHits.put(term, termHits);
         if (cache.containsKey(term)) {
-            return cache.get(term);
+            outVector.addAll(cache.get(term));
         } else {
-            TfIdfScore[] scores = reader.getTfIdfScores(term);
+            Vector<TfIdfScore> scores = new Vector<>();
+            reader.getTfIdfScores(term, scores);
             if (cache.size() < capacity) {
                 //cache the sucker
                 cache.put(term, scores);
@@ -63,16 +64,13 @@ public class DocumentScoreCachingReader implements DocumentScoreReader {
                     cache.put(term, scores);
                 }
             }
-            return scores;
+            outVector.addAll(scores);
         }
     }
 
-    public TfIdfScore[] getTfIdfScores(String[] terms) throws IOException {
-        Vector<TfIdfScore> allScores = new Vector<>();
+    public void getTfIdfScores(String[] terms, Vector<TfIdfScore> outVector) throws IOException {
         for (String term: terms) {
-            TfIdfScore[] scores = this.getTfIdfScores(term);
-            allScores.addAll(Arrays.asList(scores));
+            this.getTfIdfScores(term, outVector);
         }
-        return allScores.toArray(TfIdfScore[]::new);
     }
 }

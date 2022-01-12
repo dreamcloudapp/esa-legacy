@@ -15,12 +15,9 @@ public class TermScoreWriter {
     }
 
     public void writeTermScores(TermScore[] termScores) throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(FileSystem.DOCUMENT_SCORE_BYTES);
         for (TermScore termScore: termScores) {
-            buffer.putInt(termScore.document);
-            buffer.putFloat(termScore.score);
-            outputStream.write(buffer.array());
-            buffer.clear();
+            outputStream.writeInt(termScore.document);
+            outputStream.writeFloat(termScore.score);
         }
     }
 

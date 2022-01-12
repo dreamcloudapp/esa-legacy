@@ -1,7 +1,6 @@
 package com.dreamcloud.esa.server;
 
 import com.dreamcloud.esa.EsaOptions;
-import com.dreamcloud.esa.database.ConceptWeight;
 import com.dreamcloud.esa.database.DocumentVector;
 import com.dreamcloud.esa.database.MySQLConnection;
 import com.dreamcloud.esa.database.VectorRepository;
@@ -22,12 +21,9 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Map;
 
 /**
  * This really shouldn't get the ESA options.
@@ -36,22 +32,18 @@ import java.util.Map;
  * HTTP or command line!
  */
 public class EsaHttpServer {
+    private final TextVectorizer vectorizer;
     EsaOptions options;
 
     public static boolean nonEmpty(String s) {
         return s != null && !s.equals("");
     }
 
-    public EsaHttpServer(EsaOptions options) {
+    public EsaHttpServer(TextVectorizer vectorizer, EsaOptions options) {
+        this.vectorizer = vectorizer;
         this.options = options;
     }
     public void start(int port) throws IOException, SQLException {
-        Directory dir = FSDirectory.open(options.indexPath);
-        IndexReader docReader = DirectoryReader.open(dir);
-        IndexSearcher docSearcher = new IndexSearcher(docReader);
-        docSearcher.setSimilarity(SimilarityFactory.getSimilarity());
-        WeighedDocumentQueryBuilder builder = new WeighedDocumentQueryBuilder(options.analyzer, docSearcher);
-        TextVectorizer textVectorizer = new Vectorizer(options);
         //Connect to MySQL
         Connection con = MySQLConnection.getConnection();
         VectorRepository repository = new VectorRepository(con);
@@ -64,9 +56,9 @@ public class EsaHttpServer {
             if (!nonEmpty(requestBody.documentText) || !nonEmpty(requestBody.documentId)) {
                 ctx.res.sendError(400, "Invalid request: documentText and documentId are required fields.");
             } else {
-                Term idTerm = new Term(DreamIndexer.ID_FIELD, requestBody.documentId);
-                String weightedQuery = builder.weight(idTerm, requestBody.documentText);
-                ConceptVector vector = textVectorizer.vectorize(weightedQuery);
+                //Term idTerm = new Term(DreamIndexer.ID_FIELD, requestBody.documentId);
+                //String weightedQuery = builder.weight(idTerm, requestBody.documentText);
+                ConceptVector vector = vectorizer.vectorize(requestBody.documentText);
                 DocumentVector documentVector = new DocumentVector(requestBody.documentId);
                //todo: fix to use document ids (or remove)
                 /*Map<Integer, Float> conceptWeights = vector.getConceptWeights();
@@ -76,7 +68,7 @@ public class EsaHttpServer {
 
                 repository.saveDocumentVector(documentVector);
                 ctx.status(200);
-                System.out.println("Processed dream: " + weightedQuery.substring(0, 16) + "...");
+                System.out.println("Processed dream: " + requestBody.documentText.substring(0, 16) + "...");
             }
         });
 
@@ -108,7 +100,7 @@ public class EsaHttpServer {
         app.post("/similarity", ctx -> {
             ctx.header(Header.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
             DocumentSimilarityRequestBody requestBody = gson.fromJson(ctx.body(), DocumentSimilarityRequestBody.class);
-            DocumentSimilarityScorer scorer = new DocumentSimilarityScorer(textVectorizer);
+            DocumentSimilarityScorer scorer = new DocumentSimilarityScorer(vectorizer);
             ctx.json(scorer.score(requestBody));
         });
     }

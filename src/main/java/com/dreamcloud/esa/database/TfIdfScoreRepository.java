@@ -8,6 +8,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Vector;
 
 public class TfIdfScoreRepository implements DocumentScoreReader {
     Connection con;
@@ -59,7 +60,7 @@ public class TfIdfScoreRepository implements DocumentScoreReader {
         }
     }
 
-    public TfIdfScore[] getTfIdfScores(String[] terms) {
+    public void getTfIdfScores(String[] terms, Vector<TfIdfScore> outVector) throws IOException {
         try {
             if (this.con == null) {
                 this.con = MySQLConnection.getConnection();
@@ -79,23 +80,18 @@ public class TfIdfScoreRepository implements DocumentScoreReader {
                 scoreStatement.setString(i++, term);
             }
             ResultSet resultSet = scoreStatement.executeQuery();
-            ArrayList<TfIdfScore> scores = new ArrayList<>();
             while (resultSet.next()) {
                 String term = resultSet.getString(1);
                 int document = resultSet.getInt(2);
                 double score = resultSet.getDouble(3);
-                scores.add(new TfIdfScore(document, term, score));
+                outVector.add(new TfIdfScore(document, term, score));
             }
-            return scores.toArray(TfIdfScore[]::new);
-        } catch (Exception e) {
-            System.out.println("Postgres is unhappy about something:");
-            e.printStackTrace();
-            System.exit(-1);
+        } catch (SQLException e) {
+            throw new IOException(e.getMessage());
         }
-        return null;
     }
 
-    public TfIdfScore[] getTfIdfScores(String term) throws IOException {
+    public void getTfIdfScores(String term, Vector<TfIdfScore> outVector) throws IOException {
         try {
             if (this.con == null) {
                 this.con = MySQLConnection.getConnection();
@@ -104,13 +100,11 @@ public class TfIdfScoreRepository implements DocumentScoreReader {
             PreparedStatement scoreStatement = con.prepareStatement("select document, score from esa.score where term = ? order by score desc");
             scoreStatement.setString(1, term);
             ResultSet resultSet = scoreStatement.executeQuery();
-            ArrayList<TfIdfScore> scores = new ArrayList<>();
             while (resultSet.next()) {
                 int document = resultSet.getInt(1);
                 double score = resultSet.getDouble(2);
-                scores.add(new TfIdfScore(document, term, score));
+                outVector.add(new TfIdfScore(document, term, score));
             }
-            return scores.toArray(TfIdfScore[]::new);
         } catch (SQLException e) {
             throw new IOException(e.getMessage());
         }

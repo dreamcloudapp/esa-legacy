@@ -5,6 +5,7 @@ import com.dreamcloud.esa.tfidf.TfIdfScore;
 import com.dreamcloud.esa.vectorizer.PruneOptions;
 
 import java.io.IOException;
+import java.util.Vector;
 
 public class IndexPruner {
     protected PruneOptions options;
@@ -25,14 +26,15 @@ public class IndexPruner {
             return;
         }
         int w = options.windowSize;
-        TfIdfScore[] docScores = tfIdfScoreRepository.getTfIdfScores(term);
+        Vector<TfIdfScore> docScores = new Vector<>();
+        tfIdfScoreRepository.getTfIdfScores(term, docScores);
         for (TfIdfScore score: docScores) {
-            if (w < docScores.length) {
+            if (w < docScores.size()) {
                 double firstScore = score.getScore();
-                double lastScore = docScores[w].getScore();
+                double lastScore = docScores.get(w).getScore();
                 if ((firstScore - lastScore) < (firstScore * options.dropOff)) {
                     //tfIdfScoreRepository.pruneTerm(term, firstScore);
-                    System.out.println("pruning " + term + " to " + w + " scores (" + firstScore + "), from " + docScores.length);
+                    System.out.println("pruning " + term + " to " + w + " scores (" + firstScore + "), from " + docScores.size());
                     break;
                 }
             }

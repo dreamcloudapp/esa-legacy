@@ -70,6 +70,14 @@ public class Main {
         vectorizerOption.setRequired(false);
         options.addOption(vectorizerOption);
 
+        Option tfidfDocumentOption = new Option(null, "tfidf-document", true, "string / The type of TF-IDF to apply for documents.");
+        tfidfDocumentOption.setRequired(false);
+        options.addOption(tfidfDocumentOption);
+
+        Option tfidfQueryOption = new Option(null, "tfidf-query", true, "string / The type of TF-IDF to apply for queries.");
+        tfidfQueryOption.setRequired(false);
+        options.addOption(tfidfQueryOption);
+
         //Main action options
         Option compareTextOption = new Option("ct", "compare-texts", true, "\"string one\" \"string two\" / Compare two texts.");
         compareTextOption.setRequired(false);
@@ -294,6 +302,8 @@ public class Main {
             String[] sourceArgs = cmd.getOptionValues("source");
             String docType = cmd.getOptionValue("doctype");
             String vectorizerType = cmd.getOptionValue("vectorizer");
+            String tfIdfDocumentMode = cmd.getOptionValue("tfidf-document", "ltc");
+            String tfIdfQueryMode = cmd.getOptionValue("tfidf-query", "ltc");
             String similarityAlgorithm = cmd.getOptionValue("similarity");
             String stopWords = cmd.getOptionValue("stopwords");
             String rareWords = cmd.getOptionValue("rare-words");
@@ -329,6 +339,8 @@ public class Main {
 
             EsaOptions esaOptions = new EsaOptions();
             esaOptions.sourceOptions = sourceOptions;
+            esaOptions.tfIdfQueryMode = tfIdfQueryMode;
+            esaOptions.tfIdfDocumentMode = tfIdfDocumentMode;
 
             PruneOptions pruneOptions = new PruneOptions();
             if (nonEmpty(pruneWindowSize)) {
@@ -424,6 +436,7 @@ public class Main {
             indexerOptions.preprocessor = esaOptions.preprocessor;
             indexerOptions.analyzerFactory = analyzerFactory;
             indexerOptions.indexDirectory = FSDirectory.open(esaOptions.indexPath);
+            indexerOptions.tfIdfMode = esaOptions.tfIdfDocumentMode;
             indexerOptions.displayInfo();
 
             String server = cmd.getOptionValue("server");
@@ -526,7 +539,7 @@ public class Main {
                 PrunerTuner tuner = new PrunerTuner(similarityTool);
                 System.out.println("Analyzing wordsim-353 to find the ideal vector limit...");
                 System.out.println("----------------------------------------");
-                PrunerTuning tuning = tuner.tune(spearmanCalculator, pruneOptions, 50, 100, 5, 0.001, 0.1, 0.001);
+                PrunerTuning tuning = tuner.tune(pearsonCalculator, pruneOptions, 0, 100, 10, 0.01, 0.2, 0.01);
                 System.out.println("tuned p-value:\t" + tuning.getTunedScore());
                 System.out.println("tuned window size:\t" + tuning.getTunedWindowSize());
                 System.out.println("tuned window dropoff:\t" + tuning.getTunedWindowDropOff());
@@ -676,7 +689,7 @@ public class Main {
               IndexPruner pruner = new IndexPruner(pruneOptions);
               pruner.prune(new TfIdfScoreRepository());
             } else if(nonEmpty(server)) {
-                EsaHttpServer esaServer = new EsaHttpServer(esaOptions);
+                EsaHttpServer esaServer = new EsaHttpServer(vectorizerFactory.getVectorizer(), esaOptions);
                 esaServer.start(Integer.parseInt(server));
             }
             else {

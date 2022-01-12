@@ -5,9 +5,7 @@ import com.dreamcloud.esa.tfidf.CollectionInfo;
 import com.dreamcloud.esa.tfidf.DocumentScoreReader;
 import com.dreamcloud.esa.tfidf.TfIdfAnalyzer;
 import com.dreamcloud.esa.tfidf.TfIdfScore;
-import org.apache.lucene.analysis.Analyzer;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -17,22 +15,20 @@ public class VectorBuilder {
     Map<String, ConceptVector> cache = new ConcurrentHashMap<>();
     DocumentScoreReader scoreReader;
     TfIdfAnalyzer tfIdfAnalyzer;
-    int documentLimit;
     PruneOptions pruneOptions;
     DocumentPreprocessor preprocessor;
     CollectionInfo collectionInfo;
 
-    public VectorBuilder(DocumentScoreReader scoreReader, CollectionInfo collectionInfo, TfIdfAnalyzer analyzer, DocumentPreprocessor preprocessor, int documentLimit, PruneOptions pruneOptions) {
+    public VectorBuilder(DocumentScoreReader scoreReader, CollectionInfo collectionInfo, TfIdfAnalyzer analyzer, DocumentPreprocessor preprocessor, PruneOptions pruneOptions) {
         this.scoreReader = scoreReader;
         this.tfIdfAnalyzer = analyzer;
         this.collectionInfo = collectionInfo;
         this.preprocessor = preprocessor;
-        this.documentLimit = documentLimit;
         this.pruneOptions = pruneOptions;
     }
 
-    public VectorBuilder(DocumentScoreReader scoreReader, CollectionInfo collectionInfo, TfIdfAnalyzer tfIdfAnalyzer, DocumentPreprocessor preprocessor, int documentLimit) {
-        this(scoreReader, collectionInfo, tfIdfAnalyzer, preprocessor, documentLimit, null);
+    public VectorBuilder(DocumentScoreReader scoreReader, CollectionInfo collectionInfo, TfIdfAnalyzer tfIdfAnalyzer, DocumentPreprocessor preprocessor) {
+        this(scoreReader, collectionInfo, tfIdfAnalyzer, preprocessor, null);
     }
 
     public ConceptVector build(String document) throws Exception {
@@ -52,26 +48,30 @@ public class VectorBuilder {
             }
 
             //We need to prune these scores!
-            TfIdfScore[] scoreDocs;
-            if (pruneOptions != null) {
+            Vector<TfIdfScore> scoreDocs = new Vector<>();
+            if (pruneOptions != null && pruneOptions.windowSize > 0) {
                 Vector<TfIdfScore> allTermScores = new Vector<>();
                 for (String term: terms) {
-                    TfIdfScore[] termScores = scoreReader.getTfIdfScores(term);
-                    Arrays.sort(termScores, (t1, t2) -> Float.compare((float) t2.getScore(), (float) t1.getScore()));
-                    for (int scoreIdx = 0; scoreIdx < termScores.length; scoreIdx++) {
-                        allTermScores.add(termScores[scoreIdx]);
-                        if (scoreIdx >= pruneOptions.windowSize) {
-                            float headScore = (float) termScores[scoreIdx - pruneOptions.windowSize].getScore();
-                            float tailScore = (float) termScores[scoreIdx].getScore();
-                            if (headScore - tailScore < headScore * pruneOptions.dropOff) {
-                                break;
+                    Vector<TfIdfScore> termScores = new Vector<>();
+                    scoreReader.getTfIdfScores(term, termScores);
+                    if (pruneOptions.dropOff == 1.0) {
+                        allTermScores.addAll(termScores.subList(0, Math.min(pruneOptions.windowSize, termScores.size())));
+                    } else {
+                        for (int scoreIdx = 0; scoreIdx < termScores.size(); scoreIdx++) {
+                            allTermScores.add(termScores.get(scoreIdx));
+                            if (scoreIdx >= pruneOptions.windowSize) {
+                                float headScore = (float) termScores.get(scoreIdx - pruneOptions.windowSize).getScore();
+                                float tailScore = (float) termScores.get(scoreIdx).getScore();
+                                if (headScore - tailScore < headScore * pruneOptions.dropOff) {
+                                    break;
+                                }
                             }
                         }
                     }
                 }
-                scoreDocs = allTermScores.toArray(new TfIdfScore[0]);
+                scoreDocs = allTermScores;
             } else {
-                scoreDocs = scoreReader.getTfIdfScores(terms);
+                scoreReader.getTfIdfScores(terms, scoreDocs);
             }
 
             for (TfIdfScore docScore: scoreDocs) {
@@ -79,10 +79,6 @@ public class VectorBuilder {
                 score *= scoreMap.get(docScore.getTerm());
                 //DB document ids are 1-indexed but our arrays are 0-indexed
                 vector.addScore(docScore.getDocument() - 1, (float) score);
-            }
-
-            if (documentLimit > 0) {
-                vector.pruneToSize(documentLimit);
             }
             return vector;
             //cache.put(document, vector);

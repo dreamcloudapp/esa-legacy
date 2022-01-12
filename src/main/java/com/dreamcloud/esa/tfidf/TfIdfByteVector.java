@@ -7,6 +7,9 @@ public class TfIdfByteVector {
     int index = 0;
 
     public TfIdfByteVector(int size) {
+        if (size < 0) {
+            throw new IllegalArgumentException("Size must be greater than 0.");
+        }
         vector = new byte[size];
     }
 
@@ -24,24 +27,36 @@ public class TfIdfByteVector {
     }
 
     public void addByte(byte b) {
-        if (index == vector.length) {
-            //allocate some more space
-            byte[] resized = new byte[vector.length * 2];
-            System.arraycopy(vector, 0, resized, 0, vector.length);
-            vector = resized;
-        }
-        vector[index++] = b;
+        byte[] bytes = new byte[1];
+        bytes[0] = b;
+        this.addBytes(bytes);
     }
 
     public void addBytes(byte[] bytes) {
-        if (bytes.length + index >= vector.length) {
-            //Resize to at least bytes.length
-            byte[] resized = new byte[Math.max(vector.length * 2, vector.length + bytes.length)];
-            System.arraycopy(vector, 0, resized, 0, vector.length);
-            vector = resized;
+        synchronized (vector) {
+            if (bytes.length + index >= vector.length) {
+                //Resize to at least bytes.length
+                byte[] resized = new byte[Math.max(vector.length * 2, vector.length + bytes.length)];
+
+                //Copy the old vector
+                System.arraycopy(vector, 0, resized, 0, vector.length);
+
+                //Add in the new bytes
+                System.arraycopy(bytes, 0, resized, index, bytes.length);
+
+                //Update the current index into the vector
+                index += bytes.length;
+
+                //Swap them out (this changes the byte[] ref and allows all other synchronized blocks to proceed)
+                vector = resized;
+            } else {
+                //Add in the new bytes
+                System.arraycopy(bytes, 0, vector, index, bytes.length);
+
+                //Update the current index into the vector
+                index += bytes.length;
+            }
         }
-        System.arraycopy(vector, index, bytes, 0, bytes.length);
-        index += bytes.length;
     }
 
     public byte getByte(int index) {
@@ -55,6 +70,13 @@ public class TfIdfByteVector {
     public byte[] getBytes() {
         return vector;
     }
+
+    /*
+        Buffer methods:
+        These are all thread safe (I believe) as you cannot reduce the size of this vector.
+        It is possible that someone else changes out the underlying vector data though, but
+        that's ok, just be aware.
+     */
 
     public ByteBuffer getByteBuffer(int offset, int length) {
         return ByteBuffer.wrap(vector, offset, length);

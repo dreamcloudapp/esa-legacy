@@ -6,6 +6,7 @@ import com.dreamcloud.esa.fs.TermIndexEntry;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.index.Term;
 import org.eclipse.collections.api.map.primitive.MutableObjectIntMap;
 import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
 
@@ -15,10 +16,12 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class TfIdfAnalyzer {
+    TfIdfCalculator calculator;
     protected final Analyzer analyzer;
     protected CollectionInfo collectionInfo;
 
-    public TfIdfAnalyzer(Analyzer analyzer, CollectionInfo collectionInfo) {
+    public TfIdfAnalyzer(TfIdfCalculator calculator, Analyzer analyzer, CollectionInfo collectionInfo) {
+        this.calculator = calculator;
         this.analyzer = analyzer;
         this.collectionInfo = collectionInfo;
     }
@@ -29,38 +32,53 @@ public class TfIdfAnalyzer {
         CharTermAttribute termAttribute = tokens.addAttribute(CharTermAttribute.class);
         tokens.reset();
         while(tokens.incrementToken()) {
-            String term = termAttribute.toString();
-            if (term.length() > 32) {
+            if (collectionInfo.getDocumentFrequency(termAttribute.toString()) == 0) {
+                //there is nothing in our vectors about this term, so ignore it
                 continue;
             }
-            termFrequencies.addToValue(term, 1);
+            termFrequencies.addToValue(termAttribute.toString(), 1);
         }
         tokens.close();
-        TfIdfScore[] scores = new TfIdfScore[termFrequencies.size()];
+        TermInfo[] termInfos = new TermInfo[termFrequencies.size()];
         int i = 0;
+        int totalTf = 0;
+        int maxTf = 0;
+        int totalDocs = collectionInfo.getDocumentCount();
         for (String term: termFrequencies.keySet()) {
             //1 = term frequency with log normalization
-            double tf = 1 + Math.log(termFrequencies.get(term));
+            int tf = termFrequencies.get(term);
+            totalTf += tf;
+            maxTf = Math.max(tf, maxTf);
+            TermInfo termInfo = new TermInfo();
+            termInfo.term = term;
+            termInfo.tf = tf;
+            termInfos[i++] = termInfo;
+        }
 
-            //t = inverse document frequency with log normalization
-            double idf = 0;
-            if (collectionInfo.hasDocumentFrequency(term)) {
-                idf = Math.log(collectionInfo.numDocs / (double) collectionInfo.getDocumentFrequency(term));
+        if (calculator.collectAverageTermFrequency()) {
+            for (TermInfo termInfo: termInfos) {
+                termInfo.avgTf = totalTf / (double) termInfos.length;
             }
-
-            //Add score
-            scores[i++] = new TfIdfScore(term, tf * idf);
+        }
+        if (calculator.collectMaxTermFrequency()) {
+            for (TermInfo termInfo: termInfos) {
+                termInfo.maxTf = maxTf;
+            }
         }
 
-        //c = cosine normalization
-        double scoreSumOfSquares = 0.0;
-        for (TfIdfScore score: scores) {
-            scoreSumOfSquares += Math.pow(score.getScore(), 2);
-        }
-        scoreSumOfSquares = Math.sqrt(scoreSumOfSquares);
+        TfIdfScore[] scores = new TfIdfScore[termFrequencies.size()];
+        i = 0;
+        for (TermInfo termInfo: termInfos) {
+            double tf = calculator.tf(termInfo.tf, termInfo);
+            int termDocs = collectionInfo.getDocumentFrequency(termInfo.term);
+            double idf = calculator.idf(totalDocs, termDocs);
 
+            scores[i++] = new TfIdfScore(termInfo.term, tf * idf);
+        }
+
+        double norm = calculator.norm(scores);
         for (TfIdfScore score: scores) {
-            score.normalizeScore(1.0 / scoreSumOfSquares);
+            score.normalizeScore(norm);
         }
 
         return scores;

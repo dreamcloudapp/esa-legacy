@@ -4,8 +4,11 @@ import com.dreamcloud.esa.tools.PValueCalculator;
 import com.dreamcloud.esa.tools.SemanticSimilarityTool;
 import com.dreamcloud.esa.vectorizer.PruneOptions;
 
+import java.io.*;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Scanner;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class PrunerTuner {
     protected SemanticSimilarityTool similarity;
@@ -15,6 +18,19 @@ public class PrunerTuner {
     }
 
     public PrunerTuning tune(PValueCalculator pValueCalculator, PruneOptions pruneOptions, int windowStart, int windowEnd, int windowStep, double dropOffStart, double dropOffEnd, double dropOffStep) throws Exception {
+        AtomicBoolean skipWindow = new AtomicBoolean(false);
+        Thread skipThread = new Thread(() -> {
+            while (!Thread.interrupted()) {
+                Scanner scanner = new Scanner(System.in);
+                String line = scanner.nextLine();
+                if ("s".equals(line)) {
+                    System.out.println("skipping (user)");
+                    skipWindow.set(true);
+                }
+            }
+        });
+        skipThread.setDaemon(true);
+        skipThread.start();
         double initialDropOffStart = dropOffStart;
         NumberFormat format = NumberFormat.getInstance();
         format.setMaximumFractionDigits(3);
@@ -31,10 +47,15 @@ public class PrunerTuner {
             dropOffStart = initialDropOffStart;
             ArrayList<Double> lastScores = new ArrayList<>();
             while (dropOffStart <= dropOffEnd) {
+                if (skipWindow.get()) {
+                    skipWindow.set(false);
+                    break;
+                }
+
                 //Change prune options (same object as in the pvalue calculator!)
                 pruneOptions.windowSize = windowStart;
                 pruneOptions.dropOff = (float) dropOffStart;
-                double score = pValueCalculator.getSpearmanCorrelation(similarity);
+                double score = pValueCalculator.getPearsonCorrelation(similarity);
                 lastScores.add(score);
                 if (lastScores.size() > 10) {
                     lastScores.remove(0);
@@ -57,7 +78,7 @@ public class PrunerTuner {
                             lowerScores++;
                         }
                     }
-                    if (lowerScores >= 7) {
+                    if (lowerScores >= 8) {
                         System.out.println("skipping (9)");
                         iterationIdx += (int) (((dropOffEnd - dropOffStart) / dropOffStep) + 1);
                         break;

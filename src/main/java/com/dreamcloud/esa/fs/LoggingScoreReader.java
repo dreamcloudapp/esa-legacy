@@ -5,6 +5,7 @@ import com.dreamcloud.esa.tfidf.TfIdfScore;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Vector;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class LoggingScoreReader implements DocumentScoreReader {
@@ -20,20 +21,18 @@ public class LoggingScoreReader implements DocumentScoreReader {
         return reader.getDocumentFrequency(term);
     }
 
-    public TfIdfScore[] getTfIdfScores(String term) throws IOException {
+    public void getTfIdfScores(String term, Vector<TfIdfScore> outVector) throws IOException {
         long startTime = System.nanoTime();
-        TfIdfScore[] scores = reader.getTfIdfScores(term);
+        reader.getTfIdfScores(term, outVector);
         timeTaken.addAndGet(System.nanoTime() - startTime);
         termsRead.incrementAndGet();
-        return scores;
     }
 
-    public TfIdfScore[] getTfIdfScores(String[] terms) throws IOException {
+    public void getTfIdfScores(String[] terms, Vector<TfIdfScore> outVector) throws IOException {
         long startTime = System.nanoTime();
-        TfIdfScore[] scores = reader.getTfIdfScores(terms);
+        reader.getTfIdfScores(terms, outVector);
         timeTaken.addAndGet(System.nanoTime() - startTime);
         termsRead.addAndGet(terms.length);
-        return scores;
     }
 
     public double getTermsReadPerSecond() {

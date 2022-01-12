@@ -20,6 +20,8 @@ public class EsaOptions {
     public StopWordRepository rareWordRepository;
     public PruneOptions pruneOptions;
     public SourceOptions sourceOptions;
+    public String tfIdfQueryMode;
+    public String tfIdfDocumentMode;
 
     public void displayInfo() throws IOException {
         System.out.println("ESA options:");

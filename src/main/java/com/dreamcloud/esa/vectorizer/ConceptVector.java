@@ -50,14 +50,6 @@ public class ConceptVector {
         return documentScores.keySet().toArray(new Integer[0]);
     }
 
-    public ConceptVector pruneToSize(int n) {
-        if (n >= documentScores.size()) {
-            return this;
-        }
-        sort();
-        return this;
-    }
-
     public void addScore(int document, float score) {
         if (score > 0) {
             this.documentScores.addToValue(document, score);

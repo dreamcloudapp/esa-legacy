@@ -13,6 +13,7 @@ public class IndexerOptions {
     public int threadCount = 1;
     public int batchSize = 1;
     public int maximumDocumentCount = 512000;
+    public String tfIdfMode;
 
     public void displayInfo() {
         System.out.println("Indexing options:");

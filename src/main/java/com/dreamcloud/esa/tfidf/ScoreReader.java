@@ -6,7 +6,6 @@ import com.dreamcloud.esa.fs.TermIndexEntry;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.Vector;
 
 public class ScoreReader implements DocumentScoreReader {
@@ -27,28 +26,21 @@ public class ScoreReader implements DocumentScoreReader {
         }
     }
 
-    public TfIdfScore[] getTfIdfScores(String term) throws IOException {
+    public void getTfIdfScores(String term, Vector<TfIdfScore> outVector) throws IOException {
         TermIndexEntry entry = termIndex.getEntry(term);
-        if (entry == null) {
-            return new TfIdfScore[0];
-        } else {
+        if (entry != null) {
             ByteBuffer byteBuffer = scoreFileReader.readScores(entry.offset, entry.numScores);
-            TfIdfScore[] scores = new TfIdfScore[entry.numScores];
             for (int scoreIdx = 0; scoreIdx < entry.numScores; scoreIdx++) {
                 int doc = byteBuffer.getInt();
                 float score = byteBuffer.getFloat();
-                scores[scoreIdx] = new TfIdfScore(doc, term, score);
+                outVector.add(new TfIdfScore(doc, term, score));
             }
-            return scores;
         }
     }
 
-    public TfIdfScore[] getTfIdfScores(String[] terms) throws IOException {
-        Vector<TfIdfScore> allScores = new Vector<>();
+    public void getTfIdfScores(String[] terms, Vector<TfIdfScore> outVector) throws IOException {
         for (String term: terms) {
-            TfIdfScore[] scores = this.getTfIdfScores(term);
-            allScores.addAll(Arrays.asList(scores));
+            getTfIdfScores(term, outVector);
         }
-        return allScores.toArray(TfIdfScore[]::new);
     }
 }
