@@ -15,6 +15,7 @@ public class DocumentSimilarityScorer {
     public DocumentScore score(DocumentSimilarityRequestBody request) throws Exception {
         SemanticSimilarityTool semanticSimilarity = new SemanticSimilarityTool(vectorizer);
         double score = semanticSimilarity.findSemanticSimilarity(request.documentText1, request.documentText2);
+        System.out.println("score: " + score);
         return new DocumentScore("success", (float) score);
     }
 }

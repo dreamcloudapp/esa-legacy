@@ -45,7 +45,6 @@ public class TfIdfAnalyzer {
         int maxTf = 0;
         int totalDocs = collectionInfo.getDocumentCount();
         for (String term: termFrequencies.keySet()) {
-            //1 = term frequency with log normalization
             int tf = termFrequencies.get(term);
             totalTf += tf;
             maxTf = Math.max(tf, maxTf);

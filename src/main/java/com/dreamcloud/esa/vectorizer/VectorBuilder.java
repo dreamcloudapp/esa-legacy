@@ -72,13 +72,18 @@ public class VectorBuilder {
                 scoreDocs = allTermScores;
             } else {
                 scoreReader.getTfIdfScores(terms, scoreDocs);
+                //Quick and dirty cutoff test
+                scoreDocs.sort((t1, t2) -> Double.compare(t2.getScore(), t1.getScore()));
+                scoreDocs = new Vector<>(scoreDocs.subList(0, Math.min(450, scoreDocs.size())));
             }
 
             for (TfIdfScore docScore: scoreDocs) {
                 double score = docScore.getScore();
                 score *= scoreMap.get(docScore.getTerm());
-                //DB document ids are 1-indexed but our arrays are 0-indexed
-                vector.addScore(docScore.getDocument() - 1, (float) score);
+                if (Double.isNaN(score) || score <= 0) {
+                    System.out.println("term score bad: " + docScore.getTerm());
+                }
+                vector.addScore(docScore.getDocument(), (float) score);
             }
             return vector;
             //cache.put(document, vector);

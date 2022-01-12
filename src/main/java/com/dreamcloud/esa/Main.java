@@ -2,11 +2,10 @@ package com.dreamcloud.esa;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 
 import com.dreamcloud.esa.analyzer.*;
 import com.dreamcloud.esa.annoatation.*;
@@ -58,7 +57,9 @@ public class Main {
     }
 
     public static void main(String[] args) throws IOException, ParseException {
-        DecimalFormat decimalFormat = new DecimalFormat("#.000");
+        NumberFormat format = NumberFormat.getInstance();
+        format.setMaximumFractionDigits(3);
+        format.setMinimumFractionDigits(3);
         Options options = new Options();
 
         //Main options
@@ -472,7 +473,7 @@ public class Main {
                System.out.println("Comparing '" + sourceDesc + "' to '" + compareDesc + "':");
                 TextVectorizer textVectorizer = vectorizerFactory.getVectorizer();
                 SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
-                System.out.println("Vector relatedness: " + decimalFormat.format(similarityTool.findSemanticSimilarity(sourceText, compareText))
+                System.out.println("Vector relatedness: " + format.format(similarityTool.findSemanticSimilarity(sourceText, compareText))
                 );
             }
 
@@ -492,7 +493,7 @@ public class Main {
                 TextVectorizer textVectorizer = vectorizerFactory.getVectorizer();
                 ConceptVector vector = textVectorizer.vectorize(sourceText);
                 for (Integer documentId: vector.getSortedDocumentIds()) {
-                    System.out.println(documentId + ": " + decimalFormat.format(vector.getScore(documentId)));
+                    System.out.println(documentId + ": " + format.format(vector.getScore(documentId)));
                 }
             }
 
@@ -699,7 +700,7 @@ public class Main {
             long endTime = Instant.now().getEpochSecond();
             System.out.println("----------------------------------------");
             System.out.println("Process finished in " + (endTime - startTime) + " seconds.");
-            System.out.println("Read " + scoreReader.getTermsRead() + " terms @ " + decimalFormat.format(scoreReader.getTermsReadPerSecond()) + " terms/s.");
+            System.out.println("Read " + scoreReader.getTermsRead() + " terms @ " + format.format(scoreReader.getTermsReadPerSecond()) + " terms/s.");
         } catch (org.apache.commons.cli.ParseException e) {
             System.out.println(e.getMessage());
             formatter.printHelp("wiki-esa", options);

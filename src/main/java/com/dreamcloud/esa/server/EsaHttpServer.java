@@ -12,6 +12,7 @@ import com.dreamcloud.esa.vectorizer.TextVectorizer;
 import com.dreamcloud.esa.vectorizer.Vectorizer;
 import com.google.gson.Gson;
 import io.javalin.Javalin;
+import io.javalin.core.JavalinConfig;
 import io.javalin.core.util.Header;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -24,6 +25,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.function.Consumer;
 
 /**
  * This really shouldn't get the ESA options.
@@ -49,7 +51,7 @@ public class EsaHttpServer {
         VectorRepository repository = new VectorRepository(con);
 
         Gson gson = new Gson();
-        Javalin app = Javalin.create().start(port);
+        Javalin app = Javalin.create(JavalinConfig::enableCorsForAllOrigins).start(port);
         app.post("/vectorize", ctx -> {
             DocumentVectorizationRequestBody requestBody = gson.fromJson(ctx.body(), DocumentVectorizationRequestBody.class);
 
