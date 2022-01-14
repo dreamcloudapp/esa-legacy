@@ -21,11 +21,12 @@ import java.util.Set;
 
 public class RareWordDictionary extends XmlReadingHandler {
     protected final SAXParserFactory saxFactory;
-    private int rareWordThreshold = 0;
+    protected int rareWordThreshold = 0;
     protected int termsRead = 0;
     protected int rareTerms = 0;
     protected Map<String, Integer> uniqueTerms = new HashMap<>();
-    Analyzer analyzer;
+    protected long totalDocumentLength;
+    protected Analyzer analyzer;
 
     public RareWordDictionary(Analyzer analyzer, int rareWordThreshold) {
         this.analyzer = analyzer;
@@ -87,6 +88,7 @@ public class RareWordDictionary extends XmlReadingHandler {
             while(tokens.incrementToken()) {
                 termsRead++;
                 uniqueTerms.add(termAttribute.toString());
+                totalDocumentLength++;
             }
             tokens.close();
         } catch (IOException e) {
@@ -97,5 +99,9 @@ public class RareWordDictionary extends XmlReadingHandler {
         for (String term: uniqueTerms) {
             this.uniqueTerms.put(term, this.uniqueTerms.getOrDefault(term, 0) + 1);
         }
+    }
+
+    public double getAverageDocumentLength() {
+        return this.totalDocumentLength / (double) this.getDocsRead();
     }
 }

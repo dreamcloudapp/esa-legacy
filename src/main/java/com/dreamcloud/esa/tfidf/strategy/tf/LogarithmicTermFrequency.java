@@ -7,11 +7,4 @@ public class LogarithmicTermFrequency implements TermFrequencyStrategy {
     public double tf(double tf, TermInfo termInfo) {
         return 1 + Math.log(tf);
     }
-
-    public boolean collectMaxTermFrequency() {
-        return false;
-    }
-    public boolean collectAverageTermFrequency() {
-        return false;
-    }
 }

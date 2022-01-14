@@ -92,7 +92,8 @@ public class VectorBuilder {
             }
             Arrays.sort(sortedScores, (t1, t2) -> Float.compare((float) t2.getScore(), (float) t1.getScore()));
             vector.documentScores.clear();
-            for (int t=0; t<1600; t++) {
+            int cutOff = Math.min(1600, sortedScores.length);
+            for (int t=0; t<cutOff; t++) {
                 vector.addScore(sortedScores[t].getDocument(), (float) sortedScores[t].getScore());
             }
 

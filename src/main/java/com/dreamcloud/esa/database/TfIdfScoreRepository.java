@@ -235,5 +235,10 @@ public class TfIdfScoreRepository implements DocumentScoreReader {
             System.exit(1);
         }
     }
+
+    public double getAverageDocumentLength() {
+        //todo: implement
+        return 1;
+    }
 }
 

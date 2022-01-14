@@ -53,7 +53,7 @@ public class DiskCollectionWriter implements CollectionWriter {
             throw new RuntimeException("You must call writeCollectionInfo prior to close().");
         }
 
-        TermIndexWriter termIndexWriter = new TermIndexWriter(collectionInfo.numDocs);
+        TermIndexWriter termIndexWriter = new TermIndexWriter(collectionInfo.numDocs, collectionInfo.getAverageDocumentLength());
         termIndexWriter.open(termIndexFile);
 
         TermScoreWriter termScoreWriter = new TermScoreWriter();

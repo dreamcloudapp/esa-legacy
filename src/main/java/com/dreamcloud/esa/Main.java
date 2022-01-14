@@ -320,7 +320,7 @@ public class Main {
             String source = sourceArgs[0];
             if (source.equals("db")) {
                 TfIdfScoreRepository repo = new TfIdfScoreRepository();
-                sourceOptions.collectionInfo = new CollectionInfo(repo.getDocumentCount(), repo.getDocumentFrequencies());
+                sourceOptions.collectionInfo = new CollectionInfo(repo.getDocumentCount(), repo.getAverageDocumentLength(), repo.getDocumentFrequencies());
                 sourceOptions.scoreReader = repo;
                 sourceOptions.collectionWriter = new SqlCollectionWriter(repo);
             } else if(source.equals("fs")) {
@@ -330,7 +330,7 @@ public class Main {
                 termIndexReader.open(termIndexFile);
                 TermIndex termIndex = termIndexReader.readIndex();
                 DocumentScoreDataReader scoreFileReader = new DocumentScoreMemoryReader(documentScoreFile);
-                sourceOptions.collectionInfo = new CollectionInfo(termIndex.getDocumentCount(), termIndex.getDocumentFrequencies());
+                sourceOptions.collectionInfo = new CollectionInfo(termIndex.getDocumentCount(), termIndex.getAverageDocumentLength(), termIndex.getDocumentFrequencies());
                 sourceOptions.scoreReader = new ScoreReader(termIndex, scoreFileReader);
                 sourceOptions.collectionWriter = new DiskCollectionWriter(termIndexFile, documentScoreFile);
             }
@@ -758,7 +758,7 @@ public class Main {
         //Get document frequencies
         RareWordDictionary rareWordDictionary = new RareWordDictionary(options.analyzer, 0);
         rareWordDictionary.parse(new File(options.indexFile));
-        CollectionInfo collectionInfo = new CollectionInfo(rareWordDictionary.getDocsRead(), rareWordDictionary.getDocumentFrequencies());
+        CollectionInfo collectionInfo = new CollectionInfo(rareWordDictionary.getDocsRead(), rareWordDictionary.getAverageDocumentLength(), rareWordDictionary.getDocumentFrequencies());
 
         TfIdfWriter writer = new TfIdfWriter(new File(options.indexFile), options.sourceOptions.collectionWriter, collectionInfo, wikiIndexerOptions);
         writer.index();

@@ -24,8 +24,11 @@ public class TfIdfAnalyzer {
         TokenStream tokens = analyzer.tokenStream("text", text);
         CharTermAttribute termAttribute = tokens.addAttribute(CharTermAttribute.class);
         tokens.reset();
+        int dl = 0;
+        double avgDl = collectionInfo.getAverageDocumentLength();
         while(tokens.incrementToken()) {
             termFrequencies.addToValue(termAttribute.toString(), 1);
+            dl++;
         }
         tokens.close();
         TermInfo[] termInfos = new TermInfo[termFrequencies.size()];
@@ -40,18 +43,14 @@ public class TfIdfAnalyzer {
             TermInfo termInfo = new TermInfo();
             termInfo.term = term;
             termInfo.tf = tf;
+            termInfo.dl = dl;
+            termInfo.avgDl = avgDl;
             termInfos[i++] = termInfo;
         }
 
-        if (calculator.collectAverageTermFrequency()) {
-            for (TermInfo termInfo: termInfos) {
-                termInfo.avgTf = totalTf / (double) termInfos.length;
-            }
-        }
-        if (calculator.collectMaxTermFrequency()) {
-            for (TermInfo termInfo: termInfos) {
-                termInfo.maxTf = maxTf;
-            }
+        for (TermInfo termInfo: termInfos) {
+            termInfo.avgTf = totalTf / (double) termInfos.length;
+            termInfo.maxTf = maxTf;
         }
 
         TfIdfScore[] scores = new TfIdfScore[termFrequencies.size()];

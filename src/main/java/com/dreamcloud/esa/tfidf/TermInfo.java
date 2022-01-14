@@ -5,4 +5,6 @@ public class TermInfo {
     public int tf;
     public double avgTf;
     public double maxTf;
+    public int dl;
+    public double avgDl;
 }

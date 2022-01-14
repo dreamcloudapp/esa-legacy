@@ -5,11 +5,13 @@ import java.util.Map;
 import java.util.Set;
 
 public class TermIndex {
-    protected int documentCount;
+    private final double averageDocumentLength;
+    protected final int documentCount;
     protected Map<String, TermIndexEntry> termIndex = new HashMap<>();
 
-    public TermIndex(int documentCount) {
+    public TermIndex(int documentCount, double averageDocumentLength) {
         this.documentCount = documentCount;
+        this.averageDocumentLength = averageDocumentLength;
     }
 
     public void addEntry(TermIndexEntry entry) {
@@ -34,5 +36,9 @@ public class TermIndex {
             documentFrequencies.put(entry.term, entry.documentFrequency);
         }
         return documentFrequencies;
+    }
+
+    public double getAverageDocumentLength() {
+        return this.averageDocumentLength;
     }
 }

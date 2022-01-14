@@ -3,8 +3,9 @@ package com.dreamcloud.esa.fs;
 import java.io.*;
 
 public class TermIndexReader {
-    DataInputStream inputStream;
-    int documentCount;
+    protected DataInputStream inputStream;
+    protected int documentCount;
+    protected double averageDocumentLength;
 
     public TermIndexReader() {
 
@@ -14,6 +15,7 @@ public class TermIndexReader {
         inputStream = new DataInputStream(new BufferedInputStream(new FileInputStream(termIndex)));
         //We're sticking the document count here as it's data we need for TF-IDF
         documentCount = inputStream.readInt();
+        averageDocumentLength = inputStream.readFloat();
     }
 
     public TermIndexEntry readTerm() throws IOException {
@@ -31,7 +33,7 @@ public class TermIndexReader {
     }
 
     public TermIndex readIndex() throws IOException {
-        TermIndex termIndex = new TermIndex(documentCount);
+        TermIndex termIndex = new TermIndex(documentCount, averageDocumentLength);
         while (true) {
             TermIndexEntry entry = readTerm();
             if (entry == null) {

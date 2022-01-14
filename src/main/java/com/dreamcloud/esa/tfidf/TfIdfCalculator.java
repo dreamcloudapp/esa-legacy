@@ -85,14 +85,6 @@ public class TfIdfCalculator implements TfIdfStrategy {
         }
     }
 
-    public boolean collectMaxTermFrequency() {
-        return tfStrategy.collectMaxTermFrequency();
-    }
-
-    public boolean collectAverageTermFrequency() {
-        return tfStrategy.collectAverageTermFrequency();
-    }
-
     public double tf(double tf, TermInfo termInfo) {
         return tfStrategy.tf(tf, termInfo);
     }

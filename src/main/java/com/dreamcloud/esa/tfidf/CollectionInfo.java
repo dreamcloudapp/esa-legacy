@@ -4,17 +4,18 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class CollectionInfo {
+    private double averageDocumentLength;
     protected int numDocs;
     protected Map<String, Integer> documentFrequencies;
 
-    public CollectionInfo(int numDocs) {
+    public CollectionInfo(int numDocs, double averageDocumentLength, Map<String, Integer> documentFrequencies) {
         this.numDocs = numDocs;
-        this.documentFrequencies = new ConcurrentHashMap<>();
+        this.averageDocumentLength = averageDocumentLength;
+        this.documentFrequencies = documentFrequencies;
     }
 
-    public CollectionInfo(int numDocs, Map<String, Integer> documentFrequencies) {
-        this(numDocs);
-        this.documentFrequencies = documentFrequencies;
+    public CollectionInfo(int numDocs, double averageDocumentLength) {
+        this(numDocs, averageDocumentLength, new ConcurrentHashMap<>());
     }
 
     public void addDocumentFrequency(String term, int documentFrequency) {
@@ -35,5 +36,9 @@ public class CollectionInfo {
 
     public int getDocumentCount() {
         return this.numDocs;
+    }
+
+    public double getAverageDocumentLength() {
+        return averageDocumentLength;
     }
 }
