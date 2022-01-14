@@ -14,12 +14,9 @@ import javax.xml.parsers.SAXParserFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -47,7 +44,7 @@ public class TfIdfWriter extends XmlReadingHandler /* implements Indexer */ {
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);
         saxFactory.setXIncludeAware(true);
-        tfIdfAnalyzer = new TfIdfAnalyzer(new TfIdfCalculator(options.tfIdfMode), options.analyzerFactory.getAnalyzer(), collectionInfo);
+        tfIdfAnalyzer = new TfIdfAnalyzer(new BM25Calculator(new TfIdfCalculator(options.tfIdfMode)), options.analyzerFactory.getAnalyzer(), collectionInfo);
     }
 
     public void reset() {

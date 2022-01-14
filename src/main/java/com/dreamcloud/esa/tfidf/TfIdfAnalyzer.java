@@ -1,5 +1,6 @@
 package com.dreamcloud.esa.tfidf;
 
+import com.dreamcloud.esa.tfidf.strategy.TfIdfStrategy;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
@@ -9,11 +10,11 @@ import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
 import java.io.IOException;
 
 public class TfIdfAnalyzer {
-    TfIdfCalculator calculator;
+    TfIdfStrategy calculator;
     protected final Analyzer analyzer;
     protected CollectionInfo collectionInfo;
 
-    public TfIdfAnalyzer(TfIdfCalculator calculator, Analyzer analyzer, CollectionInfo collectionInfo) {
+    public TfIdfAnalyzer(TfIdfStrategy calculator, Analyzer analyzer, CollectionInfo collectionInfo) {
         this.calculator = calculator;
         this.analyzer = analyzer;
         this.collectionInfo = collectionInfo;
