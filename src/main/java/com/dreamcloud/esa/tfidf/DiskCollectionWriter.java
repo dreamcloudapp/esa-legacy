@@ -12,11 +12,12 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class DiskCollectionWriter implements CollectionWriter {
     private final File termIndexFile;
     private final File documentScoreFile;
-    protected Map<String, TfIdfByteVector> termScores = new HashMap<>();
+    protected Map<String, TfIdfByteVector> termScores = new ConcurrentHashMap<>();
     protected CollectionInfo collectionInfo;
     protected PruneOptions pruneOptions;
 

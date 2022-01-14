@@ -1,6 +1,7 @@
 package com.dreamcloud.esa.tfidf;
 
 import com.dreamcloud.esa.tfidf.strategy.*;
+import com.dreamcloud.esa.tfidf.strategy.idf.BM25LogarithmicInverseDocumentFrequency;
 import com.dreamcloud.esa.tfidf.strategy.idf.LogarithmicInverseDocumentFrequency;
 import com.dreamcloud.esa.tfidf.strategy.idf.NoInverseDocumentFrequency;
 import com.dreamcloud.esa.tfidf.strategy.idf.ProbabilisticInverseDocumentFrequency;
@@ -61,6 +62,9 @@ public class TfIdfCalculator implements TfIdfStrategy {
                 break;
             case 'p':
                 idfStrategy = new ProbabilisticInverseDocumentFrequency();
+                break;
+            case 'b':
+                idfStrategy = new BM25LogarithmicInverseDocumentFrequency();
                 break;
             default:
                 throw new IllegalArgumentException("Inverse document frequency mode character must be in string: ntp");

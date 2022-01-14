@@ -56,17 +56,13 @@ public class VectorBuilder {
                 for (String term: terms) {
                     Vector<TfIdfScore> termScores = new Vector<>();
                     scoreReader.getTfIdfScores(term, termScores);
-                    if (pruneOptions.dropOff == 1.0) {
-                        allTermScores.addAll(termScores.subList(0, Math.min(pruneOptions.windowSize, termScores.size())));
-                    } else {
-                        for (int scoreIdx = 0; scoreIdx < termScores.size(); scoreIdx++) {
-                            allTermScores.add(termScores.get(scoreIdx));
-                            if (scoreIdx >= pruneOptions.windowSize) {
-                                float headScore = (float) termScores.get(scoreIdx - pruneOptions.windowSize).getScore();
-                                float tailScore = (float) termScores.get(scoreIdx).getScore();
-                                if (headScore - tailScore < headScore * pruneOptions.dropOff) {
-                                    break;
-                                }
+                    for (int scoreIdx = 0; scoreIdx < termScores.size(); scoreIdx++) {
+                        allTermScores.add(termScores.get(scoreIdx));
+                        if (scoreIdx >= pruneOptions.windowSize) {
+                            float headScore = (float) termScores.get(scoreIdx - pruneOptions.windowSize).getScore();
+                            float tailScore = (float) termScores.get(scoreIdx).getScore();
+                            if (headScore - tailScore < headScore * pruneOptions.dropOff) {
+                                break;
                             }
                         }
                     }
@@ -79,9 +75,10 @@ public class VectorBuilder {
             for (TfIdfScore docScore: scoreDocs) {
                 double weight = scoreMap.get(docScore.getTerm());
                 docScore.normalizeScore(weight);
+                vector.addScore(docScore.getDocument(), (float) docScore.getScore());
             }
 
-            for (TfIdfScore scoreDoc: scoreDocs) {
+            /*for (TfIdfScore scoreDoc: scoreDocs) {
                 vector.addScore(scoreDoc.getDocument(), (float) scoreDoc.getScore());
             }
 
@@ -95,7 +92,7 @@ public class VectorBuilder {
             int cutOff = Math.min(1600, sortedScores.length);
             for (int t=0; t<cutOff; t++) {
                 vector.addScore(sortedScores[t].getDocument(), (float) sortedScores[t].getScore());
-            }
+            }*/
 
             return vector;
             //cache.put(document, vector);
