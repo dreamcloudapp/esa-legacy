@@ -5,7 +5,9 @@ import com.dreamcloud.esa.tfidf.CollectionInfo;
 import com.dreamcloud.esa.tfidf.DocumentScoreReader;
 import com.dreamcloud.esa.tfidf.TfIdfAnalyzer;
 import com.dreamcloud.esa.tfidf.TfIdfScore;
+import org.eclipse.collections.impl.map.mutable.primitive.ObjectFloatHashMap;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -72,19 +74,28 @@ public class VectorBuilder {
                 scoreDocs = allTermScores;
             } else {
                 scoreReader.getTfIdfScores(terms, scoreDocs);
-                //Quick and dirty cutoff test
-                scoreDocs.sort((t1, t2) -> Double.compare(t2.getScore(), t1.getScore()));
-                scoreDocs = new Vector<>(scoreDocs.subList(0, Math.min(450, scoreDocs.size())));
             }
 
             for (TfIdfScore docScore: scoreDocs) {
-                double score = docScore.getScore();
-                score *= scoreMap.get(docScore.getTerm());
-                if (Double.isNaN(score) || score <= 0) {
-                    System.out.println("term score bad: " + docScore.getTerm());
-                }
-                vector.addScore(docScore.getDocument(), (float) score);
+                double weight = scoreMap.get(docScore.getTerm());
+                docScore.normalizeScore(weight);
             }
+
+            for (TfIdfScore scoreDoc: scoreDocs) {
+                vector.addScore(scoreDoc.getDocument(), (float) scoreDoc.getScore());
+            }
+
+            TfIdfScore[] sortedScores = new TfIdfScore[vector.documentScores.size()];
+            int s = 0;
+            for (Integer documentId: vector.documentScores.keySet()) {
+                sortedScores[s++] = new TfIdfScore(documentId, null, vector.getScore(documentId));
+            }
+            Arrays.sort(sortedScores, (t1, t2) -> Float.compare((float) t2.getScore(), (float) t1.getScore()));
+            vector.documentScores.clear();
+            for (int t=0; t<1600; t++) {
+                vector.addScore(sortedScores[t].getDocument(), (float) sortedScores[t].getScore());
+            }
+
             return vector;
             //cache.put(document, vector);
         }

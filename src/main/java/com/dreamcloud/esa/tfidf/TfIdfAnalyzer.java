@@ -1,19 +1,12 @@
 package com.dreamcloud.esa.tfidf;
 
-import com.dreamcloud.esa.database.DocumentScore;
-import com.dreamcloud.esa.fs.TermIndex;
-import com.dreamcloud.esa.fs.TermIndexEntry;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.index.Term;
 import org.eclipse.collections.api.map.primitive.MutableObjectIntMap;
 import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class TfIdfAnalyzer {
     TfIdfCalculator calculator;
@@ -32,10 +25,6 @@ public class TfIdfAnalyzer {
         CharTermAttribute termAttribute = tokens.addAttribute(CharTermAttribute.class);
         tokens.reset();
         while(tokens.incrementToken()) {
-            if (collectionInfo.getDocumentFrequency(termAttribute.toString()) == 0) {
-                //there is nothing in our vectors about this term, so ignore it
-                continue;
-            }
             termFrequencies.addToValue(termAttribute.toString(), 1);
         }
         tokens.close();
@@ -70,7 +59,10 @@ public class TfIdfAnalyzer {
         for (TermInfo termInfo: termInfos) {
             double tf = calculator.tf(termInfo.tf, termInfo);
             int termDocs = collectionInfo.getDocumentFrequency(termInfo.term);
-            double idf = calculator.idf(totalDocs, termDocs);
+            double idf = 0;
+            if (termDocs > 0) {
+                idf = calculator.idf(totalDocs, termDocs);
+            }
 
             scores[i++] = new TfIdfScore(termInfo.term, tf * idf);
         }

@@ -28,11 +28,9 @@ public class ConceptVector {
         float dotProduct = 0;
         for (int documentId: documentScores.keySet()) {
             float ourScore = documentScores.get(documentId);
-            float theirScore = 0;
             if (theirScores.containsKey(documentId)) {
-                theirScore = theirScores.get(documentId);
+                dotProduct += ourScore * theirScores.get(documentId);
             }
-            dotProduct += ourScore * theirScore;
             norm1 += ourScore * ourScore;
         }
         for (int documentId: theirScores.keySet()) {
