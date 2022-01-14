@@ -55,7 +55,7 @@ public class PrunerTuner {
                 //Change prune options (same object as in the pvalue calculator!)
                 pruneOptions.windowSize = windowStart;
                 pruneOptions.dropOff = (float) dropOffStart;
-                double score = pValueCalculator.getSpearmanCorrelation(similarity);
+                double score = pValueCalculator.getPearsonCorrelation(similarity);
                 lastScores.add(score);
                 if (lastScores.size() > 10) {
                     lastScores.remove(0);
