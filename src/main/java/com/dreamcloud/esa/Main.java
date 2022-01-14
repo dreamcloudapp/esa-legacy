@@ -540,7 +540,7 @@ public class Main {
                 PrunerTuner tuner = new PrunerTuner(similarityTool);
                 System.out.println("Analyzing wordsim-353 to find the ideal vector limit...");
                 System.out.println("----------------------------------------");
-                PrunerTuning tuning = tuner.tune(pearsonCalculator, pruneOptions, 0, 100, 10, 0.01, 0.2, 0.01);
+                PrunerTuning tuning = tuner.tune(spearmanCalculator, pruneOptions, 4, 8, 1, 0.000001, 0.00002, 0.0000001);
                 System.out.println("tuned p-value:\t" + tuning.getTunedScore());
                 System.out.println("tuned window size:\t" + tuning.getTunedWindowSize());
                 System.out.println("tuned window dropoff:\t" + tuning.getTunedWindowDropOff());

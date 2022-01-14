@@ -44,7 +44,7 @@ public class TfIdfWriter extends XmlReadingHandler /* implements Indexer */ {
         saxFactory.setNamespaceAware(true);
         saxFactory.setValidating(false);
         saxFactory.setXIncludeAware(true);
-        tfIdfAnalyzer = new TfIdfAnalyzer(new TfIdfCalculator(options.tfIdfMode), options.analyzerFactory.getAnalyzer(), collectionInfo);
+        tfIdfAnalyzer = new TfIdfAnalyzer(new BM25Calculator(new TfIdfCalculator(options.tfIdfMode)), options.analyzerFactory.getAnalyzer(), collectionInfo);
     }
 
     public void reset() {

@@ -33,8 +33,8 @@ public class PrunerTuner {
         skipThread.start();
         double initialDropOffStart = dropOffStart;
         NumberFormat format = NumberFormat.getInstance();
-        format.setMaximumFractionDigits(3);
-        format.setMinimumFractionDigits(3);
+        format.setMaximumFractionDigits(8);
+        format.setMinimumFractionDigits(8);
 
         double bestScore = 0;
         int bestWindowSize = 0;
@@ -55,7 +55,7 @@ public class PrunerTuner {
                 //Change prune options (same object as in the pvalue calculator!)
                 pruneOptions.windowSize = windowStart;
                 pruneOptions.dropOff = (float) dropOffStart;
-                double score = pValueCalculator.getPearsonCorrelation(similarity);
+                double score = pValueCalculator.getSpearmanCorrelation(similarity);
                 lastScores.add(score);
                 if (lastScores.size() > 10) {
                     lastScores.remove(0);

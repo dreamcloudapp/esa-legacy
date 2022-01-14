@@ -16,11 +16,11 @@ public class BM25Calculator implements TfIdfStrategy {
     }
 
     public BM25Calculator(TfIdfStrategy tfIdfStrategy, double k, double b) {
-        this(tfIdfStrategy, k, b, 0.0);
+        this(tfIdfStrategy, k, b, 0.5);
     }
 
     public BM25Calculator(TfIdfStrategy tfIdfStrategy) {
-        this(tfIdfStrategy, 1.2, 0.75, 0.0);
+        this(tfIdfStrategy, 1.2, 0.5);
     }
 
     public double tf(double tf, TermInfo termInfo) {
