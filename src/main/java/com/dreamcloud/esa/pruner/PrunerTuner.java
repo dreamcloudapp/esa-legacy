@@ -3,6 +3,7 @@ package com.dreamcloud.esa.pruner;
 import com.dreamcloud.esa.tools.PValueCalculator;
 import com.dreamcloud.esa.tools.SemanticSimilarityTool;
 import com.dreamcloud.esa.vectorizer.PruneOptions;
+import com.dreamcloud.esa.vectorizer.VectorBuilder;
 
 import java.io.*;
 import java.text.NumberFormat;
@@ -55,6 +56,8 @@ public class PrunerTuner {
                 //Change prune options (same object as in the pvalue calculator!)
                 pruneOptions.windowSize = windowStart;
                 pruneOptions.dropOff = (float) dropOffStart;
+                //hacky shmack
+                VectorBuilder.cache.clear();
                 double score = pValueCalculator.getPearsonCorrelation(similarity);
                 lastScores.add(score);
                 if (lastScores.size() > 10) {

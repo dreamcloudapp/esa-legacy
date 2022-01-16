@@ -14,7 +14,7 @@ import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class VectorBuilder {
-    Map<String, ConceptVector> cache = new ConcurrentHashMap<>();
+    public static Map<String, ConceptVector> cache = new ConcurrentHashMap<>();
     DocumentScoreReader scoreReader;
     TfIdfAnalyzer tfIdfAnalyzer;
     PruneOptions pruneOptions;
@@ -34,11 +34,11 @@ public class VectorBuilder {
     }
 
     public ConceptVector build(String document) throws Exception {
-        if (!cache.containsKey(document)) {
+        String originalDocument = document;
+        if (!cache.containsKey(originalDocument)) {
             if (preprocessor != null) {
                 document = preprocessor.process(document);
             }
-
             ConceptVector vector = new ConceptVector(collectionInfo.getDocumentCount());
             TfIdfScore[] scores = tfIdfAnalyzer.getTfIdfScores(document);
             Map<String, Float> scoreMap = new HashMap<>();
@@ -78,26 +78,23 @@ public class VectorBuilder {
                 vector.addScore(docScore.getDocument(), (float) docScore.getScore());
             }
 
-            /*for (TfIdfScore scoreDoc: scoreDocs) {
-                vector.addScore(scoreDoc.getDocument(), (float) scoreDoc.getScore());
-            }
-
             TfIdfScore[] sortedScores = new TfIdfScore[vector.documentScores.size()];
             int s = 0;
             for (Integer documentId: vector.documentScores.keySet()) {
                 sortedScores[s++] = new TfIdfScore(documentId, null, vector.getScore(documentId));
             }
+
             Arrays.sort(sortedScores, (t1, t2) -> Float.compare((float) t2.getScore(), (float) t1.getScore()));
             vector.documentScores.clear();
-            int cutOff = Math.min(1600, sortedScores.length);
+            int cutOff = Math.min(1450, sortedScores.length);
             for (int t=0; t<cutOff; t++) {
                 vector.addScore(sortedScores[t].getDocument(), (float) sortedScores[t].getScore());
-            }*/
+            }
 
-            return vector;
-            //cache.put(document, vector);
+            //return vector;
+            cache.put(originalDocument, vector);
         }
 
-        return cache.get(document);
+        return cache.get(originalDocument);
     }
 }

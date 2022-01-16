@@ -73,7 +73,7 @@ public class PValueCalculator {
 
             String sourceDesc = docSim.doc1.substring(0, Math.min(16, docSim.doc1.length()));
             String compareDesc = docSim.doc2.substring(0, Math.min(16, docSim.doc2.length()));
-            //System.out.println("doc " + i + "\t ('" + sourceDesc + "', '" + compareDesc + "'):\t" + esaScores[i]);
+            System.out.println("doc " + i + "\t ('" + sourceDesc + "', '" + compareDesc + "'):\t" + esaScores[i]);
         }
         return esaScores;
     }
