@@ -64,10 +64,11 @@ public class WikiPreprocessor extends XmlWritingHandler {
             titleMapper.mapToXml(titleOutputFile);
         }
 
+        /*
         //Generate a normalized template map
         try(TemplateMapper mapper = new TemplateMapper(new TemplateResolutionOptions())) {
             templateMap = mapper.map(inputFile);
-        }
+        }*/
 
         //Perform the template substitution
         reset();
@@ -80,8 +81,8 @@ public class WikiPreprocessor extends XmlWritingHandler {
         SAXParser saxParser = saxFactory.newSAXParser();
 
         //Build category hierarchies
-        categoryAnalyzer.analyze(inputFile, templateProcessor);
-        excludedCategories = categoryAnalyzer.getGabrilovichExclusionCategories();
+        /*categoryAnalyzer.analyze(inputFile, templateProcessor);
+        excludedCategories = categoryAnalyzer.getGabrilovichExclusionCategories();*/
 
         this.open(outputFile);
         this.writeDocumentBegin("docs");
@@ -140,15 +141,15 @@ public class WikiPreprocessor extends XmlWritingHandler {
             return;
         }
 
-        matcher = stubPattern.matcher(text);
+        /*matcher = stubPattern.matcher(text);
         if (matcher.find() || text.contains("stub}}")) {
             this.numStubs++;
             this.docsStripped++;
             return;
-        }
+        }*/
 
         try {
-            text = templateProcessor.substitute(text, title); //todo: why not use normalized title here?
+            /*text = templateProcessor.substitute(text, title); //todo: why not use normalized title here?
 
             //Exclude articles in excluded categories
             for (String articleCategory: categoryAnalyzer.getArticleCategories(text)) {
@@ -166,7 +167,7 @@ public class WikiPreprocessor extends XmlWritingHandler {
                     this.docsStrippedByCategory++;
                     return;
                 }
-            }
+            }*/
 
             //We've handled templates, so let's strip out HTML tags and CSS stuff
             //text = Jsoup.clean(text, "", Safelist.none());
