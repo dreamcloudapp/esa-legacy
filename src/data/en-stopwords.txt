@@ -598,7 +598,6 @@ pardon
 pardy
 past
 pending
-peopl
 peow
 per
 person
@@ -614,7 +613,6 @@ phut
 phwoarr
 piece
 pip-pip
-place
 plinkety
 plus
 poof
@@ -708,8 +706,6 @@ sort
 specifically
 srsly
 sry
-ssh
-start
 still
 straightaway
 strewth

@@ -58,13 +58,6 @@ public class VectorBuilder {
                     scoreReader.getTfIdfScores(term, termScores);
                     for (int scoreIdx = 0; scoreIdx < termScores.size(); scoreIdx++) {
                         allTermScores.add(termScores.get(scoreIdx));
-                        /*if (scoreIdx >= pruneOptions.windowSize) {
-                            float headScore = (float) termScores.get(scoreIdx - pruneOptions.windowSize).getScore();
-                            float tailScore = (float) termScores.get(scoreIdx).getScore();
-                            if (headScore - tailScore < headScore * pruneOptions.dropOff) {
-                                break;
-                            }
-                        }*/
                         if (scoreIdx + pruneOptions.windowSize < termScores.size()) {
                             float headScore = (float) termScores.get(scoreIdx).getScore();
                             float tailScore = (float) termScores.get(scoreIdx + pruneOptions.windowSize).getScore();
@@ -85,17 +78,19 @@ public class VectorBuilder {
                 vector.addScore(docScore.getDocument(), (float) docScore.getScore());
             }
 
-            TfIdfScore[] sortedScores = new TfIdfScore[vector.documentScores.size()];
-            int s = 0;
-            for (Integer documentId: vector.documentScores.keySet()) {
-                sortedScores[s++] = new TfIdfScore(documentId, null, vector.getScore(documentId));
-            }
+            if (pruneOptions != null && pruneOptions.vectorLimit > 0) {
+                TfIdfScore[] sortedScores = new TfIdfScore[vector.documentScores.size()];
+                int s = 0;
+                for (Integer documentId: vector.documentScores.keySet()) {
+                    sortedScores[s++] = new TfIdfScore(documentId, null, vector.getScore(documentId));
+                }
 
-            Arrays.sort(sortedScores, (t1, t2) -> Float.compare((float) t2.getScore(), (float) t1.getScore()));
-            vector.documentScores.clear();
-            int cutOff = Math.min(1450, sortedScores.length);
-            for (int t=0; t<cutOff; t++) {
-                vector.addScore(sortedScores[t].getDocument(), (float) sortedScores[t].getScore());
+                Arrays.sort(sortedScores, (t1, t2) -> Float.compare((float) t2.getScore(), (float) t1.getScore()));
+                vector.documentScores.clear();
+                int cutOff = Math.min(pruneOptions.vectorLimit, sortedScores.length);
+                for (int t=0; t<cutOff; t++) {
+                    vector.addScore(sortedScores[t].getDocument(), (float) sortedScores[t].getScore());
+                }
             }
 
             //return vector;

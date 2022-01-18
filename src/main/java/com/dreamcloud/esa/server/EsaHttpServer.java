@@ -4,28 +4,17 @@ import com.dreamcloud.esa.EsaOptions;
 import com.dreamcloud.esa.database.DocumentVector;
 import com.dreamcloud.esa.database.MySQLConnection;
 import com.dreamcloud.esa.database.VectorRepository;
-import com.dreamcloud.esa.indexer.DreamIndexer;
-import com.dreamcloud.esa.similarity.SimilarityFactory;
-import com.dreamcloud.esa.tools.WeighedDocumentQueryBuilder;
 import com.dreamcloud.esa.vectorizer.ConceptVector;
 import com.dreamcloud.esa.vectorizer.TextVectorizer;
-import com.dreamcloud.esa.vectorizer.Vectorizer;
 import com.google.gson.Gson;
 import io.javalin.Javalin;
 import io.javalin.core.JavalinConfig;
 import io.javalin.core.util.Header;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
 
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.function.Consumer;
 
 /**
  * This really shouldn't get the ESA options.

@@ -67,10 +67,6 @@ public class Main {
         docTypeOption.setRequired(false);
         options.addOption(docTypeOption);
 
-        Option vectorizerOption = new Option(null, "vectorizer", true, "string / The type of vectorizer to use (lucene|sql).");
-        vectorizerOption.setRequired(false);
-        options.addOption(vectorizerOption);
-
         Option tfidfDocumentOption = new Option(null, "tfidf-document", true, "string / The type of TF-IDF to apply for documents.");
         tfidfDocumentOption.setRequired(false);
         options.addOption(tfidfDocumentOption);
@@ -302,7 +298,6 @@ public class Main {
             String[] pearsonArgs = cmd.getOptionValues("pearson");
             String[] sourceArgs = cmd.getOptionValues("source");
             String docType = cmd.getOptionValue("doctype");
-            String vectorizerType = cmd.getOptionValue("vectorizer");
             String tfIdfDocumentMode = cmd.getOptionValue("tfidf-document", "ltc");
             String tfIdfQueryMode = cmd.getOptionValue("tfidf-query", "ltc");
             String similarityAlgorithm = cmd.getOptionValue("similarity");
@@ -350,6 +345,10 @@ public class Main {
             if (nonEmpty(pruneDropOff)) {
                 pruneOptions.dropOff = Float.parseFloat(pruneDropOff);
             }
+            String limit = cmd.getOptionValue("vector-limit");
+            if (nonEmpty(limit)) {
+                pruneOptions.vectorLimit = Integer.parseInt(limit);
+            }
             esaOptions.pruneOptions = pruneOptions;
 
             if (!nonEmpty(docType)) {
@@ -361,26 +360,9 @@ public class Main {
             }
             esaOptions.indexPath = Paths.get(nonEmpty(indexPath) ? indexPath : "./index/" + docType + "_index");
 
-            if (nonEmpty(vectorizerType)) {
-                esaOptions.vectorizerType = vectorizerType;
-            } else {
-                esaOptions.vectorizerType = "lucene";
-            }
-
             if (nonEmpty(similarityAlgorithm)) {
                 SimilarityFactory.algorithm = similarityAlgorithm;
             }
-
-            String limit = cmd.getOptionValue("vector-limit");
-            int documentLimit = 0;
-            if (nonEmpty(limit)) {
-                try {
-                    documentLimit = Integer.parseInt(limit);
-                } catch (NumberFormatException e) {
-
-                }
-            }
-            esaOptions.documentLimit = documentLimit;
 
             if (nonEmpty(stopWords)) {
                 if (stopWords.equals("en-default")) {
@@ -429,7 +411,6 @@ public class Main {
             esaOptions.analyzer = analyzerFactory.getAnalyzer();
 
             CommandLineVectorizerFactory vectorizerFactory = new CommandLineVectorizerFactory(esaOptions);
-
 
             //Load indexer options from command line and ESA options
             WikiIndexerOptions indexerOptions = new WikiIndexerOptions();
@@ -540,7 +521,7 @@ public class Main {
                 PrunerTuner tuner = new PrunerTuner(similarityTool);
                 System.out.println("Analyzing wordsim-353 to find the ideal vector limit...");
                 System.out.println("----------------------------------------");
-                PrunerTuning tuning = tuner.tune(pearsonCalculator, pruneOptions, 9, 12, 1, 0.000002, 0.00003, 0.000001);
+                PrunerTuning tuning = tuner.tune(pearsonCalculator, pruneOptions, 510, 700, 30, 0.01, 0.25, 0.01);
                 System.out.println("tuned p-value:\t" + tuning.getTunedScore());
                 System.out.println("tuned window size:\t" + tuning.getTunedWindowSize());
                 System.out.println("tuned window dropoff:\t" + tuning.getTunedWindowDropOff());

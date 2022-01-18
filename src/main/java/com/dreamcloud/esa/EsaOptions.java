@@ -10,12 +10,10 @@ import java.nio.file.Path;
 public class EsaOptions {
     public DocumentType documentType;
     public Analyzer analyzer;
-    public String vectorizerType;
     public DictionaryRepository dictionaryRepository;
     public StopWordRepository stopWordRepository;
     public DocumentPreprocessor preprocessor;
     public Path indexPath;
-    public int documentLimit;
     public String indexFile;
     public StopWordRepository rareWordRepository;
     public PruneOptions pruneOptions;
@@ -33,7 +31,6 @@ public class EsaOptions {
         System.out.println("Dictionary Words:\t" + (dictionaryRepository == null ? "(no source)" : dictionaryRepository.getDictionaryWords().size()));
         System.out.println("Index Path:\t\t" + indexPath.toString());
         System.out.println("Index File:\t\t" + indexFile);
-        System.out.println("Document Limit:\t\t" + documentLimit);
         System.out.println("---------------------------------------");
     }
 }
