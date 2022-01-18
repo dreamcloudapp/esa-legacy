@@ -58,9 +58,16 @@ public class VectorBuilder {
                     scoreReader.getTfIdfScores(term, termScores);
                     for (int scoreIdx = 0; scoreIdx < termScores.size(); scoreIdx++) {
                         allTermScores.add(termScores.get(scoreIdx));
-                        if (scoreIdx >= pruneOptions.windowSize) {
+                        /*if (scoreIdx >= pruneOptions.windowSize) {
                             float headScore = (float) termScores.get(scoreIdx - pruneOptions.windowSize).getScore();
                             float tailScore = (float) termScores.get(scoreIdx).getScore();
+                            if (headScore - tailScore < headScore * pruneOptions.dropOff) {
+                                break;
+                            }
+                        }*/
+                        if (scoreIdx + pruneOptions.windowSize < termScores.size()) {
+                            float headScore = (float) termScores.get(scoreIdx).getScore();
+                            float tailScore = (float) termScores.get(scoreIdx + pruneOptions.windowSize).getScore();
                             if (headScore - tailScore < headScore * pruneOptions.dropOff) {
                                 break;
                             }
