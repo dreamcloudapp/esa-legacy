@@ -8,6 +8,6 @@ import com.dreamcloud.esa.tfidf.strategy.TermFrequencyStrategy;
  */
 public class NaturalTermFrequency implements TermFrequencyStrategy {
     public double tf(double tf, TermInfo termInfo) {
-        return tf;
+        return Math.pow(tf, 4);
     }
 }

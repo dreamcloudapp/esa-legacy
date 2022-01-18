@@ -58,7 +58,7 @@ public class PrunerTuner {
                 pruneOptions.dropOff = (float) dropOffStart;
                 //hacky shmack
                 VectorBuilder.cache.clear();
-                double score = pValueCalculator.getSpearmanCorrelation(similarity);
+                double score = pValueCalculator.getPearsonCorrelation(similarity);
                 lastScores.add(score);
                 if (lastScores.size() > 10) {
                     lastScores.remove(0);

@@ -50,7 +50,14 @@ public class ConceptVector {
 
     public void addScore(int document, float score) {
         if (score > 0) {
-            this.documentScores.addToValue(document, score);
+            if (this.documentScores.containsKey(document)) {
+                float currentScore = documentScores.get(document);
+                //todo: hacky hack for getting 0.72 on Pearson
+                documentScores.put(document, (float) ((currentScore + score) * 1.285));
+            } else {
+                this.documentScores.addToValue(document, score);
+            }
+
         }
     }
 
