@@ -30,6 +30,7 @@ abstract public class XmlReadingHandler extends DefaultHandler implements AutoCl
         this.allowedTags.add("outgoingLinks");
         this.allowedTags.add("terms");
         this.allowedTags.add("redirect");
+        this.allowedTags.add("id");
     }
 
     public void allowTag(String tag) {

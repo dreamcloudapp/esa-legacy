@@ -69,16 +69,20 @@ public class ArticleStatsReader extends XmlReadingHandler {
     @Override
     protected void handleDocument(Map<String, String> xmlFields) throws SAXException {
         String text = xmlFields.get("text");
-        int incomingLinks = Integer.parseInt(xmlFields.get("incomingLinks"));
-        this.totalIncomingLinks += incomingLinks;
-        if (incomingLinks > this.maxIncomingLinks) {
-            this.maxIncomingLinks = incomingLinks;
-            this.maxIncomingLinksTitle = xmlFields.get("title");
+        if (xmlFields.containsKey("incomingLinks")) {
+            int incomingLinks = Integer.parseInt(xmlFields.get("incomingLinks"));
+            this.totalIncomingLinks += incomingLinks;
+            if (incomingLinks > this.maxIncomingLinks) {
+                this.maxIncomingLinks = incomingLinks;
+                this.maxIncomingLinksTitle = xmlFields.get("title");
+            }
         }
 
-        int outgoingLinks = Integer.parseInt(xmlFields.get("outgoingLinks"));
-        this.totalOutgoingLinks += outgoingLinks;
-        this.maxOutgoingLinks = Math.max(this.maxOutgoingLinks, outgoingLinks);
+        if (xmlFields.containsKey("outgoingLinks")) {
+            int outgoingLinks = Integer.parseInt(xmlFields.get("outgoingLinks"));
+            this.totalOutgoingLinks += outgoingLinks;
+            this.maxOutgoingLinks = Math.max(this.maxOutgoingLinks, outgoingLinks);
+        }
 
         TokenStream tokens = analyzer.tokenStream("text", text);
         CharTermAttribute termAttribute = tokens.addAttribute(CharTermAttribute.class);

@@ -141,12 +141,12 @@ public class WikiPreprocessor extends XmlWritingHandler {
             return;
         }
 
-        /*matcher = stubPattern.matcher(text);
+        matcher = stubPattern.matcher(text);
         if (matcher.find() || text.contains("stub}}")) {
             this.numStubs++;
             this.docsStripped++;
             return;
-        }*/
+        }
 
         try {
             /*text = templateProcessor.substitute(text, title); //todo: why not use normalized title here?
@@ -186,6 +186,7 @@ public class WikiPreprocessor extends XmlWritingHandler {
 
     public void writeDocument(String title, String text) throws XMLStreamException, IOException {
         this.writeStartElement("doc");
+        this.writeElement("id", String.valueOf(this.getDocsRead()));
         this.writeElement("title", title);
         this.writeElement("text", text);
         this.writeEndElement();
