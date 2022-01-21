@@ -30,8 +30,7 @@ import java.util.regex.Pattern;
  */
 class WikiTitleMapper extends XmlWritingHandler {
     ArrayList<Pattern> titleExclusionPatterns;
-    protected Pattern redirectPattern = Pattern.compile("^.*#REDIRECT[^\\[]+\\[\\[(.+)]].*$");
-    protected File inputFile;
+    protected Pattern redirectPattern = Pattern.compile("^.*#REDIRECT[^\\[]*\\[\\[([^#]+)(#.+)?]]", Pattern.CASE_INSENSITIVE);    protected File inputFile;
     protected final SAXParserFactory saxFactory;
     protected int numRedirects = 0;
 

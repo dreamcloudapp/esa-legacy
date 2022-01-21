@@ -33,7 +33,7 @@ public class WikiPreprocessor extends XmlWritingHandler {
     protected TemplateProcessor templateProcessor;
     protected CategoryAnalyzer categoryAnalyzer;
     Set<String> excludedCategories;
-    protected Pattern redirectPattern = Pattern.compile("^.*#REDIRECT[^\\[]+\\[\\[(.+)]].*$");
+    protected Pattern redirectPattern = Pattern.compile("^.*#REDIRECT[^\\[]*\\[\\[([^#]+)(#.+)?]]", Pattern.CASE_INSENSITIVE);
     protected Pattern htmlAttributePattern = Pattern.compile("\\|\\s*[a-zA-Z_-]+\\s*=\\s*[^|]+\\|", Pattern.CASE_INSENSITIVE);
     protected Pattern stubPattern = Pattern.compile("\\{\\{[^}]*([Ss]tub|[Aa]sbox|[Mm]issing [Ii]nformation)[^}]*}}");
     ArrayList<Pattern> titleExclusionPatterns;
@@ -135,7 +135,7 @@ public class WikiPreprocessor extends XmlWritingHandler {
 
         //Exclude redirects
         Matcher matcher = redirectPattern.matcher(text);
-        if (matcher.matches()) {
+        if (matcher.find()) {
             this.docsStripped++;
             this.numRedirects++;
             return;

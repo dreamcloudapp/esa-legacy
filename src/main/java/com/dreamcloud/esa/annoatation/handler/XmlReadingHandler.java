@@ -89,8 +89,6 @@ abstract public class XmlReadingHandler extends DefaultHandler implements AutoCl
 
     public void characters(char[] ch, int start, int length) {
         if (content != null) {
-            //Probably not needed, but if you had <td>foo</td><td>bar</td> you'd end up with "foobar" as a token
-            //since we don't create a new string builder unless we see a tag we are looking for (title/text/etc)
             content.append(ch, start, length);
         }
     }
