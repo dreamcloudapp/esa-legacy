@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import com.dreamcloud.esa.analysis.CollectionInfo;
 import com.dreamcloud.esa.analyzer.*;
 import com.dreamcloud.esa.annoatation.*;
 import com.dreamcloud.esa.database.TfIdfScoreRepository;
@@ -20,9 +21,9 @@ import com.dreamcloud.esa.fs.*;
 import com.dreamcloud.esa.indexer.*;
 import com.dreamcloud.esa.pruner.PrunerTuner;
 import com.dreamcloud.esa.pruner.PrunerTuning;
+import com.dreamcloud.esa.score.LoggingScoreReader;
 import com.dreamcloud.esa.server.EsaHttpServer;
 import com.dreamcloud.esa.similarity.SimilarityFactory;
-import com.dreamcloud.esa.tfidf.*;
 import com.dreamcloud.esa.tools.*;
 import com.dreamcloud.esa.vectorizer.*;
 
@@ -246,11 +247,6 @@ public class Main {
         articleStatsOption.setRequired(false);
         options.addOption(articleStatsOption);
 
-        //Data source (DB, Lucene, custom FS)
-        Option sourceOption = new Option(null, "source", true, "[db|fs|lucene] / The data source for analysis.");
-        sourceOption.setRequired(true);
-        options.addOption(sourceOption);
-
         //Indexing
         Option indexOption = new Option(null, "index", true, "input file / Indexes a corpus of documents.");
         indexOption.setRequired(false);
@@ -260,11 +256,6 @@ public class Main {
         Option indexPathOption = new Option(null, "index-path", true, "input directory / The path to the input directory (defaults to ./index/$doctype)");
         indexPathOption.setRequired(false);
         options.addOption(indexPathOption);
-
-        //Prune index option
-        Option pruneOption = new Option(null, "prune", false, "Creates an inverse index mapping pruned to include only relevant concepts");
-        pruneOption.setRequired(false);
-        options.addOption(pruneOption);
 
         Option pruneWindowSizeOption = new Option(null, "prune-window-size", true, "int [100] / The size of the concept window used for pruning.");
         pruneWindowSizeOption.setRequired(false);
@@ -296,7 +287,6 @@ public class Main {
             String[] repeatContentArgs = cmd.getOptionValues("repeat-content");
             String[] writeRareWordArgs = cmd.getOptionValues("write-rare-words");
             String[] pearsonArgs = cmd.getOptionValues("pearson");
-            String[] sourceArgs = cmd.getOptionValues("source");
             String docType = cmd.getOptionValue("doctype");
             String tfIdfDocumentMode = cmd.getOptionValue("tfidf-document", "ltc");
             String tfIdfQueryMode = cmd.getOptionValue("tfidf-query", "ltc");
@@ -312,23 +302,16 @@ public class Main {
             String categoryInfo = cmd.getOptionValue("category-info");
 
             SourceOptions sourceOptions = new SourceOptions();
-            String source = sourceArgs[0];
-            if (source.equals("db")) {
-                TfIdfScoreRepository repo = new TfIdfScoreRepository();
-                sourceOptions.collectionInfo = new CollectionInfo(repo.getDocumentCount(), repo.getAverageDocumentLength(), repo.getDocumentFrequencies());
-                sourceOptions.scoreReader = repo;
-                sourceOptions.collectionWriter = new SqlCollectionWriter(repo);
-            } else if(source.equals("fs")) {
-                File termIndexFile = new File("index/term-index.dc");
-                File documentScoreFile = new File("index/term-scores.dc");
-                TermIndexReader termIndexReader = new TermIndexReader();
-                termIndexReader.open(termIndexFile);
-                TermIndex termIndex = termIndexReader.readIndex();
-                DocumentScoreDataReader scoreFileReader = new DocumentScoreMemoryReader(documentScoreFile);
-                sourceOptions.collectionInfo = new CollectionInfo(termIndex.getDocumentCount(), termIndex.getAverageDocumentLength(), termIndex.getDocumentFrequencies());
-                sourceOptions.scoreReader = new ScoreReader(termIndex, scoreFileReader);
-                sourceOptions.collectionWriter = new DiskCollectionWriter(termIndexFile, documentScoreFile);
-            }
+            File termIndexFile = new File("index/term-index.dc");
+            File documentScoreFile = new File("index/term-scores.dc");
+            TermIndexReader termIndexReader = new TermIndexReader();
+            termIndexReader.open(termIndexFile);
+            TermIndex termIndex = termIndexReader.readIndex();
+            DocumentScoreDataReader scoreFileReader = new DocumentScoreMemoryReader(documentScoreFile);
+            sourceOptions.collectionInfo = new CollectionInfo(termIndex.getDocumentCount(), termIndex.getAverageDocumentLength(), termIndex.getDocumentFrequencies());
+            sourceOptions.scoreReader = new ScoreReader(termIndex, scoreFileReader);
+            sourceOptions.collectionWriter = new DiskCollectionWriter(termIndexFile, documentScoreFile);
+
             //sourceOptions.scoreReader = new DocumentScoreCachingReader(sourceOptions.scoreReader);
             LoggingScoreReader scoreReader = new LoggingScoreReader(sourceOptions.scoreReader);
             sourceOptions.scoreReader = scoreReader;
@@ -667,9 +650,6 @@ public class Main {
             else if(nonEmpty(index)) {
                 System.out.println("Indexing " + index + "...");
                 indexFile(esaOptions, indexerOptions);
-            } else if(cmd.hasOption("prune")) {
-              IndexPruner pruner = new IndexPruner(pruneOptions);
-              pruner.prune(new TfIdfScoreRepository());
             } else if(nonEmpty(server)) {
                 EsaHttpServer esaServer = new EsaHttpServer(vectorizerFactory.getVectorizer(), esaOptions);
                 esaServer.start(Integer.parseInt(server));
