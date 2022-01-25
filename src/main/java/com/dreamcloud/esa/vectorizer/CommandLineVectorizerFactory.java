@@ -1,12 +1,9 @@
 package com.dreamcloud.esa.vectorizer;
 
 import com.dreamcloud.esa.EsaOptions;
-import com.dreamcloud.esa.database.TfIdfScoreRepository;
-import com.dreamcloud.esa.tfidf.BM25Calculator;
-import com.dreamcloud.esa.tfidf.TfIdfAnalyzer;
-import com.dreamcloud.esa.tfidf.TfIdfCalculator;
-
-import java.io.IOException;
+import com.dreamcloud.esa.analysis.BM25Calculator;
+import com.dreamcloud.esa.analysis.TfIdfAnalyzer;
+import com.dreamcloud.esa.analysis.TfIdfCalculator;
 
 public class CommandLineVectorizerFactory implements VectorizerFactory {
     EsaOptions options;
