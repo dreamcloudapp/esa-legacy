@@ -1,10 +1,10 @@
 package com.dreamcloud.esa.vectorizer;
 
-import com.dreamcloud.esa.analysis.CollectionInfo;
-import com.dreamcloud.esa.analysis.TfIdfAnalyzer;
+import com.dreamcloud.esa_score.analysis.CollectionInfo;
+import com.dreamcloud.esa_score.analysis.TfIdfAnalyzer;
 import com.dreamcloud.esa.documentPreprocessor.DocumentPreprocessor;
-import com.dreamcloud.esa.score.DocumentScoreReader;
-import com.dreamcloud.esa.score.TfIdfScore;
+import com.dreamcloud.esa_score.score.DocumentScoreReader;
+import com.dreamcloud.esa_score.score.TfIdfScore;
 
 import java.util.Arrays;
 import java.util.HashMap;

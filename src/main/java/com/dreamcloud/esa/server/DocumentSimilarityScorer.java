@@ -1,6 +1,5 @@
 package com.dreamcloud.esa.server;
 
-import com.dreamcloud.esa.database.DocumentScore;
 import com.dreamcloud.esa.tools.SemanticSimilarityTool;
 import com.dreamcloud.esa.vectorizer.TextVectorizer;
 

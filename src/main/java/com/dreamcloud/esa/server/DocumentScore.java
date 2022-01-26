@@ -1,4 +1,4 @@
-package com.dreamcloud.esa.database;
+package com.dreamcloud.esa.server;
 
 public class DocumentScore {
     public String status;
