@@ -59,7 +59,7 @@ public class TfIdfWriter extends XmlReadingHandler /* implements Indexer */ {
         this.fixedQueue = new WikipediaArticle[options.threadCount * options.batchSize];
     }
 
-    public void index() throws IOException {
+    public void index() throws IOException, ParserConfigurationException, SAXException {
         reset();
         executorService = Executors.newFixedThreadPool(options.threadCount);
         parseXmlDump(inputFile);
@@ -88,17 +88,13 @@ public class TfIdfWriter extends XmlReadingHandler /* implements Indexer */ {
         System.out.println("----------------------------------------");
     }
 
-    public void parseXmlDump(File file) {
-        try {
-            SAXParser saxParser = saxFactory.newSAXParser();
-            Reader reader = BZipFileReader.getFileReader(file);
-            InputSource is = new InputSource(reader);
-            is.setEncoding("UTF-8");
-            saxParser.parse(is, this);
-            reader.close();
-        } catch (ParserConfigurationException | SAXException | IOException ex) {
-            Logger.getLogger(com.dreamcloud.esa.indexer.WikiIndexer.class.getName()).log(Level.SEVERE, null, ex);
-        }
+    public void parseXmlDump(File file) throws ParserConfigurationException, SAXException, IOException {
+        SAXParser saxParser = saxFactory.newSAXParser();
+        Reader reader = BZipFileReader.getFileReader(file);
+        InputSource is = new InputSource(reader);
+        is.setEncoding("UTF-8");
+        saxParser.parse(is, this);
+        reader.close();
     }
 
     void processQueue() {

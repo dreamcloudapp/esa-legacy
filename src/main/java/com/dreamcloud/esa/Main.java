@@ -22,17 +22,13 @@ import com.dreamcloud.esa.pruner.PrunerTuner;
 import com.dreamcloud.esa.pruner.PrunerTuning;
 import com.dreamcloud.esa_score.score.LoggingScoreReader;
 import com.dreamcloud.esa.server.EsaHttpServer;
-import com.dreamcloud.esa.similarity.SimilarityFactory;
 import com.dreamcloud.esa.tools.*;
 import com.dreamcloud.esa.vectorizer.*;
 
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
-import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.search.*;
-import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.commons.cli.*;
 import org.xml.sax.SAXException;
@@ -94,16 +90,6 @@ public class Main {
         topFileOption.setRequired(false);
         options.addOption(topFileOption);
 
-        Option weightOption = new Option(null, "weight", true, "docId documentText / Gets the weights of terms within a document");
-        weightOption.setArgs(2);
-        weightOption.setRequired(false);
-        options.addOption(weightOption);
-
-        Option relevanceOption = new Option(null, "relevance", true, "\"term docId\" / Computes the relevance of a term to a document id.");
-        relevanceOption.setArgs(2);
-        relevanceOption.setRequired(false);
-        options.addOption(relevanceOption);
-
         //Indexing Options
         Option minimumTermCountOption = new Option(null, "min-terms", true, "int / (indexing)\tThe minimum number of terms allowed for a document.");
         minimumTermCountOption.setRequired(false);
@@ -124,10 +110,6 @@ public class Main {
         Option maximumDocumentCountOption = new Option(null, "max-docs", true, "int / (indexing)\tThe maximum number of documents we can process before throwing an error (defaults to 512,000).");
         maximumDocumentCountOption.setRequired(false);
         options.addOption(maximumDocumentCountOption);
-
-        Option similarityOption = new Option(null, "similarity", true, "string | The similarity algorithm to use (TFIDF,BM25,trueTFIDF,trueBM25.");
-        similarityOption.setRequired(false);
-        options.addOption(similarityOption);
 
         //Wiki specific indexing options
         Option minimumIncomingLinksOption = new Option(null, "min-incoming-links", true, "int / (indexing:wiki)\tThe minimum number of incoming links.");
@@ -278,8 +260,6 @@ public class Main {
             String[] compareFiles = cmd.getOptionValues("cf");
             String[] topText = cmd.getOptionValues("tt");
             String[] topFile = cmd.getOptionValues("tf");
-            String[] relevanceArgs = cmd.getOptionValues("relevance");
-            String[] weightArgs = cmd.getOptionValues("weight");
             String[] wikiPreprocessorArgs = cmd.getOptionValues("preprocess");
             String[] findArticleArgs = cmd.getOptionValues("find-article");
             String[] countLinkArgs = cmd.getOptionValues("count-links-and-terms");
@@ -289,7 +269,6 @@ public class Main {
             String docType = cmd.getOptionValue("doctype");
             String tfIdfDocumentMode = cmd.getOptionValue("tfidf-document", "ltc");
             String tfIdfQueryMode = cmd.getOptionValue("tfidf-query", "ltc");
-            String similarityAlgorithm = cmd.getOptionValue("similarity");
             String stopWords = cmd.getOptionValue("stopwords");
             String rareWords = cmd.getOptionValue("rare-words");
             String dictionary = cmd.getOptionValue("dictionary");
@@ -341,10 +320,6 @@ public class Main {
                 throw new IllegalArgumentException("Document type " + docType + " is not recognized.");
             }
             esaOptions.indexPath = Paths.get(nonEmpty(indexPath) ? indexPath : "./index/" + docType + "_index");
-
-            if (nonEmpty(similarityAlgorithm)) {
-                SimilarityFactory.algorithm = similarityAlgorithm;
-            }
 
             if (nonEmpty(stopWords)) {
                 if (stopWords.equals("en-default")) {
@@ -548,33 +523,6 @@ public class Main {
                     ts.end();
                 }
                 ts.close();
-            }
-
-            else if(hasLength(weightArgs, 2)) {
-                String documentId = weightArgs[0];
-                String documentText = weightArgs[1];
-                Directory dir = FSDirectory.open(esaOptions.indexPath);
-                IndexReader docReader = DirectoryReader.open(dir);
-                IndexSearcher docSearcher = new IndexSearcher(docReader);
-                docSearcher.setSimilarity(SimilarityFactory.getSimilarity());
-                Term idTerm = new Term(DreamIndexer.ID_FIELD, documentId);
-                WeighedDocumentQueryBuilder builder = new WeighedDocumentQueryBuilder(esaOptions.analyzer, docSearcher);
-                System.out.println("Weighted Query: " + builder.weight(idTerm, documentText));
-            }
-
-            //Relevance of term to document
-            else if(hasLength(relevanceArgs, 2)) {
-                String termString = relevanceArgs[0];
-                String documentId = relevanceArgs[1];
-                Directory dir = FSDirectory.open(esaOptions.indexPath);
-                IndexReader docReader = DirectoryReader.open(dir);
-                IndexSearcher docSearcher = new IndexSearcher(docReader);
-                docSearcher.setSimilarity(SimilarityFactory.getSimilarity());
-                //Must include the term
-                Term term = new Term("text", termString);
-                Term idTerm = new Term("id", documentId);
-                DocumentTermRelevance relevance = new DocumentTermRelevance(idTerm, docSearcher);
-                System.out.println("Relevance: " + relevance.score(term));
             }
 
             else if(hasLength(wikiPreprocessorArgs, 3)) {

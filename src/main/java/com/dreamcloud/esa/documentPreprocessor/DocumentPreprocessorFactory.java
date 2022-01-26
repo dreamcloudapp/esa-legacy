@@ -1,6 +1,5 @@
 package com.dreamcloud.esa.documentPreprocessor;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class DocumentPreprocessorFactory {

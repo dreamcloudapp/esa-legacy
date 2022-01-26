@@ -1,7 +1,6 @@
 package com.dreamcloud.esa.documentPreprocessor;
 
 import com.dreamcloud.esa.analyzer.WikiAnalyzer;
-import com.dreamcloud.esa.indexer.DreamIndexer;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
@@ -17,7 +16,7 @@ public class WikiPreprocessor implements DocumentPreprocessor {
     public String process(String document) throws IOException {
         StringBuilder analyzedText = new StringBuilder();
         Analyzer analyzer = new WikiAnalyzer();
-        TokenStream tokenStream = analyzer.tokenStream(DreamIndexer.TEXT_FIELD, document);
+        TokenStream tokenStream = analyzer.tokenStream("text", document);
         CharTermAttribute termAttribute = tokenStream.addAttribute(CharTermAttribute.class);
         tokenStream.reset();
         while(tokenStream.incrementToken()) {
