@@ -1,11 +1,7 @@
 package com.dreamcloud.esa.pruner;
 
 import com.dreamcloud.esa.tools.PValueCalculator;
-import com.dreamcloud.esa.tools.SemanticSimilarityTool;
-import com.dreamcloud.esa.vectorizer.PruneOptions;
-import com.dreamcloud.esa.vectorizer.VectorBuilder;
 
-import java.io.*;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Scanner;
