@@ -1,11 +1,7 @@
 package com.dreamcloud.esa;
 
-import java.io.File;
 import java.io.IOException;
 import java.text.NumberFormat;
-import com.dreamcloud.esa.pruner.PrunerTuner;
-import com.dreamcloud.esa.pruner.PrunerTuning;
-import com.dreamcloud.esa.tools.*;
 
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
@@ -38,26 +34,6 @@ public class Main {
         topFileOption.setRequired(false);
         options.addOption(topFileOption);
 
-        //Spearman correlations to get tool p-value
-        Option spearmanOption = new Option(null, "spearman", true, "correlation file / Calculates Spearman correlations to get the p-value of the tool");
-        spearmanOption.setRequired(false);
-        options.addOption(spearmanOption);
-
-        //Pearson correlations to get tool p-value
-        Option pearsonOption = new Option(null, "pearson", true, "correlation file [document file] / Calculates Pearson correlations to get the p-value of the tool");
-        pearsonOption.setRequired(false);
-        options.addOption(pearsonOption);
-
-        //Pearson correlations to get tool p-value
-        Option tuneOption = new Option(null, "tune", false, "Finds ideal pruning options for spearman and pearson");
-        tuneOption.setRequired(false);
-        options.addOption(tuneOption);
-
-        //Server options
-        Option serverOption = new Option(null, "server", true, "port / Starts a vectorizing server using the specified port.");
-        serverOption.setRequired(false);
-        options.addOption(serverOption);
-
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
 
@@ -67,7 +43,6 @@ public class Main {
             String[] compareFiles = cmd.getOptionValues("cf");
             String[] topText = cmd.getOptionValues("tt");
             String[] topFile = cmd.getOptionValues("tf");
-            String[] pearsonArgs = cmd.getOptionValues("pearson");
 
             //Comparison of texts
             if (hasLength(compareTexts, 2) || hasLength(compareFiles, 2)) {
@@ -115,57 +90,6 @@ public class Main {
                     System.out.println(documentId + ": " + format.format(vector.getScore(documentId)));
                 }
             }
-
-            else if (cmd.hasOption("spearman")) {
-                String spearman = cmd.getOptionValue("spearman");
-                if ("en-wordsim353".equals(spearman)) {
-                    spearman = "./src/data/en-wordsim353.csv";
-                }
-                TextVectorizer textVectorizer = vectorizerFactory.getVectorizer();
-                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
-                PValueCalculator calculator = new PValueCalculator(new File(spearman));
-                System.out.println("Calculating P-value using Spearman correlation...");
-                System.out.println("----------------------------------------");
-                System.out.println("p-value:\t" + calculator.getSpearmanCorrelation(similarityTool));
-                System.out.println("----------------------------------------");
-            }
-
-            else if (hasLength(pearsonArgs, 1)) {
-                String pearsonFile = pearsonArgs[0];
-                File documentFile = pearsonArgs.length > 1 ? new File(pearsonArgs[1]) : null;
-                if ("en-lp50".equals(pearsonFile)) {
-                    pearsonFile = "./src/data/en-lp50.csv";
-                    documentFile = new File("./src/data/en-lp50-documents.csv");
-                }
-                TextVectorizer textVectorizer = vectorizerFactory.getVectorizer();
-                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer);
-                PValueCalculator calculator = new PValueCalculator(new File(pearsonFile), documentFile);
-                System.out.println("Calculating P-value using Pearson correlation...");
-                System.out.println("----------------------------------------");
-                System.out.println("p-value:\t" + calculator.getPearsonCorrelation(similarityTool));
-                System.out.println("----------------------------------------");
-            }
-
-            else if (cmd.hasOption("tune")) {
-                File spearmanFile = new File("./src/data/en-wordsim353.csv");
-                File pearsonFile = new File("./src/data/en-lp50.csv");
-                File documentFile = new File("./src/data/en-lp50-documents.csv");
-
-                TextVectorizer textVectorizer = vectorizerFactory.getVectorizer();
-                PValueCalculator spearmanCalculator = new PValueCalculator(spearmanFile);
-                PValueCalculator pearsonCalculator = new PValueCalculator(pearsonFile, documentFile);
-
-                SemanticSimilarityTool similarityTool = new SemanticSimilarityTool(textVectorizer, pruneOptions);
-                PrunerTuner tuner = new PrunerTuner(similarityTool);
-                System.out.println("Analyzing wordsim-353 to find the ideal vector limit...");
-                System.out.println("----------------------------------------");
-                PrunerTuning tuning = tuner.tune(spearmanCalculator, pruneOptions, 1000, 3000, 100, 0.01, 0.05, 0.01);
-                System.out.println("tuned p-value:\t" + tuning.getTunedScore());
-                System.out.println("tuned window size:\t" + tuning.getTunedWindowSize());
-                System.out.println("tuned window dropoff:\t" + tuning.getTunedWindowDropOff());
-                System.out.println("----------------------------------------");
-            }
-
             //Debug tokens
             else if(nonEmpty(debug)) {
                 String sourceText = readInputFile(debug, "utf-8");

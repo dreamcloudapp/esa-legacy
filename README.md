@@ -2,25 +2,24 @@
 
 ## What is this?
 
-Semantic analysis is a way to extract meaning from a written text.
+Semantic analysis is any technology which provides meaningful information from written text.
 The written text may be a single word, a couple of words, a sentence, a paragraph or a whole book.
 
 Explicit Semantic Analysis is a way to derive meaning based on Wikipedia.
 The text is transformed into a vector of Wikipedia articles.
 The vectors of two different texts can then be compared to assess the semantic similarity of those texts.
 
-This implementation was written by Philip van Oosten.
-It takes advantage of the mature Lucene project.
+This implementation was written by Sheldon Juncker (sheldonjuncker@gmail.com) and the DreamCloud Team (dreamcloud.app/about)
 
 ## License
 
-This software is provided under the terms of the AGPLv3 license.
-If this software seems helpful to you, but you dislike the licensing, don't let it get in your way and contact the author.
-We can work something out.
+This software is provided under the terms of the MIT license, which pretty much lets you do anything you want with the software provided you leave our copyright notice and don't hold us responsible for any liability.
 
 ## Usage
 
-ESA can be used as a library. You will need to make some changes to the source code to use ESA and to tweak it.
+ESA can be used as a library or as a stand-alone tool. There are a variety of different Maven packages that we host here on Github which can be used or combined in various ways:
+
+- `esa-core`: The core ESA implementation including text analysis 
 
 To learn how to work with it, I recommend trying a language with a small Wikipedia dump, other than English.
 The English wikipedia dump is very large and each step in the process of setting up ESA takes several hours to complete.
